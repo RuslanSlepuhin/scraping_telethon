@@ -8,7 +8,6 @@ import flask
 from links import list_links
 from telethon.sync import TelegramClient
 from telethon import functions, types, events, client
-from asgiref.sync import sync_to_async, async_to_sync
 import psycopg2
 
 # In the same way, you can also leave such channel
