@@ -1,23 +1,13 @@
 import configparser
 import time
-from asyncio import Task
 from datetime import datetime, timedelta
-
-import flask
 
 from links import list_links
 from telethon.sync import TelegramClient
-from telethon import functions, types, events, client
+from telethon import events, client
 import psycopg2
 
-# In the same way, you can also leave such channel
-from telethon.tl.functions.channels import LeaveChannelRequest
-from telethon import connection, utils
-
-# класс для работы с сообщениями
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest
-
-# app = flask.Flask(__name__)
 
 config = configparser.ConfigParser()
 config.read("config.ini")
