@@ -12,6 +12,9 @@ venv/
 .git/
 .idea/
 
+*.session
+*.session-lournal
+
 #migrations
 migrations/
 

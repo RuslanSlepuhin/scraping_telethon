@@ -3,6 +3,8 @@ import time
 from asyncio import Task
 from datetime import datetime, timedelta
 
+import flask
+
 from links import list_links
 from telethon.sync import TelegramClient
 from telethon import functions, types, events, client
@@ -15,6 +17,8 @@ from telethon import connection, utils
 
 # класс для работы с сообщениями
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest
+
+# app = flask.Flask(__name__)
 
 config = configparser.ConfigParser()
 config.read("config.ini")
@@ -34,7 +38,7 @@ class ListenChat:
     @client.on(events.NewMessage(chats=(list_links)))
     async def normal_handler(event):
 
-        print('I,m listening chats ....')
+        print('have a new message')
 
         info = event.message.to_dict()
         title = info['message'].partition(f'\n')[0]
@@ -107,7 +111,7 @@ class WriteToDbMessages():
         time.sleep(30)
 
 
-    async def main(self, list_links, limit_msg):
+    async def main_start(self, list_links, limit_msg):
         results_list = []
 
         for url in list_links:
@@ -135,7 +139,7 @@ class WriteToDbMessages():
 
     def start(self, limit_msg):
         with client:
-            client.loop.run_until_complete(self.main(list_links, limit_msg))
+            client.loop.run_until_complete(self.main_start(list_links, limit_msg))
 
 
     # def mute_wrong_url(self, url):
@@ -236,12 +240,16 @@ class DataBaseOperations:
                 print(i)
 
 
-get_messages = WriteToDbMessages()
-get_messages.start(limit_msg=10)
+def main():
+    get_messages = WriteToDbMessages()
+    get_messages.start(limit_msg=1)
 
-# client.start()
-# listen = ListenChat()
-# client.run_until_disconnected()
+    print("I'm listening chats...")
+    client.start()
+    ListenChat()
+    client.run_until_disconnected()
+
+main()
 
 # db = DataBaseOperations()
 # db.get_all_from_db()
