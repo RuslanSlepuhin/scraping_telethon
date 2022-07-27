@@ -52,15 +52,14 @@ class ListenChat:
 
 class WriteToDbMessages():
     async def dump_all_messages(self, channel, limit_msg):
-        """Записывает json-файл с информацией о всех сообщениях канала/чата"""
         offset_msg = 0  # номер записи, с которой начинается считывание
         # limit_msg = 1   # максимальное число записей, передаваемых за один раз
 
         all_messages = []  # список всех сообщений
         total_messages = 0
-        total_count_limit = limit_msg  # поменяйте это значение, если вам нужны не все сообщения
+        total_count_limit = limit_msg  # значение 0 = все сообщения
 
-        message = []
+        # message = []
         while True:
             history = await client(GetHistoryRequest(
                 peer=channel,
@@ -75,7 +74,6 @@ class WriteToDbMessages():
                 if not message.message:  # если сообщение пустое, например "Александр теперь в группе"
                     break
                 all_messages.append(message.to_dict())
-                # здесь можно организовать формирование словаря
 
             offset_msg = messages[len(messages) - 1].id
             total_messages = len(all_messages)
@@ -101,7 +99,6 @@ class WriteToDbMessages():
 
 
     async def main_start(self, list_links, limit_msg):
-        results_list = []
 
         for url in list_links:
             bool_index = True
@@ -121,7 +118,6 @@ class WriteToDbMessages():
                 else:
                     print(f'ValueError for url {url}: {e}')
                     bool_index = False
-                    # self.mute_wrong_url(url)
 
             if bool_index:
                 await self.dump_all_messages(channel, limit_msg)
@@ -131,15 +127,6 @@ class WriteToDbMessages():
             client.loop.run_until_complete(self.main_start(list_links, limit_msg))
 
 
-    # def mute_wrong_url(self, url):
-    #     with open('links_test.py', 'r') as f:
-    #         old_data = f.read()
-    #
-    #     new_data = old_data.replace(url, 'https://t.me/ruslanchannel3')
-    #
-    #     with open('links-test.py', 'w') as f:
-    #         f.write(new_data)
-
 # ---------------------DB operations ----------------------
 class DataBaseOperations:
 
@@ -148,23 +135,38 @@ class DataBaseOperations:
         con = None
 
         try:
-            con = psycopg2.connect(
-                database="decoo131rnacfl",
-                user="sjaxqxvmfdeslz",
-                password="8efe749c120bff33faa9e5e7c99b264b2b81b1bc1e1e2546a80c9b154afedc2a",
-                host="ec2-54-228-125-183.eu-west-1.compute.amazonaws.com",
+            # con = psycopg2.connect(
+            #     database="decoo131rnacfl",
+            #     user="sjaxqxvmfdeslz",
+            #     password="8efe749c120bff33faa9e5e7c99b264b2b81b1bc1e1e2546a80c9b154afedc2a",
+            #     host="ec2-54-228-125-183.eu-west-1.compute.amazonaws.com",
+            #     port="5432"
+            # )
+            # con = psycopg2.connect(
+            #     database="ttt",
+            #     user="ruslan",
+            #     password="12345",
+            #     host="127.0.0.1",
+            #     port="5432"
+            # )
+            con = psycopg2.connect( #db1902
+                database="dc04j4nt0ap2b4",
+                user="ukkqkanaktopdz",
+                password="829aa9cd879969aad6a71422e636b5c6f4e023c9a977c4196007e2a3cfaad3b0",
+                host="ec2-54-228-218-84.eu-west-1.compute.amazonaws.com",
                 port="5432"
             )
+
         except:
             print('No connect with db')
 
         cur = con.cursor()
 
         with con:
-            cur.execute("""CREATE TABLE IF NOT EXISTS telegram (
+            cur.execute("""CREATE TABLE IF NOT EXISTS scraping_newyork (
                 id SERIAL PRIMARY KEY,
                 chat_name VARCHAR(150),
-                title VARCHAR(700),
+                title VARCHAR(1000),
                 body VARCHAR (6000),
                 time_of_public VARCHAR(20),
                 created_at TIMESTAMP
@@ -175,21 +177,21 @@ class DataBaseOperations:
         print(f'\n****************************************\nINPUT IN DB FUNC = \n', results_dict)
 
         chat_name = results_dict['chat_name']
-        print('len chat_name = ', len(chat_name))
-        title = results_dict['title']
-        print('len title = ', len(title))
+        # print('len chat_name = ', len(chat_name))
+        title = results_dict['title'].replace(f'\'', '"')
+        # print('len title = ', len(title))
         body = str(results_dict['body']).replace(f'\'', '"')
-        print('len body = ', len(body))
+        # print('len body = ', len(body))
         time_of_public = results_dict['time_of_public']
-        print('len time_of_public = ', len(time_of_public))
+        # print('len time_of_public = ', len(time_of_public))
         created_at = datetime.now()
 
-        new_post = f"""INSERT INTO telegram (chat_name, title, body, time_of_public, created_at) 
+        new_post = f"""INSERT INTO scraping_newyork (chat_name, title, body, time_of_public, created_at) 
             VALUES ('{chat_name}', '{title}', '{body}', '{time_of_public}', '{created_at}');"""
 
         with con:
             try:
-                query = f"""SELECT * FROM telegram WHERE title='{title}' AND body='{body}'"""
+                query = f"""SELECT * FROM scraping_newyork WHERE title='{title}' AND body='{body}'"""
                 cur.execute(query)
                 r = cur.fetchall()
 
@@ -208,11 +210,11 @@ class DataBaseOperations:
         con = None
 
         try:
-            con = psycopg2.connect(
-                database="tg",
-                user="ruslan",
-                password="12345",
-                host="127.0.0.1",
+            con = psycopg2.connect(  # db1902
+                database="dc04j4nt0ap2b4",
+                user="ukkqkanaktopdz",
+                password="829aa9cd879969aad6a71422e636b5c6f4e023c9a977c4196007e2a3cfaad3b0",
+                host="ec2-54-228-218-84.eu-west-1.compute.amazonaws.com",
                 port="5432"
             )
 
@@ -221,7 +223,7 @@ class DataBaseOperations:
 
         cur = con.cursor()
 
-        query = """SELECT * FROM telegram"""
+        query = """SELECT * FROM scraping_newyork"""  #telegram
         with con:
             cur.execute(query)
             r = cur.fetchall()
@@ -231,9 +233,9 @@ class DataBaseOperations:
 
 def main():
     get_messages = WriteToDbMessages()
-    get_messages.start(limit_msg=1)
+    get_messages.start(limit_msg=10)
 
-    print("I'm listening chats...")
+    print("Listening chats...")
     client.start()
     ListenChat()
     client.run_until_disconnected()
