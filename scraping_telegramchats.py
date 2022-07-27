@@ -160,10 +160,10 @@ class DataBaseOperations:
 
         try:
             con = psycopg2.connect(
-                database="tele",
-                user="ruslan",
-                password="12345",
-                host="127.0.0.1",
+                database="decoo131rnacfl",
+                user="sjaxqxvmfdeslz",
+                password="8efe749c120bff33faa9e5e7c99b264b2b81b1bc1e1e2546a80c9b154afedc2a",
+                host="ec2-54-228-125-183.eu-west-1.compute.amazonaws.com",
                 port="5432"
             )
         except:
