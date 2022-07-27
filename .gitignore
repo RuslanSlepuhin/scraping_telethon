@@ -13,7 +13,7 @@ venv/
 .idea/
 
 *.session
-*.session-lournal
+*.session-journal
 
 #migrations
 migrations/
