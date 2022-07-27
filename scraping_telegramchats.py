@@ -177,13 +177,9 @@ class DataBaseOperations:
         print(f'\n****************************************\nINPUT IN DB FUNC = \n', results_dict)
 
         chat_name = results_dict['chat_name']
-        # print('len chat_name = ', len(chat_name))
         title = results_dict['title'].replace(f'\'', '"')
-        # print('len title = ', len(title))
         body = str(results_dict['body']).replace(f'\'', '"')
-        # print('len body = ', len(body))
         time_of_public = results_dict['time_of_public']
-        # print('len time_of_public = ', len(time_of_public))
         created_at = datetime.now()
 
         new_post = f"""INSERT INTO scraping_newyork (chat_name, title, body, time_of_public, created_at) 
@@ -223,7 +219,7 @@ class DataBaseOperations:
 
         cur = con.cursor()
 
-        query = """SELECT * FROM scraping_newyork"""  #telegram
+        query = """SELECT * FROM scraping_newyork"""
         with con:
             cur.execute(query)
             r = cur.fetchall()
