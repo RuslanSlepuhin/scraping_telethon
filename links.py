@@ -1,4 +1,5 @@
 list_links = [
+    'https://t.me/ruslanchannel3',
     'https://t.me/relocaty_jobs',
     'https://t.me/qa_jobs',
     'https://t.me/scala_jobs_feed',

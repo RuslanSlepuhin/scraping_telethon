@@ -1,17 +1,19 @@
+
 import configparser
 import time
 from datetime import datetime, timedelta
-
 from links import list_links
+from database_settings import database, user, password, host, port
 from telethon.sync import TelegramClient
 from telethon import events, client
 import psycopg2
-
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest
 
 config = configparser.ConfigParser()
 config.read("config.ini")
 
+# забираем значения из config.ini
+private_channel = config['My_channel']['private_channel']
 api_id = int(config['Telegram']['api_id'])
 api_hash = config['Telegram']['api_hash']
 username = config['Telegram']['username']
@@ -20,7 +22,8 @@ phone = '+375296449690'
 client = TelegramClient(username, api_id, api_hash)
 client.start()
 
-quant = 1
+quant = 1  # счетчик вывода количества запушенных в базу сообщений (для контроля в консоли)
+
 
 class ListenChat:
 
@@ -46,7 +49,9 @@ class ListenChat:
             'time_of_public': date
         }
         db = DataBaseOperations()
-        db.push_to_bd(results_dict)
+        or_exists = db.push_to_bd(results_dict)  # из push_to_db возвращается bool or_exists
+        if or_exists:
+            await client.send_message(entity=private_channel, message=info['message'])
         print(results_dict)
 
 
@@ -59,7 +64,6 @@ class WriteToDbMessages():
         total_messages = 0
         total_count_limit = limit_msg  # значение 0 = все сообщения
 
-        # message = []
         while True:
             history = await client(GetHistoryRequest(
                 peer=channel,
@@ -82,11 +86,10 @@ class WriteToDbMessages():
 
         channel_name = f'@{channel.username} | {channel.title}'
 
-        # results_list = []
         for i in all_messages:
             title = i['message'].partition(f'\n')[0]
             body = i['message'].replace(title, '').replace(f'\n\n', f'\n')
-            date = (i['date'] + timedelta(hours=3)).strftime('%d.%m.%y %H:%M')
+            date = (i['date'] + timedelta(hours=3))#.strftime('%d.%m.%y %H:%M')
             results_dict = {
                 'chat_name': channel_name,
                 'title': title,
@@ -94,8 +97,10 @@ class WriteToDbMessages():
                 'time_of_public': date
             }
             db = DataBaseOperations()
-            db.push_to_bd(results_dict)
-        time.sleep(30)
+            or_exists = db.push_to_bd(results_dict)  # из push_to_db возвращается bool or_exists
+            if or_exists:
+                await client.send_message(entity=private_channel, message=i['message'])
+        time.sleep(10)
 
 
     async def main_start(self, list_links, limit_msg):
@@ -131,50 +136,37 @@ class WriteToDbMessages():
 class DataBaseOperations:
 
     def push_to_bd(self, results_dict):
+        or_exists = False
         global quant
         con = None
 
         try:
-            # con = psycopg2.connect(
-            #     database="decoo131rnacfl",
-            #     user="sjaxqxvmfdeslz",
-            #     password="8efe749c120bff33faa9e5e7c99b264b2b81b1bc1e1e2546a80c9b154afedc2a",
-            #     host="ec2-54-228-125-183.eu-west-1.compute.amazonaws.com",
-            #     port="5432"
-            # )
-            # con = psycopg2.connect(
-            #     database="ttt",
-            #     user="ruslan",
-            #     password="12345",
-            #     host="127.0.0.1",
-            #     port="5432"
-            # )
-            con = psycopg2.connect( #db1902
-                database="dc04j4nt0ap2b4",
-                user="ukkqkanaktopdz",
-                password="829aa9cd879969aad6a71422e636b5c6f4e023c9a977c4196007e2a3cfaad3b0",
-                host="ec2-54-228-218-84.eu-west-1.compute.amazonaws.com",
-                port="5432"
+            con = psycopg2.connect(
+                database=database,
+                user=user,
+                password=password,
+                host=host,
+                port=port
             )
-
         except:
             print('No connect with db')
 
         cur = con.cursor()
 
         with con:
-            cur.execute("""CREATE TABLE IF NOT EXISTS scraping_newyork (
+            cur.execute("""CREATE TABLE IF NOT EXISTS telegramchannels (
                 id SERIAL PRIMARY KEY,
                 chat_name VARCHAR(150),
                 title VARCHAR(1000),
                 body VARCHAR (6000),
-                time_of_public VARCHAR(20),
+                time_of_public TIMESTAMP,
                 created_at TIMESTAMP
                 );"""
                         )
             con.commit()
 
-        print(f'\n****************************************\nINPUT IN DB FUNC = \n', results_dict)
+        print(f'\n****************************************\n'
+              f'INPUT IN DB FUNC = \n', results_dict)
 
         chat_name = results_dict['chat_name']
         title = results_dict['title'].replace(f'\'', '"')
@@ -182,12 +174,12 @@ class DataBaseOperations:
         time_of_public = results_dict['time_of_public']
         created_at = datetime.now()
 
-        new_post = f"""INSERT INTO scraping_newyork (chat_name, title, body, time_of_public, created_at) 
+        new_post = f"""INSERT INTO telegramchannels (chat_name, title, body, time_of_public, created_at) 
             VALUES ('{chat_name}', '{title}', '{body}', '{time_of_public}', '{created_at}');"""
 
         with con:
             try:
-                query = f"""SELECT * FROM scraping_newyork WHERE title='{title}' AND body='{body}'"""
+                query = f"""SELECT * FROM telegramchannels WHERE title='{title}' AND body='{body}'"""
                 cur.execute(query)
                 r = cur.fetchall()
 
@@ -195,23 +187,26 @@ class DataBaseOperations:
                     cur.execute(new_post)
                     con.commit()
                     print(quant, f'= Added to DB = ', results_dict)
+                    or_exists = True
                     quant += 1
                 else:
                     print(quant, f'This message exists already = ', results_dict)
             except Exception as e:
                 print('Dont push in db, error = ', e)
 
+            return or_exists
+
 
     def get_all_from_db(self):
         con = None
 
         try:
-            con = psycopg2.connect(  # db1902
-                database="dc04j4nt0ap2b4",
-                user="ukkqkanaktopdz",
-                password="829aa9cd879969aad6a71422e636b5c6f4e023c9a977c4196007e2a3cfaad3b0",
-                host="ec2-54-228-218-84.eu-west-1.compute.amazonaws.com",
-                port="5432"
+            con = psycopg2.connect(
+                database=database,
+                user=user,
+                password=password,
+                host=host,
+                port=port
             )
 
         except:
@@ -219,7 +214,7 @@ class DataBaseOperations:
 
         cur = con.cursor()
 
-        query = """SELECT * FROM scraping_newyork"""
+        query = """SELECT * FROM telegramchannels"""
         with con:
             cur.execute(query)
             r = cur.fetchall()
