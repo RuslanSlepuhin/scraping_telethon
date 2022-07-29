@@ -1,13 +1,13 @@
 list_links = [
-    'https://t.me/ruslanchannel3',
-    'https://t.me/relocaty_jobs',
-    'https://t.me/qa_jobs',
-    'https://t.me/scala_jobs_feed',
-    'https://t.me/joinchat/AAAAAEzV8yADoj9hGdvThQ', # подписаться
-    'https://t.me/qajoboffer',
-    'https://t.me/javascript_jobs_feed',
-    'https://t.me/joinchat/AAAAAE41V66UBtfXtuSrpg',  # подписаться
-    'https://t.me/itjobsinam',
+    # 'https://t.me/ruslanchannel3',
+    # 'https://t.me/relocaty_jobs',
+    # 'https://t.me/qa_jobs',
+    # 'https://t.me/scala_jobs_feed',
+    # 'https://t.me/joinchat/AAAAAEzV8yADoj9hGdvThQ', # подписаться
+    # 'https://t.me/qajoboffer',
+    # 'https://t.me/javascript_jobs_feed',
+    # 'https://t.me/joinchat/AAAAAE41V66UBtfXtuSrpg',  # подписаться
+    # 'https://t.me/itjobsinam',
     'https://t.me/remotejun',
     'https://t.me/hiddengurus',
     'https://t.me/it_vac',

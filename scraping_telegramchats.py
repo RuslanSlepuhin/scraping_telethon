@@ -51,7 +51,8 @@ class ListenChat:
         db = DataBaseOperations()
         or_exists = db.push_to_bd(results_dict)  # из push_to_db возвращается bool or_exists
         if or_exists:
-            await client.send_message(entity=private_channel, message=info['message'])
+            send_message = f'{chat_name}\n\n' + info['message']
+            await client.send_message(entity=private_channel, message=send_message)
         print(results_dict)
 
 
@@ -99,7 +100,8 @@ class WriteToDbMessages():
             db = DataBaseOperations()
             or_exists = db.push_to_bd(results_dict)  # из push_to_db возвращается bool or_exists
             if or_exists:
-                await client.send_message(entity=private_channel, message=i['message'])
+                send_message = f'{channel_name}\n\n'+i['message']
+                await client.send_message(entity=private_channel, message=send_message)
         time.sleep(10)
 
 
@@ -189,6 +191,7 @@ class DataBaseOperations:
                     print(quant, f'= Added to DB = ', results_dict)
                     or_exists = True
                     quant += 1
+                    time.sleep(15)
                 else:
                     print(quant, f'This message exists already = ', results_dict)
             except Exception as e:
