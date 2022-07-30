@@ -1,7 +1,7 @@
 # oms.ruslan heroku
-database="d44e47palt59vb"
-user="hzzgemfruznedu"
-password="92771d02590e8123a856cb071a934b297a863f847d5040521e7beda933a8d575"
-host="ec2-52-212-228-71.eu-west-1.compute.amazonaws.com"
+database="dbk1958g3j1q50"
+user="aphpvrjysurlcb"
+password="9c24a8b60b041c50b59d7f03e924cdbcb5e82b5d34aa140b586b21d35cab38b2"
+host="ec2-54-170-90-26.eu-west-1.compute.amazonaws.com"
 port="5432"
 
