@@ -166,8 +166,8 @@ class WriteToDbMessages():
                 if e.args[0] == 'Cannot get entity from a channel (or group) that you are not part of. Join the group and retry':
                     private_url = url.split('/')[-1]
                     try:
-                        await client(ImportChatInviteRequest(private_url))
-                        channel = await client.get_entity(url)
+                        await client(ImportChatInviteRequest(private_url))  # если канал закрытый, подписаться на него
+                        channel = await client.get_entity(url)  # и забрать из него историю сообщений
                     except Exception as e:
                         print(f'Error: Цикл прошел с ошибкой в месте, где нужна подписка: {e}')
 
