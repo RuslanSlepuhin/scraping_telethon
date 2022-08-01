@@ -2,6 +2,10 @@
 import configparser
 import time
 from datetime import datetime, timedelta
+
+from telethon.tl.functions.channels import GetParticipantsRequest
+from telethon.tl.types import ChannelParticipantsSearch
+
 from links import list_links
 from database_settings import database, user, password, host, port
 from telethon.sync import TelegramClient
@@ -67,6 +71,46 @@ class ListenChat:
         print(results_dict)
 
 class WriteToDbMessages():
+
+    async def dump_all_participants(self, channel):
+        """Записывает json-файл с информацией о всех участниках канала/чата"""
+        offset_user = 0  # номер участника, с которого начинается считывание
+        limit_user = 100  # максимальное число записей, передаваемых за один раз
+
+        all_participants = []  # список всех участников канала
+        filter_user = ChannelParticipantsSearch('')
+
+        try:
+            while True:
+                participants = await client(GetParticipantsRequest(channel,
+                                                               filter_user, offset_user, limit_user, hash=0))
+                if not participants.users:
+                    break
+                all_participants.extend(participants.users)
+                offset_user += len(participants.users)
+
+            all_users_details = []  # список словарей с интересующими параметрами участников канала
+            channel_name = f'@{channel.username} | {channel.title}'
+            for participant in all_participants:
+
+                first_name = str(participant.first_name).replace('\'', '')
+                last_name = str(participant.last_name).replace('\'', '')
+
+                all_users_details.append({"id": participant.id,
+                                          "first_name": first_name,
+                                          "last_name": last_name,
+                                          "user": participant.username,
+                                          "phone": participant.phone,
+                                          "is_bot": participant.bot})
+
+            print('Numbers of followers = ', len(all_users_details))
+            DataBaseOperations().push_to_bd_participants(all_users_details, channel_name, channel.username)
+            time.sleep(10)
+
+        except Exception as e:
+            print(channel)
+            print(e)
+
     async def dump_all_messages(self, channel, limit_msg):
         offset_msg = 0  # номер записи, с которой начинается считывание
         # limit_msg = 1   # максимальное число записей, передаваемых за один раз
@@ -118,19 +162,19 @@ class WriteToDbMessages():
             dict_bool = db.push_to_bd(results_dict)  # из push_to_db возвращается bool or_exists
             if dict_bool['or_exists']:
                 send_message = i['message']
-
+                channel_to_send = None
                 match dict_bool['profession']:
-                    case 'Backend':
+                    case 'backend':
                         channel_to_send = backend_channel
-                    case 'Frontend':
+                    case 'frontend':
                         channel_to_send = frontend_channel
-                    case 'DevOps':
+                    case 'devops':
                         channel_to_send = devops_channel
-                    case 'Developer':
+                    case 'developer':
                          channel_to_send = developer_channel
-                    case 'PM':
+                    case 'pm':
                         channel_to_send = pm_channel
-                    case 'Designer':
+                    case 'designer':
                         channel_to_send = designer_channel
                     # case 'Analyst':
                     #     channel_to_send = analyst_channel
@@ -140,7 +184,7 @@ class WriteToDbMessages():
                     #     channel_to_send = hr_channel
                     # case 'Others':
                     #     channel_to_send = others_channels
-                    case 'Backend|Frontend':
+                    case 'fullstack':
                         await client.send_message(entity=backend_channel, message=send_message)
                         time.sleep(10)
                         await client.send_message(entity=frontend_channel, message=send_message)
@@ -152,7 +196,6 @@ class WriteToDbMessages():
 
         if not dict_bool['time_index']:
             time.sleep(10)
-
 
     async def main_start(self, list_links, limit_msg):
 
@@ -177,7 +220,7 @@ class WriteToDbMessages():
 
             if bool_index:
                 await self.dump_all_messages(channel, limit_msg)
-
+                await self.dump_all_participants(channel)
 
     def start(self, limit_msg):
         with client:
@@ -186,26 +229,114 @@ class WriteToDbMessages():
 # ---------------------DB operations ----------------------
 class DataBaseOperations:
 
-    def push_to_bd(self, results_dict):
-        or_exists = False
-        time_index = True
-        global quant
+    def connect_db(self):
+        global database, user, password, host, port
         con = None
-
+        self.database = database
+        self.user = user
+        self.password = password
+        self.host = host
+        self.port = port
         try:
             con = psycopg2.connect(
-                database=database,
-                user=user,
-                password=password,
-                host=host,
-                port=port
+                database=self.database,
+                user=self.user,
+                password=self.password,
+                host=self.host,
+                port=self.port
             )
         except:
             print('No connect with db')
+        return con
 
+    #-------------participants-------------------------
+    def push_to_bd_participants(self, all_user_dictionary, channel_name, channel_username):
+        con = self.connect_db()
         cur = con.cursor()
 
         with con:
+            cur.execute("""CREATE TABLE IF NOT EXISTS channels (
+                        id SERIAL PRIMARY KEY,
+                        channel VARCHAR(100),
+                        link VARCHAR (100)
+                        );"""
+            )
+            con.commit()
+            cur.execute("""CREATE TABLE IF NOT EXISTS participant (
+                        id SERIAL PRIMARY KEY,
+                        id_participant VARCHAR(40),
+                        first_name VARCHAR(150),
+                        last_name VARCHAR (150),
+                        user_name VARCHAR (40),
+                        phone VARCHAR (40),
+                        is_bot BOOLEAN,
+                        channel VARCHAR (150)
+                        );"""
+                                )
+            con.commit()
+
+        with con:
+            channel_link = f'https://t.me/{channel_username}'
+            query = f"""SELECT * FROM channels WHERE channel='{channel_name}'"""
+            cur.execute(query)
+            response = cur.fetchall()
+
+            if not response:
+                new_channel = f"""INSERT INTO channels (channel, link) 
+                                            VALUES ('{channel_name}', '{channel_link}');"""
+                try:
+                    cur.execute(new_channel)
+                    con.commit()
+                    print('*********add to channels ', channel_name, channel_link)
+                except Exception as e:
+                    print(e)
+            else:
+                print('This CHANNEL exist already')
+
+        with con:
+
+            channel = channel_name
+            print('all user len = ', len(all_user_dictionary))
+            for i in all_user_dictionary:
+
+                id_participant = i['id']
+                first_name = i['first_name']
+                last_name = i['last_name']
+                user_name = i['user']
+                phone = i['phone']
+                is_bot = i['is_bot']
+
+
+                query = f"""SELECT * FROM participant WHERE id_participant='{id_participant}'"""
+                cur.execute(query)
+                response = cur.fetchall()
+
+                if not response:
+                    new_post = f"""INSERT INTO participant (id_participant, first_name, last_name, user_name, phone, is_bot, channel) 
+                                            VALUES ('{id_participant}', '{first_name}', 
+                                            '{last_name}', '{user_name}', '{phone}', '{is_bot}', '{channel}');"""
+                    try:
+                        cur.execute(new_post)
+                        con.commit()
+                        print('!!!!!!!!!!!!!add to users ', i)
+                    except Exception as e:
+                        print(e)
+                else:
+                    print('This user exist already', i)
+
+    #--------------------------------------------------
+
+    def push_to_bd(self, results_dict):
+
+        or_exists = False
+        time_index = True
+        global quant
+
+        con = self.connect_db()
+        cur = con.cursor()
+
+        with con:
+
             cur.execute("""CREATE TABLE IF NOT EXISTS telegram_channels_professions (
                 id SERIAL PRIMARY KEY,
                 chat_name VARCHAR(150),
@@ -218,6 +349,7 @@ class DataBaseOperations:
                         )
             con.commit()
 
+
         print(f'\n****************************************\n'
               f'INPUT IN DB FUNC = \n', results_dict)
 
@@ -228,9 +360,6 @@ class DataBaseOperations:
         time_of_public = results_dict['time_of_public']
         created_at = datetime.now()
 
-        new_post = f"""INSERT INTO telegram_channels_professions (chat_name, title, body, profession, time_of_public, created_at) 
-            VALUES ('{chat_name}', '{title}', '{body}', '{profession}', '{time_of_public}', '{created_at}');"""
-
         with con:
             try:
                 query = f"""SELECT * FROM telegram_channels_professions WHERE title='{title}' AND body='{body}'"""
@@ -238,6 +367,8 @@ class DataBaseOperations:
                 r = cur.fetchall()
 
                 if not r:
+                    new_post = f"""INSERT INTO telegram_channels_professions (chat_name, title, body, profession, time_of_public, created_at) 
+                                VALUES ('{chat_name}', '{title}', '{body}', '{profession}', '{time_of_public}', '{created_at}');"""
                     cur.execute(new_post)
                     con.commit()
                     print(quant, f'= Added to DB = {profession}', results_dict)
@@ -253,76 +384,207 @@ class DataBaseOperations:
 
             return {'or_exists': or_exists, 'time_index': time_index, 'profession': profession}
 
-
     def sort_by_profession(self, title, body):
+        self.check_dictionary = {
+            'title': {
+                'backend': 0,
+                'frontend': 0,
+                'devops': 0,
+                'developer': 0,
+                'fullstack': 0,
+                'mobile': 0,
+                'pm': 0,
+                'ba': 0,
+                'designer': 0,
+                'qa': 0,
+                'analyst': 0,
+                'mobile_developer': 0,
+                'hr': 0,
+                'ad': 0,
+            },
+            'body': {
+                'backend': 0,
+                'frontend': 0,
+                'devops': 0,
+                'developer': 0,
+                'fullstack': 0,
+                'mobile': 0,
+                'pm': 0,
+                'ba': 0,
+                'designer': 0,
+                'qa': 0,
+                'analyst': 0,
+                'mobile_developer': 0,
+                'hr': 0,
+                'ad': 0,
+            }
+        }
+
+        counter = 1
+        counter2 = 1
+        pattern_ad = r'ищу\s{0,1}работу|opentowork|фильм на вечер|хотим рассказать о новых каналах|#резюме|кадровое\s{0,1}агентство|skillbox|зарабатывать на крипте'
         pattern_backend_frontend = r'backend.*frontend'
-        pattern_backend = r'back\s*end|б[е,э]к\s*[е,э]нд'
-        pattern_frontend = r'front\s*end|фронт\s*[е,э]нд|typescript|react|redux|next.js'
-        pattern_devops = r'dev\s*ops|sre'
-        pattern_developer = r'developer|разработчик|site\s*reliability'
-        pattern_backend_languages = r'python|scala|java|linux|haskell|php|server|сервер|ios|android'
-        pattern_frontend_languages = r'javascript|html|css|react\s*js'
-        pattern_pm = r'product\s*manager|прод[а,у]кт\s*м[е,а]н[е,а]джер|project\s*manager'
-        pattern_designer = r'дизайн|design|ui|ux'
-        pattern_analyst = r'analyst|аналитик'
-        pattern_qa = r'qa|тестировщ'
-        pattern_hr = r'hr|рекрутер'
+        pattern_backend = r'back\s*end\B|б[е,э]к\s*[е,э]нд[а-я]{0,2}\B|backend.{0,1}developer|datascientist|datascience'
+        pattern_frontend = r'front.*end|фронт.*[е,э]нд[а-я]{0,2}\B|vue\.{0,1}js\b'
+        pattern_devops = r'dev\s*ops'
+        pattern_developer = r'^(frontend|backend)\s{0,1}developer|разработчик[а-я]{0,2}\B|site\s*reliability|typescript'
+        pattern_backend_languages = r'python[\s,#]|scala[\s,#]|java[\s,#]|linux[\s,#]|haskell[\s,#]|php[\s,#]|server|сервер.|c\+\+|\bml\b|node.{0,1}js\b'
+        pattern_frontend_languages = r'javascript|html|css|react\s*js|\.net|firebase|nodejs'
+        pattern_backend_mobile = r'android|ios'
+        pattern_fullstack = r'full.{0,1}stack'
+        pattern_pm = r'product\s*manager|прод[а,у]кт\s*м[е,а]н[е,а]джер|project\s*manager|marketing\s*manager|marketing'
+        pattern_designer = r'дизайнер[а-я]{0,2}\B|designer|\bui\s'
+        pattern_analitic = r'analyst|аналитик[а-я]{0,2}\B'
+        pattern_qa = r'qa\b|тестировщик[а-я]{0,2}\B|qaauto\b|тестирован[а-я]{0,2}\B'
+        pattern_hr = r'\bhr\b|рекрутер[а-я]{0,2}\B'
 
-        line = f'{title.lower()} {body.lower()}'
+        text = [title, body]
+        text_field = ['title', 'body']
 
-        if re.search(pattern_backend_frontend, line):
-            return 'Backend|Frontend'
+        k = 0
+        for item in text:
+            looking_for = re.findall(pattern_ad, item)
+            if looking_for:
+                self.check_dictionary[text_field[k]]['ad'] += len(looking_for)
 
-        if re.search(pattern_backend, line):
-            return 'Backend'
+            looking_for = re.findall(pattern_backend, item)
+            if looking_for:
+                counter += 1
+                self.check_dictionary[text_field[k]]['backend'] += len(looking_for)
 
-        elif re.search(pattern_frontend, line):
-            return 'Frontend'
+            looking_for = re.findall(pattern_frontend, item)
+            if looking_for:
+                counter += 1
+                self.check_dictionary[text_field[k]]['frontend'] += len(looking_for)
 
-        elif re.search(pattern_qa, line):
-            return 'QA'
+            looking_for = re.findall(pattern_devops, item)
+            if looking_for:
+                counter += 1
+                self.check_dictionary[text_field[k]]['devops'] += len(looking_for)
 
-        elif re.search(pattern_devops, line):
-            return 'DevOps'
+            looking_for = re.findall(pattern_backend_mobile, item)
+            if looking_for:
+                counter += 1
+                self.check_dictionary[text_field[k]]['mobile'] += len(looking_for)
 
-        elif re.search(pattern_backend_languages, line):
-            return 'Backend'
+            looking_for = re.findall(pattern_fullstack, item)
+            if looking_for:
+                counter += 1
+                self.check_dictionary[text_field[k]]['fullstack'] += len(looking_for)
 
-        elif re.search(pattern_frontend_languages, line):
-            return 'Frontend'
+            looking_for = re.findall(pattern_backend_languages, item)
+            if looking_for:
+                counter += 1
+                self.check_dictionary[text_field[k]]['backend'] += len(looking_for)
 
-        elif re.search(pattern_developer, line):
-            return 'Developer'
+            looking_for = re.findall(pattern_frontend_languages, item)
+            if looking_for:
+                counter += 1
+                self.check_dictionary[text_field[k]]['frontend'] += len(looking_for)
 
-        elif re.search(pattern_pm, line):
-            return 'PM'
+            looking_for = re.findall(pattern_developer, item)
+            if looking_for:
+                counter += 1
+                self.check_dictionary[text_field[k]]['developer'] += len(looking_for)
 
-        elif re.search(pattern_designer, line):
-            return 'Designer'
+            looking_for = re.findall(pattern_pm, item)
+            if looking_for:
+                counter += 1
+                self.check_dictionary[text_field[k]]['pm'] += len(looking_for)
 
-        elif re.search(pattern_analyst, line):
-            return 'Analyst'
+            looking_for = re.findall(pattern_designer, item)
+            if looking_for:
+                counter += 1
+                self.check_dictionary[text_field[k]]['designer'] += len(looking_for)
 
-        elif re.search(pattern_hr, line):
-            return 'HR'
-        else:
-            return 'Others'
+            looking_for = re.findall(pattern_analitic, item)
+            if looking_for:
+                counter += 1
+                self.check_dictionary[text_field[k]]['analyst'] += len(looking_for)
 
+            looking_for = re.findall(pattern_qa, item)
+            if looking_for:
+                counter += 1
+                self.check_dictionary[text_field[k]]['qa'] += len(looking_for)
+
+            looking_for = re.findall(pattern_hr, item)
+            if looking_for:
+                counter += 1
+                self.check_dictionary[text_field[k]]['hr'] += len(looking_for)
+            else:
+                counter2 += 1
+
+            k += 1
+
+        profession = self.analys_profession()
+
+        return profession
+
+    def analys_profession(self):
+        max_title_value = 0
+        max_title_key = ''
+
+        for key in self.check_dictionary['title']:
+            if self.check_dictionary['title'][key] > max_title_value:
+                max_title_value = self.check_dictionary['title'][key]
+                max_title_key = key
+
+        max_body_value = 0
+        max_body_key = ''
+        for key in self.check_dictionary['body']:
+            if self.check_dictionary['body'][key] > max_body_value:
+                max_body_value = self.check_dictionary['body'][key]
+                max_body_key = key
+
+        print(self.check_dictionary)
+
+        print('title', max_title_key, max_title_value)
+        print('body', max_body_key, max_body_value)
+
+        profession = ''
+
+        if max_title_value == 0 and max_body_value == 0:
+            profession = 'ad'
+
+        elif max_title_value == 0 and max_body_value != 0:
+            profession = max_body_key
+
+        elif max_title_key in ['frontend', 'backend'] and max_body_key == 'developer':
+            profession = max_title_key
+
+        elif max_title_key != max_body_key and max_body_value != 0:
+            profession = max_body_key
+
+        elif max_title_key and not max_body_key and max_body_value == 0:
+            profession = max_title_key
+
+        elif max_title_key == max_body_key:
+            profession = max_title_key
+
+        elif self.check_dictionary['title']['fullstack'] or self.check_dictionary['body']['fullstack']:
+            profession = 'fullstack'
+
+        if max_title_key == 'qa' and max_body_key == 'backend':
+            profession = max_title_key
+
+        if self.check_dictionary['title']['fullstack'] or self.check_dictionary['body']['fullstack']:
+            profession = 'fullstack'
+
+        if max_title_key == 'devops' and (max_body_key == 'backend' or max_body_key == 'frontend'):
+            profession = max_title_key
+
+        if self.check_dictionary['title']['mobile'] or self.check_dictionary['body']['mobile']:
+            profession = 'mobile'
+
+        if self.check_dictionary['title']['ad']:
+            profession = 'ad'
+
+        print(profession.upper())
+
+        return profession
 
     def get_all_from_db(self):
-        con = None
-
-        try:
-            con = psycopg2.connect(
-                database=database,
-                user=user,
-                password=password,
-                host=host,
-                port=port
-            )
-
-        except:
-            print('No connect with db')
+        con = self.connect_db()
 
         cur = con.cursor()
 
@@ -338,13 +600,9 @@ def main():
     get_messages = WriteToDbMessages()
     get_messages.start(limit_msg=10)
 
-    print("Listening chats...")
-    client.start()
-    ListenChat()
-    client.run_until_disconnected()
+    # print("Listening chats...")
+    # client.start()
+    # ListenChat()
+    # client.run_until_disconnected()
 
 main()
-
-
-# db = DataBaseOperations()
-# db.get_all_from_db()
