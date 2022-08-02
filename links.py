@@ -79,4 +79,5 @@ list_links = [
     'https://t.me/jvmjobs',
     'https://t.me/rubyjob',
     'https://t.me/forruby',
-    'https://t.me/jobforphp']
+    'https://t.me/jobforphp'
+    'https://t.me/ux_ui_belarus']
