@@ -1,4 +1,4 @@
-
+import configparser
 from telethon.sync import TelegramClient
 from telethon.tl.functions.channels import InviteToChannelRequest
 from telethon.tl.types import InputPeerChannel ,InputUser
@@ -7,14 +7,30 @@ from telethon.tl.functions.channels import GetParticipantsRequest
 from telethon.tl.types import ChannelParticipantsSearch
 
 api_id = 11495582
-api_hash = '07bab8cc1546be63992d349fb5fc590c'
-phone = '+375296449690'
+api_hash = '07bab8cc1546be63992d349fb5fc590c'  #телеграм Руслан
+phone = '+375296449690'  #телеграм Руслан
 client = TelegramClient(phone, api_id, api_hash)
 client.connect()
 url = 'https://t.me/z_developer_channel'
 url_test = 'https://t.me/ruslantest19'
 
-id_frontend_channel = -1001345406077
+config = configparser.ConfigParser()
+config.read("config.ini")
+
+ad_channel = config['My_channels']['ad_channel']
+backend_channel = config['My_channels']['backend_channel']
+frontend_channel =config['My_channels']['frontend_channel']
+devops_channel = config['My_channels']['devops_channel']
+fullstack_channel = config['My_channels']['fullstack_channel']
+pm_channel = config['My_channels']['pm_channel']
+product_channel = config['My_channels']['product_channel']
+designer_channel = config['My_channels']['designer_channel']
+analyst_channel = config['My_channels']['analyst_channel']
+qa_channel = config['My_channels']['qa_channel']
+hr_channel = config['My_channels']['hr_channel']
+alexandr_channel = config['My_channels']['alexandr_channel']
+bot = config['My_channels']['bot']
+
 
 async def invite():
     url = 'https://t.me/z_developer_channel'
@@ -51,7 +67,7 @@ async def invite():
     # user=InputUser(user.id,user.access_hash)
 
 #-------------------------отправить в нужный канал всех полученных юзеров --------------------------
-    await client(InviteToChannelRequest(id_frontend_channel, all_participants))
+    await client(InviteToChannelRequest(frontend_channel, all_participants))
     print('Added users', [i for i in all_participants])
 
 
