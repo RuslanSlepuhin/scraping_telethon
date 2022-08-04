@@ -1,9 +1,25 @@
 import telebot
+import configparser
 
-# bot = telebot.TeleBot("5484849364:AAF0fPhis-GLuQNsSdR7EbmnYa0QjTXpGdE", parse_mode=None)
-# bot = telebot.TeleBot("5484849364:AAF0fPhis-GLuQNsSdR7EbmnYa0QjTXpGdE")
+config = configparser.ConfigParser()
+config.read("config.ini")
+ad_channel = config['My_channels']['ad_channel']
+backend_channel = config['My_channels']['backend_channel']
+frontend_channel =config['My_channels']['frontend_channel']
+devops_channel = config['My_channels']['devops_channel']
+fullstack_channel = config['My_channels']['fullstack_channel']
+pm_channel = config['My_channels']['pm_channel']
+product_channel = config['My_channels']['product_channel']
+designer_channel = config['My_channels']['designer_channel']
+analyst_channel = config['My_channels']['analyst_channel']
+qa_channel = config['My_channels']['qa_channel']
+hr_channel = config['My_channels']['hr_channel']
+mobile_channel = config['My_channels']['mobile_channel']
+game_channel = config['My_channels']['game_channel']
 
 bot = telebot.TeleBot("5484849364:AAF0fPhis-GLuQNsSdR7EbmnYa0QjTXpGdE")
+
+
 
 @bot.message_handler(commands=['start'])
 def welcome_user(message):
@@ -18,7 +34,37 @@ def welcome_user(message):
 @bot.message_handler(content_types=['text'])
 def some_text(message):
     if message.text != 'invite':
-        bot.send_message(-1001345406077, message.text)
+        profession = message.text.split("/", 1)[0]
+        message_to_send = message.text.replace(f'{profession}/', '')
+
+        match profession:
+            case 'backend':
+                bot.send_message(backend_channel, message_to_send)
+            case 'frontend':
+                bot.send_message(frontend_channel, message_to_send)
+            case 'devops':
+                bot.send_message(devops_channel, message_to_send)
+            case 'fullstack':
+                bot.send_message(fullstack_channel, message_to_send)
+            case 'mobile':
+                bot.send_message(mobile_channel, message_to_send)
+            case 'pm':
+                bot.send_message(pm_channel, message_to_send)
+            case 'product':
+                bot.send_message(product_channel, message_to_send)
+            case 'designer':
+                bot.send_message(designer_channel, message_to_send)
+            case 'qa':
+                bot.send_message(qa_channel, message_to_send)
+            case 'analyst':
+                 bot.send_message(analyst_channel, message_to_send)
+            case 'hr':
+                bot.send_message(hr_channel, message_to_send)
+            case 'game':
+                bot.send_message(game_channel, message_to_send)
+            case 'ad':
+                bot.send_message(ad_channel, message_to_send)
+
     else:
         profession = message.text.split("/", 1)
         message_to_send = message.text.replace(profession)[1:-1]
