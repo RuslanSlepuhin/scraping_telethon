@@ -6,13 +6,6 @@ from telethon.tl.functions.contacts import ResolveUsernameRequest
 from telethon.tl.functions.channels import GetParticipantsRequest
 from telethon.tl.types import ChannelParticipantsSearch
 
-api_id = 11495582
-api_hash = '07bab8cc1546be63992d349fb5fc590c'  #телеграм Руслан
-phone = '+375296449690'  #телеграм Руслан
-client = TelegramClient(phone, api_id, api_hash)
-client.connect()
-
-
 config = configparser.ConfigParser()
 config.read("config.ini")
 
@@ -29,6 +22,15 @@ qa_channel = config['My_channels']['qa_channel']
 hr_channel = config['My_channels']['hr_channel']
 alexandr_channel = config['My_channels']['alexandr_channel']
 bot = config['My_channels']['bot']
+
+api_id = int(config['TelegramRuslan']['api_id'])
+api_hash = config['TelegramRuslan']['api_hash']
+username = config['TelegramRuslan']['username']
+phone = '+375296449690'  #телеграм Руслан
+
+
+client = TelegramClient(phone, api_id, api_hash)
+client.connect()
 
 
 async def invite():
