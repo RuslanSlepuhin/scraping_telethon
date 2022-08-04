@@ -11,8 +11,7 @@ api_hash = '07bab8cc1546be63992d349fb5fc590c'  #телеграм Руслан
 phone = '+375296449690'  #телеграм Руслан
 client = TelegramClient(phone, api_id, api_hash)
 client.connect()
-url = 'https://t.me/z_developer_channel'
-url_test = 'https://t.me/ruslantest19'
+
 
 config = configparser.ConfigParser()
 config.read("config.ini")
