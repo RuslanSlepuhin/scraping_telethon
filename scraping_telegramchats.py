@@ -214,7 +214,7 @@ class WriteToDbMessages():
 
 def main():
     get_messages = WriteToDbMessages()
-    get_messages.start(limit_msg=10)
+    get_messages.start(limit_msg=20)
 
     # print("Listening chats...")
     # client.start()

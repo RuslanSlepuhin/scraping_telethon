@@ -131,7 +131,7 @@ class DataBaseOperations:
 
         with con:
 
-            cur.execute(f"""CREATE TABLE IF NOT EXISTS {pro}_table2 (
+            cur.execute(f"""CREATE TABLE IF NOT EXISTS {pro}_table3 (
                 id SERIAL PRIMARY KEY,
                 chat_name VARCHAR(150),
                 title VARCHAR(1000),
@@ -145,16 +145,16 @@ class DataBaseOperations:
         quant = 1
         with con:
             try:
-                query = f"""SELECT * FROM {pro}_table2 WHERE title='{title}' AND body='{body}'"""
+                query = f"""SELECT * FROM {pro}_table3 WHERE title='{title}' AND body='{body}'"""
                 cur.execute(query)
                 r = cur.fetchall()
 
                 if not r:
-                    new_post = f"""INSERT INTO {pro}_table2 (chat_name, title, body, profession, time_of_public, created_at) 
+                    new_post = f"""INSERT INTO {pro}_table3 (chat_name, title, body, profession, time_of_public, created_at) 
                                 VALUES ('{chat_name}', '{title}', '{body}', '{pro}', '{time_of_public}', '{created_at}');"""
                     cur.execute(new_post)
                     con.commit()
-                    print(quant, f'= Added to DB = {pro}_table2\n', results_dict)
+                    print(quant, f'= Added to DB = {pro}_table3\n', results_dict)
                     or_exists = True
                     quant += 1
                     time_index = True
