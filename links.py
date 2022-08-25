@@ -1,4 +1,5 @@
 list_links = [
+    'https://t.me/fordev',
     'https://t.me/relocaty_jobs',  # +
     'https://t.me/qa_jobs',  # +
     'https://t.me/scala_jobs_feed',
@@ -77,5 +78,5 @@ list_links = [
     'https://t.me/jvmjobs',
     'https://t.me/rubyjob',
     'https://t.me/forruby',
-    'https://t.me/jobforphp'
+    'https://t.me/jobforphp',
     'https://t.me/ux_ui_belarus']

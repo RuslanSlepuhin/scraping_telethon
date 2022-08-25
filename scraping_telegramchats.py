@@ -1,18 +1,14 @@
-
+import random
+import pandas as pd
 import configparser
 import time
 from datetime import datetime, timedelta
 from scraping_db import DataBaseOperations
-
 from telethon.tl.functions.channels import GetParticipantsRequest
-from telethon.tl.functions.contacts import ResolveUsernameRequest
 from telethon.tl.types import ChannelParticipantsSearch
-
 from links import list_links
-
 from telethon.sync import TelegramClient
 from telethon import events, client
-import psycopg2
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest
 
 config = configparser.ConfigParser()
@@ -97,19 +93,51 @@ class WriteToDbMessages():
             channel_name = f'@{channel.username} | {channel.title}'
             for participant in all_participants:
 
+                print(f'\n{participant.id}\n{participant.access_hash}')
+
                 first_name = str(participant.first_name).replace('\'', '')
                 last_name = str(participant.last_name).replace('\'', '')
 
-                all_users_details.append({"id": participant.id,
-                                          "first_name": first_name,
-                                          "last_name": last_name,
-                                          "user": participant.username,
-                                          "phone": participant.phone,
-                                          "is_bot": participant.bot})
+                all_users_details.append({'id': participant.id,
+                                          'access_hash': participant.access_hash,
+                                          'first_name': first_name,
+                                          'last_name': last_name,
+                                          'user': participant.username,
+                                          'phone': participant.phone,
+                                          'is_bot': participant.bot})
 
             print('Numbers of followers = ', len(all_users_details))
-            DataBaseOperations().push_to_bd_participants(all_users_details, channel_name, channel.username)
-            time.sleep(10)
+
+            #--------------запись в файл------------
+            file_name = channel.username
+
+            for i in all_users_details:
+                print(i)
+                print(i['id'], i['access_hash'])
+            j1 = [str(i['id']) for i in all_users_details]
+            j2 = [str(i['access_hash']) for i in all_users_details]
+            j3 = [str(i['user']) for i in all_users_details]
+            j4 = [str(i['first_name']) for i in all_users_details]
+            j5 = [str(i['last_name']) for i in all_users_details]
+
+
+            df = pd.DataFrame(
+                {
+                'id_participant': j1,
+                'access_hash': j2,
+                'username': j3,
+                'first_name': j4,
+                'last_name': j5
+                 }
+            )
+
+            df.to_excel(f'./participants_from_{file_name}.xlsx', sheet_name='Sheet1')
+
+            #------------- конец записи в файл ------------
+
+            # await Invite().invite(all_participants, client) #####################
+            # DataBaseOperations().push_to_bd_participants(participant, all_users_details, channel_name, channel.username) ################################################
+            time.sleep(random.randrange(40-60))
 
         except Exception as e:
             print(e)
@@ -121,11 +149,6 @@ class WriteToDbMessages():
         all_messages = []  # список всех сообщений
         total_messages = 0
         total_count_limit = limit_msg  # значение 0 = все сообщения
-
-        dict_bool = {
-            'or_exists': bool,
-            'time_index': bool
-        }
 
         while True:
             history = await client(GetHistoryRequest(
@@ -139,8 +162,10 @@ class WriteToDbMessages():
             messages = history.messages
             for message in messages:
                 if not message.message:  # если сообщение пустое, например "Александр теперь в группе"
-                    break
-                all_messages.append(message.to_dict())
+                    pass
+                else:
+                    all_messages.append(message.to_dict())
+                    # await client.forward_messages(entity=bot, message)
 
             offset_msg = messages[len(messages) - 1].id
             total_messages = len(all_messages)
@@ -161,28 +186,20 @@ class WriteToDbMessages():
             }
             db = DataBaseOperations()
 
-            #----------------only for test without db--------------------
-
-            # print(title)
-            # print(body)
-            # s = Professions()
-            # profession = s.sort_by_profession2(title, body)
-            # print('profession = ', profession)
-            #
-            # for pro in profession:
-            #===========================================================
             dict_bool = db.push_to_bd(results_dict)  # из push_to_db возвращается bool or_exists
 
             if dict_bool['or_exists']:
                 pro = dict_bool['profession']
+
                 await client.send_message(entity=bot, message=f"{pro}/{i['message']}")
-                print(f"\npushed to chat {pro}")
-                time.sleep(15)
-        # if not dict_bool['time_index']:
-        time.sleep(10)
+
+                print(f"\npushed to channel {pro}")
+                time.sleep(random.randrange(25-40))
+
+        time.sleep(random.randrange(25, 40))
 
 
-    async def main_start(self, list_links, limit_msg):
+    async def main_start(self, list_links, limit_msg, action):
 
         for url in list_links:
             bool_index = True
@@ -204,17 +221,20 @@ class WriteToDbMessages():
                     bool_index = False
 
             if bool_index:
-                await self.dump_all_messages(channel, limit_msg)
-                # await self.dump_all_participants(channel)
+                match action:
+                    case 'get_message':
+                        await self.dump_all_messages(channel, limit_msg)
+                    case 'get_participants':
+                        await self.dump_all_participants(channel)
 
-    def start(self, limit_msg):
+    def start(self, limit_msg, action):
         with client:
-            client.loop.run_until_complete(self.main_start(list_links, limit_msg))
+            client.loop.run_until_complete(self.main_start(list_links, limit_msg, action))
 
 
 def main():
     get_messages = WriteToDbMessages()
-    get_messages.start(limit_msg=20)
+    get_messages.start(limit_msg=30, action='get_participants')  #get_participants
 
     # print("Listening chats...")
     # client.start()
