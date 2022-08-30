@@ -3,42 +3,51 @@ import pandas as pd
 import configparser
 import time
 from datetime import datetime, timedelta
+
+import psycopg2
+
 from scraping_db import DataBaseOperations
 from telethon.tl.functions.channels import GetParticipantsRequest
-from telethon.tl.types import ChannelParticipantsSearch
+from telethon.tl.types import ChannelParticipantsSearch, Message
 from links import list_links
 from telethon.sync import TelegramClient
 from telethon import events, client
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest
+from telethon.tl.types import InputPeerChannel, InputPeerUser, InputUser, PeerUser, InputChannel, InputPeerEmpty
 
 config = configparser.ConfigParser()
 config.read("config.ini")
 
 #--------------------------- забираем значения из config.ini-------------------------------
-# private_channel = config['My_channels']['private_channel']
-# ad_channel = config['My_channels']['ad_channel']
-# backend_channel = config['My_channels']['backend_channel']
-# frontend_channel =config['My_channels']['frontend_channel']
-# devops_channel = config['My_channels']['devops_channel']
-# fullstack_channel = config['My_channels']['fullstack_channel']
-# pm_channel = config['My_channels']['pm_channel']
-# product_channel = config['My_channels']['product_channel']
-# designer_channel = config['My_channels']['designer_channel']
-# analyst_channel = config['My_channels']['analyst_channel']
-# qa_channel = config['My_channels']['qa_channel']
-# hr_channel = config['My_channels']['hr_channel']
 alexandr_channel = config['My_channels']['alexandr_channel']
 bot = config['My_channels']['bot']
 
-api_id = int(config['Telegram']['api_id'])
-api_hash = config['Telegram']['api_hash']
-username = config['Telegram']['username']
+api_id = int(config['TelegramRuslan']['api_id'])
+api_hash = config['TelegramRuslan']['api_hash']
+username = config['TelegramRuslan']['username']
 phone = '+375296449690'
 
 client = TelegramClient(username, api_id, api_hash)
 client.start()
 
 quant = 1  # счетчик вывода количества запушенных в базу сообщений (для контроля в консоли)
+
+database = config['DB3']['database']
+user = config['DB3']['user']
+password = config['DB3']['password']
+host = config['DB3']['host']
+port = config['DB3']['port']
+try:
+    con = psycopg2.connect(
+        database=database,
+        user=user,
+        password=password,
+        host=host,
+        port=port
+    )
+except:
+    print('No connect with db')
+
 
 class ListenChat:
 
@@ -65,7 +74,8 @@ class ListenChat:
         }
         db = DataBaseOperations()
         dict_bool = db.push_to_bd(results_dict)  # из push_to_db возвращается bool or_exists
-        if dict_bool['or_exists']:
+
+        if dict_bool['not_exists']:
             send_message = f'{chat_name}\n\n' + info['message']
             await client.send_message(entity=bot, message=send_message)
         print(results_dict)
@@ -79,6 +89,8 @@ class WriteToDbMessages():
 
         all_participants = []  # список всех участников канала
         filter_user = ChannelParticipantsSearch('')
+
+        print(f'Start scraping participants from {channel}\n\n')
 
         try:
             while True:
@@ -123,6 +135,7 @@ class WriteToDbMessages():
 
             df = pd.DataFrame(
                 {
+                'from channel': channel_name,
                 'id_participant': j1,
                 'access_hash': j2,
                 'username': j3,
@@ -137,12 +150,18 @@ class WriteToDbMessages():
 
             # await Invite().invite(all_participants, client) #####################
             # DataBaseOperations().push_to_bd_participants(participant, all_users_details, channel_name, channel.username) ################################################
-            time.sleep(random.randrange(40-60))
+
+            print(f'\nPause 40-60 sec...')
+            time.sleep(random.randrange(40, 60))
+            print('...Continue')
 
         except Exception as e:
-            print(e)
+            print(f'Error для канала {channel}: {e}')
 
     async def dump_all_messages(self, channel, limit_msg):
+
+        block = False
+
         offset_msg = 0  # номер записи, с которой начинается считывание
         # limit_msg = 1   # максимальное число записей, передаваемых за один раз
 
@@ -160,43 +179,107 @@ class WriteToDbMessages():
             if not history.messages:
                 break
             messages = history.messages
+
+            channel_name = f'@{channel.username} | {channel.title}'
+
             for message in messages:
+
                 if not message.message:  # если сообщение пустое, например "Александр теперь в группе"
                     pass
                 else:
-                    all_messages.append(message.to_dict())
-                    # await client.forward_messages(entity=bot, message)
+                    # all_messages.append(message.to_dict())
+                    # await client.send_message(bot, message) ############
+                    # time.sleep(random.randrange(5, 15)) ###########
+
+                    title = message.message.partition(f'\n')[0] ##############3
+                    body = message.message.replace(title, '').replace(f'\n\n', f'\n')##############
+                    date = (message.date + timedelta(hours=3))###########3
+                    results_dict = {
+                        'chat_name': channel_name,
+                        'title': title,
+                        'body': body,
+                        'time_of_public': date
+                    }##############
+                    db = DataBaseOperations(con)#############3
+
+                    response_dict = db.push_to_bd(results_dict)  ##############3
+                    channels = response_dict.keys()##############
+
+                    if 'block' in channels:#################
+                        block = response_dict['block']#########3
+
+                    channel_list = []#############
+                    if not block:
+                        message_text = ''################
+                        length = 0###############
+                        for chann in channels:##########3
+                            if not response_dict[chann]:###########3
+                                message_text = message_text + f'{chann}/'###########3
+                                channel_list.append(chann)###############
+                                length += 1###############3
+
+                        if message_text:##########3
+                            message.message = f"{length}/{message_text}{message.message}"
+                            # await client.send_message(entity=bot, message=f"{length}/{message}{i['message']}")
+                            await client.send_message(entity=bot, message=message)###########
+
+                            for i in channel_list:############
+                                print(f"pushed to channel = {i}")#############
+
+                    else:############
+                        pass#############
+
+                time.sleep(random.randrange(10, 15))##############
+
 
             offset_msg = messages[len(messages) - 1].id
             total_messages = len(all_messages)
             if total_count_limit != 0 and total_messages >= total_count_limit:
                 break
 
-        channel_name = f'@{channel.username} | {channel.title}'
+        # channel_name = f'@{channel.username} | {channel.title}'
 
-        for i in all_messages:
-            title = i['message'].partition(f'\n')[0]
-            body = i['message'].replace(title, '').replace(f'\n\n', f'\n')
-            date = (i['date'] + timedelta(hours=3))
-            results_dict = {
-                'chat_name': channel_name,
-                'title': title,
-                'body': body,
-                'time_of_public': date
-            }
-            db = DataBaseOperations()
+        # for i in all_messages:
+            # title = i['message'].partition(f'\n')[0]
+            # body = i['message'].replace(title, '').replace(f'\n\n', f'\n')
+            # date = (i['date'] + timedelta(hours=3))
+            # results_dict = {
+            #     'chat_name': channel_name,
+            #     'title': title,
+            #     'body': body,
+            #     'time_of_public': date
+            # }
+            # db = DataBaseOperations(con)
+            #
+            # response_dict = db.push_to_bd(results_dict)  # из push_to_db возвращается bool or_exists
+            # channels = response_dict.keys()
+            #
+            # if 'block' in channels:
+            #     block = response_dict['block']
+            #
+            # channel_list = []
+            # if not block:
+            #     message = ''
+            #     length = 0
+            #     for channel in channels:
+            #         if not response_dict[channel]:
+            #             message = message + f'{channel}/'
+            #             channel_list.append(channel)
+            #             length += 1
+            #
+            #     if message:
+            #         # await client.send_message(entity=bot, message=f"{length}/{message}{i['message']}")
+            #         await client.send_message(entity=bot, message=i)
+            #
+            #         for i in channel_list:
+            #             print(f"pushed to channel = {i}")
+            #
+            # else:
+            #     pass
+            #
+            # time.sleep(random.randrange(25, 40))
 
-            dict_bool = db.push_to_bd(results_dict)  # из push_to_db возвращается bool or_exists
-
-            if dict_bool['or_exists']:
-                pro = dict_bool['profession']
-
-                await client.send_message(entity=bot, message=f"{pro}/{i['message']}")
-
-                print(f"\npushed to channel {pro}")
-                time.sleep(random.randrange(25-40))
-
-        time.sleep(random.randrange(25, 40))
+            time.sleep(random.randrange(25, 40))
 
 
     async def main_start(self, list_links, limit_msg, action):
@@ -234,7 +317,7 @@ class WriteToDbMessages():
 
 def main():
     get_messages = WriteToDbMessages()
-    get_messages.start(limit_msg=30, action='get_participants')  #get_participants
+    get_messages.start(limit_msg=20, action='get_message')  #get_participants
 
     # print("Listening chats...")
     # client.start()
