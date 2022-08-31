@@ -115,8 +115,8 @@ class Professions:
         if not match:
             params['profession'] = 'no_sort'
             print(f'\n', params, '113')
-            print(f'\nThere are not contacts in text:\n\n{text}')
-            time.sleep(20)
+            print(f'\nThere is not contacts in the text:\n\n{text}')
+            time.sleep(1)
             return params
 
 # ---------------- search junior, middle, senior and other params -----------------
@@ -139,7 +139,11 @@ class Professions:
                 search_tags = re.findall(f'#{i}', text)
 
                 if i == 'резюме' or i == 'cv ':  #если находит слово резюме, то проверяет его расположение в контексте
-                    if (not re.findall(f'отправлять резюме', text) and not re.findall(f'обсуждение резюме', text)) and not re.findall(f'send your cv', text):
+                    if (not re.findall(f'отправлять резюме', text) and
+                        not re.findall(f'обсуждение резюме', text)) and \
+                            not re.findall(f'send your cv', text) and \
+                            not re.findall(f'с cv', text):
+
                         search_body = re.findall(i, text_without_tags)  # если просто резюме, то да, это ad
                     else:
                         search_body = []  # если резюме в контексте, то считаем, что не нашли
@@ -156,12 +160,12 @@ class Professions:
 
                     print(f'*TAG {search_body}')
 
-        print(profession_dict)
+        # print(profession_dict)
 # ------------------------- end search by tags ---------------------------
 
 # ------------------------- search by text without tags ------------------
         for key in profession_dict:
-            print(f'{key} = ', profession_dict[key])  # look into dict
+            print(f'profession_dict = {key} = ', profession_dict[key])  # look into dict
 
         if profession_dict['tags']['ad'] or profession_dict['body']['ad']:  # return ad right away if ad exists
             params['profession'] = 'ad'
@@ -196,7 +200,7 @@ class Professions:
         if profession_dict['tags']['hr'] and profession_dict['body']['hr']:
             profession.append('hr')
 
-        print(profession)
+        print('profession_tags = ', profession)
 
         t = False
 
@@ -253,7 +257,7 @@ class Professions:
             if profession_dict['body']['hr']:
                 profession.append('hr')
 
-            print(profession)
+            print('profession_body = ', profession)
 
             result_body = self.find_profession(profession, profession_dict, 'body')
 
@@ -357,7 +361,7 @@ class Professions:
             return 'frontend'
 
         max_value = 0
-        for i in ['pm', 'product', 'ba', 'marketing', 'hr']:
+        for i in ['pm', 'product', 'ba', 'marketing', 'hr', 'designer']:
             if profession_dict[field][i]>max_value:
                 max_value = profession_dict[field][i]
                 profession_final = i

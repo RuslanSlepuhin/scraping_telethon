@@ -1,5 +1,4 @@
 list_links = [
-    # 'https://t.me/test_channel_test2']
     # 'https://t.me/fordev']
     # 'https://t.me/relocaty_jobs'],  # +
     # 'https://t.me/qa_jobs',  # +
@@ -16,14 +15,14 @@ list_links = [
     # 'https://t.me/hr_itwork',
     # 'https://t.me/relocateme',
     # 'https://t.me/nskoffice',
-    'https://t.me/seohr']
+    # 'https://t.me/seohr',
     # 'https://t.me/jobfeeds',
     # 'https://t.me/forpython',
     # 'https://t.me/it_recruiting_ua',  # +
     # 'https://t.me/minsk_python',  # +
     # 'https://t.me/OpenDigitalJobs',
     # 'https://t.me/backendge',  # +
-    # 'https://t.me/frontge',  # +
+    'https://t.me/frontge']  # +
     # 'https://t.me/remotejobss',
     # 'https://t.me/runello_rus_mobileappdevelopment',
     # 'https://t.me/alljvmjobs',

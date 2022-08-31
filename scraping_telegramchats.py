@@ -3,12 +3,10 @@ import pandas as pd
 import configparser
 import time
 from datetime import datetime, timedelta
-
 import psycopg2
-
 from scraping_db import DataBaseOperations
 from telethon.tl.functions.channels import GetParticipantsRequest
-from telethon.tl.types import ChannelParticipantsSearch, Message
+from telethon.tl.types import ChannelParticipantsSearch, Message, PeerChannel
 from links import list_links
 from telethon.sync import TelegramClient
 from telethon import events, client
@@ -221,7 +219,11 @@ class WriteToDbMessages():
                         if message_text:##########3
                             message.message = f"{length}/{message_text}{message.message}"
                             # await client.send_message(entity=bot, message=f"{length}/{message}{i['message']}")
+
                             await client.send_message(entity=bot, message=message)###########
+
+                            # channel_from = PeerChannel(channel)
+                            # await client.forward_messages(bot, message, channel_from)  ###########
 
                             for i in channel_list:############
                                 print(f"pushed to channel = {i}")#############
@@ -229,7 +231,7 @@ class WriteToDbMessages():
                     else:############
                         pass#############
 
-                time.sleep(random.randrange(10, 15))##############
+                time.sleep(random.randrange(5, 7))##############
 
 
             offset_msg = messages[len(messages) - 1].id
