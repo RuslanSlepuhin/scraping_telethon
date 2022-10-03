@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from scraping_get_profession_Alex_Rus import AlexRusSort
 from scraping_get_profession_Alex_next_2809 import AlexSort2809
 
-from scraping_send_to_bot import PushToDB
+# from scraping_send_to_bot import PushToDB
 config = configparser.ConfigParser()
 config.read("config.ini")
 
@@ -427,40 +427,40 @@ class DataBaseOperations:
 
         df.to_excel('all_messages.xlsx', sheet_name='Sheet1')
 
-    def send_to_bot(self, response):
-        """
-        It bring message to WriteTelegramChats class, where it sends to bot
-        :param response: all records from DB with all messages
-        :return: nothing
-        """
-        print(response)
-        for record in response:
-
-            channel_name = record[1]
-            title = self.clear_text_control(record[2]).replace('\u200b', '')
-            body = self.clear_text_control(record[3]).replace('\u200b', '')
-            # time_of_public = record[5]
-            # created_at = record[6]
-
-            # profession = Professions().sort_by_profession(title, body)
-            profession = AlexSort2809().sort_by_profession_by_Alex(title, body)
-            print('PROFESSION scr_db  ============ ', profession)
-            pass
-
-            profession_message = self.collect_data_for_send_to_bot(profession) # собрать в правильном виде для отправки в бота
-
-            if re.findall(r'/', profession_message):
-                len_profession_message = len(profession_message.split('/'))-1
-            else:
-                len_profession_message = 1
-
-            message = f'{title}\n{body}'
-            print('len = ', len_profession_message)
-            print('message = ', message.replace(f'\n', '')[0:40])
-
-            pass
-            PushToDB().start_push_to_bot(length=len_profession_message, prof=profession_message, message=message)
-            pass
+    # def send_to_bot(self, response):
+    #     """
+    #     It bring message to WriteTelegramChats class, where it sends to bot
+    #     :param response: all records from DB with all messages
+    #     :return: nothing
+    #     """
+    #     print(response)
+    #     for record in response:
+    #
+    #         channel_name = record[1]
+    #         title = self.clear_text_control(record[2]).replace('\u200b', '')
+    #         body = self.clear_text_control(record[3]).replace('\u200b', '')
+    #         # time_of_public = record[5]
+    #         # created_at = record[6]
+    #
+    #         # profession = Professions().sort_by_profession(title, body)
+    #         profession = AlexSort2809().sort_by_profession_by_Alex(title, body)
+    #         print('PROFESSION scr_db  ============ ', profession)
+    #         pass
+    #
+    #         profession_message = self.collect_data_for_send_to_bot(profession) # собрать в правильном виде для отправки в бота
+    #
+    #         if re.findall(r'/', profession_message):
+    #             len_profession_message = len(profession_message.split('/'))-1
+    #         else:
+    #             len_profession_message = 1
+    #
+    #         message = f'{title}\n{body}'
+    #         print('len = ', len_profession_message)
+    #         print('message = ', message.replace(f'\n', '')[0:40])
+    #
+    #         pass
+    #         PushToDB().start_push_to_bot(length=len_profession_message, prof=profession_message, message=message)
+    #         pass
 
     def collect_data_for_send_to_bot(self, profession):
         """
@@ -518,7 +518,7 @@ class DataBaseOperations:
 
 
 
-con=''
+# con=''
 # for i in ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'fullstack', 'mobile', 'qa', 'hr',
 #               'game', 'ba', 'marketing', 'junior', 'middle', 'senior', 'ad']:
 #
