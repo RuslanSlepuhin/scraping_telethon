@@ -153,7 +153,10 @@ class DataBaseOperations:
         print(f'\nResponse DB: profession = {pro}\n')
 
         time_of_public = results_dict['time_of_public']
-        created_at = datetime.now()
+        try:
+            created_at = results_dict['created_at']
+        except:
+            created_at = datetime.now()
 
         self.quant = 1
 
@@ -546,8 +549,8 @@ con=''
 # -------------- end get one message from test file ---------------
 
 # -------------- get all messages from all_messages to send in channels -------------
-param = "WHERE DATE(time_of_public) > '2022-10-01'"
-response = DataBaseOperations(con).get_all_from_db('all_messages', param=param)
+# param = "WHERE DATE(time_of_public) > '2022-10-01'"
+# response = DataBaseOperations(con).get_all_from_db('all_messages', param=param)
 
 # response_start_since_text = DataBaseOperations(con).find_last_record(
 #     response,
@@ -556,10 +559,15 @@ response = DataBaseOperations(con).get_all_from_db('all_messages', param=param)
 # )
 # pass
 
-DataBaseOperations(con).send_to_bot(response)
+# DataBaseOperations(con).send_to_bot(response)
 # ----------------------------------------------------------------------------------
 
 #
 # profession = Professions().sort_by_profession(t_text_title2, t_text_body2)
 # print('profession = ', profession)
+
+# --------------- delete old bases and rewrite to them messages ------------------
+# delete bases
+# get from all messages, check profession and write to profession db
+
 

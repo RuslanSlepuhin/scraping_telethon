@@ -1,19 +1,35 @@
+from flask import Flask, request
 import os
+import configparser
+from telethon.sync import TelegramClient
+from scraping_telegramchats2 import main
 
-import flask
-import scraping_telegramchats
+config = configparser.ConfigParser()
+config.read("config.ini")
 
-app = flask.Flask(__name__)
+server = Flask(__name__)
+api_id = int(config['TelegramRuslan']['api_id'])
+api_hash = config['TelegramRuslan']['api_hash']
+username = config['TelegramRuslan']['username']
+phone = '+375296449690'
 
-@app.route('/')
-@app.route('/home')
-def home():
-    return 'connected'
+client = TelegramClient('username2', api_id, api_hash)
+client.connect()
 
-@app.route('/listen')
-def start():
-    return 'Added'
+@server.route('/')
+async def hello():
+
+    return 'Hello guys', 200
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+@server.route('/scrape')
+async def start_parsing():
+
+    await main()
+
+    t=0
+    return f'Hello admin {t}', 200
+
+
+if __name__ == '__main__':
+    server.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
