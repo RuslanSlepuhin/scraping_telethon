@@ -3,19 +3,17 @@ import random
 import pandas as pd
 import configparser
 import time
-from datetime import datetime, timedelta
+from datetime import timedelta
 import psycopg2
 from scraping_db import DataBaseOperations
 from telethon.tl.functions.channels import GetParticipantsRequest
-from telethon.tl.types import ChannelParticipantsSearch, Message, PeerChannel
+from telethon.tl.types import ChannelParticipantsSearch
 from links import list_links
 from telethon.sync import TelegramClient
-from telethon import events, client
+from telethon import client
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest
 from scraping_geekjob import GeekJobGetInformation
-# from scraping_finder import FindJobGetInformation
 from scraping_push_to_channels import PushChannels
-from telethon.tl.types import InputPeerChannel, InputPeerUser, InputUser, PeerUser, InputChannel, InputPeerEmpty
 
 config = configparser.ConfigParser()
 config.read("config.ini")

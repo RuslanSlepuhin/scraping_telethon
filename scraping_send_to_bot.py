@@ -2,13 +2,8 @@ import asyncio
 import configparser
 import datetime
 import random
-
-from telethon.tl.functions.channels import GetParticipantsRequest
-from telethon.tl.types import ChannelParticipantsSearch, Message, PeerChannel
-from links import list_links
 from telethon.sync import TelegramClient
-from telethon import events, client
-from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest
+from telethon import client
 
 
 config = configparser.ConfigParser()
