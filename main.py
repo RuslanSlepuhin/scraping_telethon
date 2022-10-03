@@ -13,13 +13,17 @@ api_hash = config['TelegramRuslan']['api_hash']
 username = config['TelegramRuslan']['username']
 phone = '+375296449690'
 
-client = TelegramClient('username2', api_id, api_hash)
-client.connect()
+# client = TelegramClient('username2', api_id, api_hash)
+# client.connect()
 
 @server.route('/')
 async def hello():
 
     return 'Hello guys', 200
+
+@server.route('/', methods=['POST'])
+def get_message():
+    return '!', 200
 
 
 @server.route('/scrape')

@@ -273,7 +273,6 @@ class WriteToDbMessages():
             await GeekJobGetInformation(client).get_content(self.count_message_in_one_channel, db_tables='all')
 
     async def start(self, limit_msg, action):
-        self.client.disconnect()
         print('start')
         # async with self.client:
         #     self.client.loop.run_until_complete(self.main_start(list_links, limit_msg, action))
