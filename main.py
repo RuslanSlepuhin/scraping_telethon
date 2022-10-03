@@ -1,8 +1,5 @@
-from flask import Flask, request
-import os
+from flask import Flask
 import configparser
-from telethon.sync import TelegramClient
-from scraping_telegramchats2 import main
 
 config = configparser.ConfigParser()
 config.read("config.ini")
