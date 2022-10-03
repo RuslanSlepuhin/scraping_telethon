@@ -12,7 +12,6 @@ def home():
 
 @app.route('/listen')
 def start():
-    scraping_telegramchats.main()
     return 'Added'
 
 

@@ -1,3 +1,4 @@
+import asyncio
 import random
 import pandas as pd
 import configparser
@@ -11,6 +12,9 @@ from links import list_links
 from telethon.sync import TelegramClient
 from telethon import events, client
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest
+from scraping_geekjob import GeekJobGetInformation
+# from scraping_finder import FindJobGetInformation
+from scraping_push_to_channels import PushChannels
 from telethon.tl.types import InputPeerChannel, InputPeerUser, InputUser, PeerUser, InputChannel, InputPeerEmpty
 
 config = configparser.ConfigParser()
@@ -25,7 +29,7 @@ api_hash = config['TelegramRuslan']['api_hash']
 username = config['TelegramRuslan']['username']
 phone = '+375296449690'
 
-client = TelegramClient(username, api_id, api_hash)
+client = TelegramClient('username', api_id, api_hash)
 client.start()
 
 quant = 1  # счетчик вывода количества запушенных в базу сообщений (для контроля в консоли)
@@ -70,13 +74,19 @@ class ListenChat:
             'body': body,
             'time_of_public': date
         }
-        db = DataBaseOperations()
-        dict_bool = db.push_to_bd(results_dict)  # из push_to_db возвращается bool or_exists
+        # db = DataBaseOperations(con=None)
+        # dict_bool = db.push_to_bd(results_dict)  # из push_to_db возвращается bool or_exists
 
-        if dict_bool['not_exists']:
-            send_message = f'{chat_name}\n\n' + info['message']
-            await client.send_message(entity=bot, message=send_message)
-        print(results_dict)
+        # записать в общую таблицу со всеми сообщениями
+        DataBaseOperations(con).write_to_one_table(results_dict)  # write all messages on one table
+
+        # записать в таблицы с профессиями и разложить по каналам
+        await PushChannels().push(results_dict, client, info['message'])
+
+        # if dict_bool['not_exists']:
+        #     send_message = f'{chat_name}\n\n' + info['message']
+        #     await client.send_message(entity=bot, message=send_message)
+        # print(results_dict)
 
 class WriteToDbMessages():
 
@@ -158,6 +168,8 @@ class WriteToDbMessages():
 
     async def dump_all_messages(self, channel, limit_msg):
 
+        self.count_message_in_one_channel = 1
+
         block = False
 
         offset_msg = 0  # номер записи, с которой начинается считывание
@@ -177,112 +189,46 @@ class WriteToDbMessages():
             if not history.messages:
                 break
             messages = history.messages
-
-            channel_name = f'@{channel.username} | {channel.title}'
-
             for message in messages:
-
                 if not message.message:  # если сообщение пустое, например "Александр теперь в группе"
                     pass
                 else:
-                    # all_messages.append(message.to_dict())
-                    # await client.send_message(bot, message) ############
-                    # time.sleep(random.randrange(5, 15)) ###########
-
-                    title = message.message.partition(f'\n')[0] ##############3
-                    body = message.message.replace(title, '').replace(f'\n\n', f'\n')##############
-                    date = (message.date + timedelta(hours=3))###########3
-                    results_dict = {
-                        'chat_name': channel_name,
-                        'title': title,
-                        'body': body,
-                        'time_of_public': date
-                    }##############
-                    db = DataBaseOperations(con)#############3
-
-                    response_dict = db.push_to_bd(results_dict)  ##############3
-                    channels = response_dict.keys()##############
-
-                    if 'block' in channels:#################
-                        block = response_dict['block']#########3
-
-                    channel_list = []#############
-                    if not block:
-                        message_text = ''################
-                        length = 0###############
-                        for chann in channels:##########3
-                            if not response_dict[chann]:###########3
-                                message_text = message_text + f'{chann}/'###########3
-                                channel_list.append(chann)###############
-                                length += 1###############3
-
-                        if message_text:##########3
-                            message.message = f"{length}/{message_text}{message.message}"
-                            # await client.send_message(entity=bot, message=f"{length}/{message}{i['message']}")
-
-                            await client.send_message(entity=bot, message=message)###########
-
-                            # channel_from = PeerChannel(channel)
-                            # await client.forward_messages(bot, message, channel_from)  ###########
-
-                            for i in channel_list:############
-                                print(f"pushed to channel = {i}")#############
-
-                    else:############
-                        pass#############
-
-                time.sleep(random.randrange(5, 7))##############
-
+                    all_messages.append(message.to_dict())
 
             offset_msg = messages[len(messages) - 1].id
             total_messages = len(all_messages)
             if total_count_limit != 0 and total_messages >= total_count_limit:
                 break
 
-        # channel_name = f'@{channel.username} | {channel.title}'
+        channel_name = f'@{channel.username} | {channel.title}'
 
-        # for i in all_messages:
-            # title = i['message'].partition(f'\n')[0]
-            # body = i['message'].replace(title, '').replace(f'\n\n', f'\n')
-            # date = (i['date'] + timedelta(hours=3))
-            # results_dict = {
-            #     'chat_name': channel_name,
-            #     'title': title,
-            #     'body': body,
-            #     'time_of_public': date
-            # }
-            # db = DataBaseOperations(con)
-            #
-            # response_dict = db.push_to_bd(results_dict)  # из push_to_db возвращается bool or_exists
-            # channels = response_dict.keys()
-            #
-            # if 'block' in channels:
-            #     block = response_dict['block']
-            #
-            # channel_list = []
-            # if not block:
-            #     message = ''
-            #     length = 0
-            #     for channel in channels:
-            #         if not response_dict[channel]:
-            #             message = message + f'{channel}/'
-            #             channel_list.append(channel)
-            #             length += 1
-            #
-            #     if message:
-            #         # await client.send_message(entity=bot, message=f"{length}/{message}{i['message']}")
-            #         await client.send_message(entity=bot, message=i)
-            #
-            #         for i in channel_list:
-            #             print(f"pushed to channel = {i}")
-            #
-            # else:
-            #     pass
-            #
-            # time.sleep(random.randrange(25, 40))
+#  get quantity of messages in channel
+        await asyncio.sleep(4)
+        history_count = await client.get_messages(channel)
+        print(f'всего сообщений в канале {channel.title} = {history_count.total}')
 
-            time.sleep(random.randrange(25, 40))
+        for i in reversed(all_messages):
+            title = i['message'].partition(f'\n')[0]
+            body = i['message'].replace(title, '').replace(f'\n\n', f'\n')
+            date = (i['date'] + timedelta(hours=3))
+            results_dict = {
+                'chat_name': channel_name,
+                'title': title,
+                'body': body,
+                'time_of_public': date
+            }
 
+            # записать в общую таблицу со всеми сообщениями
+            DataBaseOperations(con).write_to_one_table(results_dict)  # write all messages on one table
+
+            # записать в таблицы с профессиями и разложить по каналам
+            await PushChannels().push(results_dict, client, i)  # это вместо закомментированного кода
+
+            print(f"{self.count_message_in_one_channel} from_channel = {channel_name}")
+            # self.count_message_in_one_channel += 1
+
+        print('time_sleep')
+        time.sleep(random.randrange(5, 9))
 
     async def main_start(self, list_links, limit_msg, action):
 
@@ -306,11 +252,16 @@ class WriteToDbMessages():
                     bool_index = False
 
             if bool_index:
+                self.count_message_in_one_channel = 1
                 match action:
                     case 'get_message':
                         await self.dump_all_messages(channel, limit_msg)
+                        # await GeekJobGetInformation(client).get_content(self.count_message_in_one_channel)
                     case 'get_participants':
                         await self.dump_all_participants(channel)
+
+        if action == 'get_message':
+            await GeekJobGetInformation(client).get_content(self.count_message_in_one_channel, db_tables='all')
 
     def start(self, limit_msg, action):
         with client:
@@ -319,7 +270,7 @@ class WriteToDbMessages():
 
 def main():
     get_messages = WriteToDbMessages()
-    get_messages.start(limit_msg=20, action='get_message')  #get_participants
+    get_messages.start(limit_msg=10, action='get_message')  #get_participants get_message
 
     # print("Listening chats...")
     # client.start()

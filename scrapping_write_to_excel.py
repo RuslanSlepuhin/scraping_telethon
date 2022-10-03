@@ -1,5 +1,5 @@
 import configparser
-from datetime import datetime, time
+from datetime import datetime, time, timedelta
 import random
 import time
 import pandas as pd
@@ -62,11 +62,13 @@ def write_to_excel_from_db():
 
     cur = con.cursor()
 
-    profession_list = ['backend', 'frontend', 'qa', 'fullstack', 'designer', 'mobile', 'pm', 'product', 'game', 'ba', 'devops', 'marketing', 'hr', 'ad', 'no_sort']
+    profession_list = ['backend', 'frontend', 'qa', 'fullstack', 'designer', 'mobile', 'pm',
+                       'product', 'game', 'ba', 'devops', 'marketing', 'hr', 'ad', 'no_sort',
+                       'junior', 'middle', 'senior']
 
     for pro in profession_list:
 
-        query = f"""SELECT * FROM {pro}"""
+        query = f"""SELECT * FROM {pro} WHERE created_at > {datetime(13, 9, 14, 0, 0, 0, 0).strftime('%Y-%m-%d %H:%M:%S.%MS')}"""
         with con:
             cur.execute(query)
             r = cur.fetchall()
@@ -90,7 +92,7 @@ def write_to_excel_from_db():
             )
 
             # df.to_excel(f'./participants_from_{pro}.xlsx', engine='openpyxl', mode='a', sheet_name='Sheet1')
-            df.to_excel(f'./{pro}_messages.xlsx', sheet_name='Sheet1')
+            df.to_excel(f'./messages/{pro}_messages.xlsx', sheet_name='Sheet1')
 
 async def send_to_channel_from_db():
     con = connect_db()
@@ -115,9 +117,8 @@ async def send_to_channel_from_db():
                     print('data is not valid', i)
 
 
-
 # with client:
 #     client.loop.run_until_complete(send_to_channel_from_db())
 # send_to_channel_from_db()
 
-# write_to_excel_from_db()
+write_to_excel_from_db()
