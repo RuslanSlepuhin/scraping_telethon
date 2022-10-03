@@ -1,5 +1,6 @@
 from flask import Flask
 import configparser
+from scraping_telegramchats2 import main
 
 config = configparser.ConfigParser()
 config.read("config.ini")
@@ -26,7 +27,7 @@ def get_message():
 @server.route('/scrape')
 async def start_parsing():
 
-    # await main()
+    await main()
 
     t=0
     return f'Hello admin {t}', 200
