@@ -29,8 +29,8 @@ api_hash = config['TelegramRuslan']['api_hash']
 username = config['TelegramRuslan']['username']
 phone = '+375296449690'
 
-client = TelegramClient('username', api_id, api_hash)
-client.start()
+# client = TelegramClient('username', api_id, api_hash)
+# client.start()
 
 quant = 1  # счетчик вывода количества запушенных в базу сообщений (для контроля в консоли)
 
@@ -51,44 +51,50 @@ except:
     print('No connect with db')
 
 
-class ListenChat:
-
-    @client.on(events.NewMessage(chats=(list_links)))
-    async def normal_handler(event):
-
-        print('I,m listening chats ....')
-
-        info = event.message.to_dict()
-        title = info['message'].partition(f'\n')[0]
-        body = info['message'].replace(title, '').replace(f'\n\n', f'\n')
-        date = (info['date'] + timedelta(hours=3))
-
-        if event.chat.username:
-            chat_name = f'@{event.chat.username} | {event.chat.title}'
-        else:
-            chat_name = event.chat.title
-
-        results_dict = {
-            'chat_name': chat_name,
-            'title': title,
-            'body': body,
-            'time_of_public': date
-        }
-        # db = DataBaseOperations(con=None)
-        # dict_bool = db.push_to_bd(results_dict)  # из push_to_db возвращается bool or_exists
-
-        # записать в общую таблицу со всеми сообщениями
-        DataBaseOperations(con).write_to_one_table(results_dict)  # write all messages on one table
-
-        # записать в таблицы с профессиями и разложить по каналам
-        await PushChannels().push(results_dict, client, info['message'])
-
-        # if dict_bool['not_exists']:
-        #     send_message = f'{chat_name}\n\n' + info['message']
-        #     await client.send_message(entity=bot, message=send_message)
-        # print(results_dict)
+# class ListenChat:
+#
+#     @client.on(events.NewMessage(chats=(list_links)))
+#     async def normal_handler(event):
+#
+#         print('I,m listening chats ....')
+#
+#         info = event.message.to_dict()
+#         title = info['message'].partition(f'\n')[0]
+#         body = info['message'].replace(title, '').replace(f'\n\n', f'\n')
+#         date = (info['date'] + timedelta(hours=3))
+#
+#         if event.chat.username:
+#             chat_name = f'@{event.chat.username} | {event.chat.title}'
+#         else:
+#             chat_name = event.chat.title
+#
+#         results_dict = {
+#             'chat_name': chat_name,
+#             'title': title,
+#             'body': body,
+#             'time_of_public': date
+#         }
+#         # db = DataBaseOperations(con=None)
+#         # dict_bool = db.push_to_bd(results_dict)  # из push_to_db возвращается bool or_exists
+#
+#         # записать в общую таблицу со всеми сообщениями
+#         DataBaseOperations(con).write_to_one_table(results_dict)  # write all messages on one table
+#
+#         # записать в таблицы с профессиями и разложить по каналам
+#         await PushChannels().push(results_dict, client, info['message'])
+#
+#         # if dict_bool['not_exists']:
+#         #     send_message = f'{chat_name}\n\n' + info['message']
+#         #     await client.send_message(entity=bot, message=send_message)
+#         # print(results_dict)
 
 class WriteToDbMessages():
+
+    def __init__(self):
+        client = TelegramClient('username', api_id, api_hash)
+        # client.disconnect()
+        client.start()
+        self.client = client
 
     async def dump_all_participants(self, channel):
         """Записывает json-файл с информацией о всех участниках канала/чата"""
@@ -102,7 +108,7 @@ class WriteToDbMessages():
 
         try:
             while True:
-                participants = await client(GetParticipantsRequest(channel,
+                participants = await self.client(GetParticipantsRequest(channel,
                                                                filter_user, offset_user, limit_user, hash=0))
                 if not participants.users:
                     break
@@ -168,6 +174,8 @@ class WriteToDbMessages():
 
     async def dump_all_messages(self, channel, limit_msg):
 
+        print('dump')
+
         self.count_message_in_one_channel = 1
 
         block = False
@@ -180,7 +188,7 @@ class WriteToDbMessages():
         total_count_limit = limit_msg  # значение 0 = все сообщения
 
         while True:
-            history = await client(GetHistoryRequest(
+            history = await self.client(GetHistoryRequest(
                 peer=channel,
                 offset_id=offset_msg,
                 offset_date=None, add_offset=0,
@@ -204,7 +212,7 @@ class WriteToDbMessages():
 
 #  get quantity of messages in channel
         await asyncio.sleep(4)
-        history_count = await client.get_messages(channel)
+        history_count = await self.client.get_messages(channel)
         print(f'всего сообщений в канале {channel.title} = {history_count.total}')
 
         for i in reversed(all_messages):
@@ -222,7 +230,7 @@ class WriteToDbMessages():
             DataBaseOperations(con).write_to_one_table(results_dict)  # write all messages on one table
 
             # записать в таблицы с профессиями и разложить по каналам
-            await PushChannels().push(results_dict, client, i)  # это вместо закомментированного кода
+            await PushChannels().push(results_dict, self.client, i)  # это вместо закомментированного кода
 
             print(f"{self.count_message_in_one_channel} from_channel = {channel_name}")
             # self.count_message_in_one_channel += 1
@@ -236,16 +244,15 @@ class WriteToDbMessages():
 
         for url in list_links:
             bool_index = True
-            channel = None
 
             try:
-                channel = await client.get_entity(url)
+                channel = await self.client.get_entity(url)                # channel = await self.client.get_entity(url)
             except Exception as e:
                 if e.args[0] == 'Cannot get entity from a channel (or group) that you are not part of. Join the group and retry':
                     private_url = url.split('/')[-1]
                     try:
-                        await client(ImportChatInviteRequest(private_url))  # если канал закрытый, подписаться на него
-                        channel = await client.get_entity(url)  # и забрать из него историю сообщений
+                        await self.client(ImportChatInviteRequest(private_url))  # если канал закрытый, подписаться на него
+                        channel = await self.client.get_entity(url)  # и забрать из него историю сообщений
                     except Exception as e:
                         print(f'Error: Цикл прошел с ошибкой в месте, где нужна подписка: {e}')
 
@@ -265,18 +272,22 @@ class WriteToDbMessages():
         if action == 'get_message':
             await GeekJobGetInformation(client).get_content(self.count_message_in_one_channel, db_tables='all')
 
-    def start(self, limit_msg, action):
+    async def start(self, limit_msg, action):
+        self.client.disconnect()
         print('start')
-        with client:
-            client.loop.run_until_complete(self.main_start(list_links, limit_msg, action))
+        # async with self.client:
+        #     self.client.loop.run_until_complete(self.main_start(list_links, limit_msg, action))
+        async with self.client:
+            await self.main_start(list_links, limit_msg, action)
 
-def main():
+
+async def main():
     get_messages = WriteToDbMessages()
-    get_messages.start(limit_msg=10, action='get_message')  #get_participants get_message
+    await get_messages.start(limit_msg=10, action='get_message')  #get_participants get_message
 
     # print("Listening chats...")
     # client.start()
     # ListenChat()
     # client.run_until_disconnected()
 
-main()
+# main()
