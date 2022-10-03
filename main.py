@@ -29,13 +29,13 @@ def get_message():
 @server.route('/scrape')
 async def start_parsing():
 
-    await main()
+    # await main()
 
     t=0
     return f'Hello admin {t}', 200
 
 
 if __name__ == '__main__':
-    server.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
-    # server.run()
+    # server.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    server.run()
 
