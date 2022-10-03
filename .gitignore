@@ -12,7 +12,6 @@ venv/
 .git/
 .idea/
 
-*.session
 *.session-journal
 
 #migrations

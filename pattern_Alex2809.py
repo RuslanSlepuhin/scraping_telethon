@@ -85,7 +85,8 @@ pattern = {
                 "из дизайнера", "из Дизайнера", "designers", "3D Unity", "3D unity", "Unity 3D",
                 "Understanding UI state", "Material UI", "до UI", "Python", "Java", "Kotlin", "Swift", " C ",
                 "C\\+\\+", "C#", "ObjectiveC", "React", "SoapUI", "Postman", "iOS разработчик", "Full Stack",
-                "fullstack Web Developer", "Flutter Developer", "Senior Dealer", "Инженер-электронщик")
+                "fullstack Web Developer", "Flutter Developer", "Senior Dealer", "Инженер-электронщик", "@Recruiter",
+                "@IraRecruiter")
     },
 
     'hr': {
