@@ -6,8 +6,6 @@ import time
 import pandas as pd
 import psycopg2
 from datetime import datetime, timedelta
-from scraping_get_profession import Professions
-from scraping_get_profession_Alex import AlexSort
 from scraping_get_profession_Alex_Rus import AlexRusSort
 from scraping_get_profession_Alex_next_2809 import AlexSort2809
 
