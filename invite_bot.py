@@ -230,8 +230,6 @@ async def messages(message):
             await bot.send_message(message.chat.id, f'{e}\nУкажате канал в формате https//t.me/<имя канала> (без @)\n'
                                                     f'Обратите внимание на то, что <b>и Вы и этот бот</b> в этом канале должны быть <b>администраторами</b>', parse_mode='html')
 
-        # await clear_invite_history(channel_to_send)  # delete it when passed tests
-
         if channel_to_send:
             try:
                 await bot.send_message(message.chat.id, f'<b>{channel_short_name}</b>: Инвайт запущен', parse_mode='html')
@@ -293,7 +291,6 @@ async def messages(message):
                                                                           f'({numbers_invite+1} инвайтов)', parse_mode='html')
                             numbers_invite += 1
 
-                            # await clear_invite_history(channel_to_send)
 
                         except Exception as e:
                             if re.findall(r'seconds is required (caused by InviteToChannelRequest)', str(e)):
@@ -341,7 +338,7 @@ async def messages(message):
         if message.text == 'Add news to channels':
             await bot.delete_message(message.chat.id, message.message_id)
             await bot.send_message(message.chat.id, 'Scraping is starting')
-            await main()
+            await main(client)
             pass
 
 
@@ -494,6 +491,11 @@ def db_connect():
     return con
 
 async def clear_invite_history(channel):
+
+    """
+    Clear the history in choose channel
+    """
+
     history = await client(GetHistoryRequest(
         peer=channel,
         offset_id=0,
