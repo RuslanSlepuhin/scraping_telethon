@@ -5,7 +5,7 @@ from types import NoneType
 import pandas as pd
 import configparser
 import time
-from datetime import timedelta
+from datetime import timedelta, datetime
 import psycopg2
 from db_operations.scraping_db import DataBaseOperations
 from telethon.tl.functions.channels import GetParticipantsRequest
@@ -52,7 +52,7 @@ except:
 class PushChannels:  # I bring that class from scarping_push_to_channel.py
     async def push(self, results_dict, client, i, bot=bot):
         block = False
-
+        channels = None
         # print('PUSH_TO_DB')
         response_dict = DataBaseOperations(con=None).push_to_bd(results_dict)
         if type(response_dict) is NoneType:
@@ -245,9 +245,25 @@ class WriteToDbMessages():
         channel_name = f'@{channel.username} | {channel.title}'
 
 #  get quantity of messages in channel
-        await asyncio.sleep(4)
-        history_count = await self.client.get_messages(channel)
-        print(f'всего сообщений в канале {channel.title} = {history_count.total}')
+#         await asyncio.sleep(4)
+        # history_count = await self.client.get_messages(channel)
+        # print(f'всего сообщений в канале {channel.title} = {history_count.total}')
+
+# test!!!!!!!!!!!!!!!!!!!!!!!!
+        all_messages = []
+        all_messages = [{'message': '➡️We are looking for a responsible and hardworking 1C programmer to join the team\n'
+                        '\n👨\u200d💻 Work format: remote;\n⛅ Employment: full/part time;\n👑 Salary: according to the '
+                        'results of the interview, range: $ 1300-2000\n🤗 Family: ODMSoft\n\xa0 Required skills:\n🔷️ '
+                        'Knowledge and practical skills of building an exchange between databases using OLE, COM;\n🔷️ '
+                        'Experience with LCD, data conversion and exchange plans;\n🔷️ Practical experience in developing '
+                        'http services, working with API, JSON, XML, SOAP, OAuth 2.0;\n🔷️ Practical experience of '
+                        'integration of fiscal and trading equipment;\n🔷️ Stress resistance, sociability, responsibility, '
+                        'initiative and analytical thinking\nResponsibilities:\n🔸️ Administration and programming in 1C;\n🔸️ '
+                        'Refinement of the configuration;\n🔸️ User consultation.\n\xa0 We offer:\n◽ Clients from abroad '
+                        '(USA, Canada, Germany, Israel, Spain);\n◽A competitive salary with the possibility of growth due '
+                        'to professional development;\n◽ All conditions for professional and personal growth;\n◽ '
+                        'Five-day workweek, 6-8-hour workday;\n◽ Payment 2 times a month;\n◽ Indexation of wages in '
+                        'accordance with work results;\n◽ Paid overtime.\nMore details at @OllKondr🤝', 'date': datetime.now()},]
 
         for i in reversed(all_messages):
             title = i['message'].partition(f'\n')[0]

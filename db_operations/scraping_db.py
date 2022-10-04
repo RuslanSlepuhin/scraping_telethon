@@ -243,7 +243,7 @@ class DataBaseOperations:
 
                     new_post = f"""INSERT INTO {pro} (chat_name, title, body, profession, time_of_public, created_at) 
                                 VALUES ('{chat_name}', '{title}', '{body}', '{pro}', '{time_of_public}', '{created_at}');"""
-                    cur.execute(new_post)
+                    # cur.execute(new_post) # !!!!!!!!!
                     self.con.commit()
                     print(self.quant, f'= Added to DB {pro}\n')
                     self.quant += 1
@@ -255,7 +255,8 @@ class DataBaseOperations:
             except Exception as e:
                 print('Dont push in db, error = ', e)
                 # return response_dict['error', e]
-
+        pass
+        return response_dict
     # def push_to_db_write_params(self, cur, pro, param, title, body, chat_name, time_of_public, created_at, response_dict):
     #     with self.con:
     #         try:
@@ -341,8 +342,7 @@ class DataBaseOperations:
 
                     new_post = f"""INSERT INTO all_messages (chat_name, title, body, profession, time_of_public, created_at) 
                                                VALUES ('{chat_name}', '{title}', '{body}', '{None}', '{time_of_public}', '{created_at}');"""
-                    cur.execute(new_post)
-                    self.con.commit()
+                    # cur.execute(new_post) #!!!!!!!!
                     print(f'= Added to DB all_messages\n')
 
                 else:
