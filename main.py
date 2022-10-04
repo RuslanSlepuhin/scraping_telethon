@@ -6,6 +6,8 @@ import configparser
 from scraping_telegramchats2 import main
 import os
 
+# gunicorn --bind=0.0.0.0 --timeout 600 application:app
+
 config = configparser.ConfigParser()
 config.read("./settings/config.ini")
 server = Flask(__name__)
