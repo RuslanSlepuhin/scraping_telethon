@@ -5,18 +5,17 @@ import configparser
 import time
 from datetime import timedelta
 import psycopg2
-from scraping_db import DataBaseOperations
+from db_operations.scraping_db import DataBaseOperations
 from telethon.tl.functions.channels import GetParticipantsRequest
 from telethon.tl.types import ChannelParticipantsSearch
 from links import list_links
 from telethon.sync import TelegramClient
 from telethon import client
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest
-from scraping_geekjob import GeekJobGetInformation
-from scraping_push_to_channels import PushChannels
+from sites.scraping_geekjob import GeekJobGetInformation
 
 config = configparser.ConfigParser()
-config.read("config.ini")
+config.read("./settings/config.ini")
 
 #--------------------------- забираем значения из config.ini-------------------------------
 alexandr_channel = config['My_channels']['alexandr_channel']
@@ -47,6 +46,38 @@ try:
     )
 except:
     print('No connect with db')
+
+class PushChannels:  # I bring that class from scarping_push_to_channel.py
+    async def push(self, results_dict, client, i, bot=bot):
+        block = False
+
+        # print('PUSH_TO_DB')
+        response_dict = DataBaseOperations(con=None).push_to_bd(results_dict)
+        channels = response_dict.keys()
+
+        if 'block' in channels:
+            block = response_dict['block']
+
+# check profession is not true in response_dict = {'backend': True, frontend: False} (for example), doesn't exist
+        channel_list = []
+        if not block:
+            message = ''
+            length = 0
+            for channel in channels:
+                if not response_dict[channel]:
+                    message = message + f'{channel}/'
+                    channel_list.append(channel)
+                    length += 1
+
+# collect prefix for message with numbers/profession/profession/profession (if it is False in dict)
+            if message:
+                await client.send_message(entity=bot, message=f"{length}/{message}{i['message']}")
+                await asyncio.sleep(2)
+                for i in channel_list:
+                    print(f"pushed to channel = {i}\n")
+
+        else:
+            pass
 
 
 # class ListenChat:
@@ -239,6 +270,7 @@ class WriteToDbMessages():
     async def main_start(self, list_links, limit_msg, action):
 
         print('main_start')
+        channel = ''
 
         for url in list_links:
             bool_index = True

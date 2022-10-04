@@ -3,8 +3,8 @@ It is the new pattern from Alexander
 """
 
 import re
-import pattern_Ruslan
-import pattern_Alex2809
+from patterns import pattern_Alex2809
+
 
 class AlexSort2809:
 

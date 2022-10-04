@@ -2,9 +2,8 @@ import re
 from datetime import datetime
 import pandas as pd
 import psycopg2
-import exemples
 
-from database_settings import database, user, password, host, port
+from settings.database_settings import database, user, password, host, port
 
 def sort_by_profession(title, body):
     check_dictionary = {
