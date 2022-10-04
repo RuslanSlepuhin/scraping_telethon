@@ -300,8 +300,8 @@ class WriteToDbMessages():
                     case 'get_participants':
                         await self.dump_all_participants(channel)
 
-        if action == 'get_message':
-            await GeekJobGetInformation(client).get_content(self.count_message_in_one_channel, db_tables='all')
+        # if action == 'get_message':
+        #     await GeekJobGetInformation(client).get_content(self.count_message_in_one_channel, db_tables='all')
 
     async def start(self, limit_msg, action):
         print('start')
