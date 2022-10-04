@@ -3,7 +3,7 @@ import configparser
 from db_operations.scraping_db import DataBaseOperations
 
 config = configparser.ConfigParser()
-config.read("settings\config.ini")
+config.read("./settings/config.ini")
 
 bot = config['My_channels']['bot']
 
