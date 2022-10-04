@@ -25,9 +25,9 @@ async def start_parsing():
 
     await main()
     print('sleep 10 minutes')
-    await asyncio.sleep(60*10)
+    # await asyncio.sleep(60*10)
     print('sleeping is finish')
-    return f'Hello admin', 200
+    # return f'Hello admin', 200
 
 
 if __name__ == '__main__':
