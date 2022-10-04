@@ -29,7 +29,7 @@ class PushChannels:
                     length += 1
 
             if message:
-                # await client.send_message(entity=bot, message=f"{length}/{message}{i['message']}")  #!!!!!!!!
+                await client.send_message(entity=bot, message=f"{length}/{message}{i['message']}")  #!!!!!!!!
                 await asyncio.sleep(2)
                 for i in channel_list:
                     print(f"pushed to channel = {i}\n")
