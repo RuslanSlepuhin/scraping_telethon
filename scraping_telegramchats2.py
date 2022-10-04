@@ -1,5 +1,7 @@
 import asyncio
 import random
+from types import NoneType
+
 import pandas as pd
 import configparser
 import time
@@ -53,7 +55,10 @@ class PushChannels:  # I bring that class from scarping_push_to_channel.py
 
         # print('PUSH_TO_DB')
         response_dict = DataBaseOperations(con=None).push_to_bd(results_dict)
-        channels = response_dict.keys()
+        if type(response_dict) is NoneType:
+            print('&&&&&&&&& NONeTYPE')
+        else:
+            channels = response_dict.keys()
 
         if 'block' in channels:
             block = response_dict['block']
