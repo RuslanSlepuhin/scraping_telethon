@@ -23,14 +23,6 @@ config.read("./settings/config.ini")
 alexandr_channel = config['My_channels']['alexandr_channel']
 bot = config['My_channels']['bot']
 
-api_id = int(config['TelegramRuslan']['api_id'])
-api_hash = config['TelegramRuslan']['api_hash']
-username = config['TelegramRuslan']['username']
-phone = '+375296449690'
-
-# client = TelegramClient('username', api_id, api_hash)
-# client.start()
-
 quant = 1  # счетчик вывода количества запушенных в базу сообщений (для контроля в консоли)
 
 database = config['DB3']['database']
@@ -50,6 +42,10 @@ except:
     print('No connect with db')
 
 class PushChannels:  # I bring that class from scarping_push_to_channel.py
+
+    def __init__(self, client):
+        self.client = client
+
     async def push(self, results_dict, client, i, bot=bot):
         block = False
         channels = None
@@ -76,8 +72,8 @@ class PushChannels:  # I bring that class from scarping_push_to_channel.py
 
 # collect prefix for message with numbers/profession/profession/profession (if it is False in dict)
             if message:
-                await client.send_message(entity=bot, message=f"{length}/{message}{i['message']}")
-                await asyncio.sleep(2)
+                await self.client.send_message(entity=bot, message=f"{length}/{message}{i['message']}")
+                await asyncio.sleep(15)
                 for i in channel_list:
                     print(f"pushed to channel = {i}\n")
 
@@ -124,10 +120,10 @@ class PushChannels:  # I bring that class from scarping_push_to_channel.py
 
 class WriteToDbMessages():
 
-    def __init__(self):
-        client = TelegramClient('username', api_id, api_hash)
-        # client.disconnect()
-        client.start()
+    def __init__(self, client):
+        # client = TelegramClient('username', api_id, api_hash)
+        # # client.disconnect()
+        # client.start()
         self.client = client
 
     async def dump_all_participants(self, channel):
@@ -249,22 +245,6 @@ class WriteToDbMessages():
         # history_count = await self.client.get_messages(channel)
         # print(f'всего сообщений в канале {channel.title} = {history_count.total}')
 
-# test!!!!!!!!!!!!!!!!!!!!!!!!
-        all_messages = []
-        all_messages = [{'message': '➡️We are looking for a responsible and hardworking 1C programmer to join the team\n'
-                        '\n👨\u200d💻 Work format: remote;\n⛅ Employment: full/part time;\n👑 Salary: according to the '
-                        'results of the interview, range: $ 1300-2000\n🤗 Family: ODMSoft\n\xa0 Required skills:\n🔷️ '
-                        'Knowledge and practical skills of building an exchange between databases using OLE, COM;\n🔷️ '
-                        'Experience with LCD, data conversion and exchange plans;\n🔷️ Practical experience in developing '
-                        'http services, working with API, JSON, XML, SOAP, OAuth 2.0;\n🔷️ Practical experience of '
-                        'integration of fiscal and trading equipment;\n🔷️ Stress resistance, sociability, responsibility, '
-                        'initiative and analytical thinking\nResponsibilities:\n🔸️ Administration and programming in 1C;\n🔸️ '
-                        'Refinement of the configuration;\n🔸️ User consultation.\n\xa0 We offer:\n◽ Clients from abroad '
-                        '(USA, Canada, Germany, Israel, Spain);\n◽A competitive salary with the possibility of growth due '
-                        'to professional development;\n◽ All conditions for professional and personal growth;\n◽ '
-                        'Five-day workweek, 6-8-hour workday;\n◽ Payment 2 times a month;\n◽ Indexation of wages in '
-                        'accordance with work results;\n◽ Paid overtime.\nMore details at @OllKondr🤝', 'date': datetime.now()},]
-
         for i in reversed(all_messages):
             title = i['message'].partition(f'\n')[0]
             body = i['message'].replace(title, '').replace(f'\n\n', f'\n')
@@ -280,7 +260,7 @@ class WriteToDbMessages():
             DataBaseOperations(con).write_to_one_table(results_dict)  # write all messages on one table
 
             # записать в таблицы с профессиями и разложить по каналам
-            await PushChannels().push(results_dict, self.client, i)  # это вместо закомментированного кода
+            await PushChannels(self.client).push(results_dict, self.client, i)  # это вместо закомментированного кода
 
             print(f"{self.count_message_in_one_channel} from_channel = {channel_name}")
             # self.count_message_in_one_channel += 1
@@ -331,8 +311,8 @@ class WriteToDbMessages():
             await self.main_start(list_links, limit_msg, action)
 
 
-async def main():
-    get_messages = WriteToDbMessages()
+async def main(client):
+    get_messages = WriteToDbMessages(client)
     await get_messages.start(limit_msg=10, action='get_message')  #get_participants get_message
 
     # print("Listening chats...")
