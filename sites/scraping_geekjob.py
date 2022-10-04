@@ -9,8 +9,8 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
-from scraping_push_to_channels import PushChannels
-from scraping_db import DataBaseOperations
+from bot.scraping_push_to_channels import PushChannels
+from db_operations.scraping_db import DataBaseOperations
 
 class GeekJobGetInformation:
 

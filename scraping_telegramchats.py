@@ -3,22 +3,21 @@ import random
 import pandas as pd
 import configparser
 import time
-from datetime import datetime, timedelta
+from datetime import timedelta
 import psycopg2
-from scraping_db import DataBaseOperations
+from db_operations.scraping_db import DataBaseOperations
 from telethon.tl.functions.channels import GetParticipantsRequest
-from telethon.tl.types import ChannelParticipantsSearch, Message, PeerChannel
+from telethon.tl.types import ChannelParticipantsSearch
 from links import list_links
 from telethon.sync import TelegramClient
 from telethon import events, client
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest
-from scraping_geekjob import GeekJobGetInformation
+from sites.scraping_geekjob import GeekJobGetInformation
 # from scraping_finder import FindJobGetInformation
-from scraping_push_to_channels import PushChannels
-from telethon.tl.types import InputPeerChannel, InputPeerUser, InputUser, PeerUser, InputChannel, InputPeerEmpty
+from bot.scraping_push_to_channels import PushChannels
 
 config = configparser.ConfigParser()
-config.read("config.ini")
+config.read("./settings/config.ini")
 
 #--------------------------- забираем значения из config.ini-------------------------------
 alexandr_channel = config['My_channels']['alexandr_channel']
@@ -152,7 +151,7 @@ class WriteToDbMessages():
                  }
             )
 
-            df.to_excel(f'./participants_from_{file_name}.xlsx', sheet_name='Sheet1')
+            df.to_excel(f'./participants/participants_from_{file_name}.xlsx', sheet_name='Sheet1')
 
             #------------- конец записи в файл ------------
 
@@ -272,7 +271,7 @@ class WriteToDbMessages():
 
 def main():
     get_messages = WriteToDbMessages()
-    get_messages.start(limit_msg=10, action='get_message')  #get_participants get_message
+    get_messages.start(limit_msg=10, action='get_participants')  #get_participants get_message
 
     # print("Listening chats...")
     # client.start()

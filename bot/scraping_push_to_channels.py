@@ -1,9 +1,9 @@
 import asyncio
 import configparser
-from scraping_db import DataBaseOperations
+from db_operations.scraping_db import DataBaseOperations
 
 config = configparser.ConfigParser()
-config.read("config.ini")
+config.read("settings\config.ini")
 
 bot = config['My_channels']['bot']
 
@@ -36,3 +36,4 @@ class PushChannels:
 
         else:
             pass
+        pass

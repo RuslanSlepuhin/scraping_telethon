@@ -3,13 +3,13 @@ import json
 import re
 import pandas as pd
 import psycopg2
-from datetime import datetime, timedelta
-from scraping_get_profession_Alex_Rus import AlexRusSort
-from scraping_get_profession_Alex_next_2809 import AlexSort2809
+from datetime import datetime
+from filters.scraping_get_profession_Alex_Rus import AlexRusSort
+from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
 
 # from scraping_send_to_bot import PushToDB
 config = configparser.ConfigParser()
-config.read("config.ini")
+config.read("./settings/config.ini")
 
 # ---------------------DB operations ----------------------
 class DataBaseOperations:
@@ -227,7 +227,7 @@ class DataBaseOperations:
         #             except Exception as e:
         #                 print('Dont push in db, error = ', e)
         #                 # return response_dict['error', e]
-
+        pass
         return response_dict
 
     def push_to_db_write_message(self, cur, pro, title, body, chat_name, time_of_public, created_at, response_dict):
@@ -351,6 +351,7 @@ class DataBaseOperations:
             except Exception as e:
                 print('Dont push in db, error = ', e)
                 # return response_dict['error', e]
+            pass
 
 # ---------------- это для того, чтобы достать неотсортированные сообщения из базы и прогнать через оба алгоритма ---------
     def get_from_bd_for_analyze_python_vs_excel(self):

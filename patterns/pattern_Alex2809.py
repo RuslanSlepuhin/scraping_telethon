@@ -10,10 +10,11 @@ pattern = {
         'mex': ("ФИО", "my name", " готовим IT-специалистов", "ответы с собеседований",
                 "Подготовим к любой понравившейся вакансии", "Подготовим к вакансии",
                 "онлайн-курс", "Geekhub", "Ищу работу", "Дайджест", "Xodim", "#резюме", "аутстафф",
-                "outstaff", "opentowork", "ищуработу", "преподаватель", "#apply", "Resume", "#CV",
+                "outstaff", "opentowork", "ищуработу", "преподаватель", "#apply", "Resume", "#CV", "CV",
                 "lookingforajob", "вебинар", "правила чата", "онлайн-школе", "количество мест ограничено",
                 "@foranalysts", "free training courses", "Ищу Работу", "Как это сделать", "@jobforjunior",
-                "Шукаю работу", "xodim", "Шукаю віддалену роботу", "Каналы для", "Канал для", )
+                "Шукаю работу", "xodim", "Шукаю віддалену роботу", "Каналы для", "Канал для", "ВАКАНСИЯ ЗАКРЫТА",
+                "в поиске новых карьерных возможностей", "Очікування зп")
     },
 
     'contacts': {
@@ -59,7 +60,9 @@ pattern = {
         'ma': (
             " PM.", " PM,", " PM ", "Project manager", "Project Manager", "project manager", " РМ", "Project-manager",
             "Менеджер IT проектов", "Руководитель ИТ-проект", "Product Owner", "Product Manager"),
-        'mex': ("собеседование с РМ", "Вакансия: Senior PHP Developer", "product lead", "Менеджер В2В", "Manager B2B")
+        'mex': ("собеседование с РМ", "Вакансия: Senior PHP Developer", "product lead", "Менеджер В2В", "Manager B2B",
+                "Senior Front-End Developer", "Senior Software Testing Engineer", "Sales manager", "Tech Lead",
+                "Android Developer")
     },
 
     'mobile': {
@@ -85,8 +88,9 @@ pattern = {
                 "из дизайнера", "из Дизайнера", "designers", "3D Unity", "3D unity", "Unity 3D",
                 "Understanding UI state", "Material UI", "до UI", "Python", "Java", "Kotlin", "Swift", " C ",
                 "C\\+\\+", "C#", "ObjectiveC", "React", "SoapUI", "Postman", "iOS разработчик", "Full Stack",
-                "fullstack Web Developer", "Flutter Developer", "Senior Dealer", "Инженер-электронщик", "@Recruiter",
-                "@IraRecruiter")
+                "fullstack Web Developer", "Flutter Developer", "Senior Dealer", "Инженер-электронщик",
+                "Marketing Manager", "Unity Dev", "C#", "SMM Specialist", "Rest Api", "SQLite", "QA Automation",
+                "Senior Android  developer")
     },
 
     'hr': {
@@ -97,7 +101,7 @@ pattern = {
                 "Пишите нашему HR-менеджеру", "HR-Link", "HR-Prime", "HR-у", "Контакт HR", "Связаться с HR",
                 "Вакансия: Android  developer", "встреча с HRD", "HR-специалистом", "Android  developer", "Созвон с HR",
                 "Frontent developer", "TeamLead Python", "Senior DevOps", "Middle devops", "Java Developer",
-                "Раскадровщик")
+                "Раскадровщик", "@Recruiter", "@IraRecruiter")
     },
 
     'analyst': {
@@ -108,7 +112,8 @@ pattern = {
             "datascientist", "аналитик данных", "Machine Learning", "Product Analyst", "Системный аналитик",
             "системный аналитик", "Системный Аналитик"),
         'mex': ("Business Analyst", "/BA", " BA", "бизнес аналитик", " ВА", "business analyst", "Бизнес аналитик",
-                "Senior Product Designer (UX/UI)", "Product manager", 'Senior Dealer')
+                "Senior Product Designer (UX/UI)", "Product manager", 'Senior Dealer', "Консультант",
+                "backend engineer")
     },
 
     'qa': {
@@ -116,7 +121,7 @@ pattern = {
                "Test Automation Engineer", "QA Automation", "QA Auto", "Manual testing", "mobile applications testing"),
         'mex': ("тестировщиков", "тестировщиками", "проводить QA", " и QA", "to junior", "PHP Developer",
                 "Senior Product Designer (UX/UI)", "Администратор баз данных", "DBA", "Ios developer middle",
-                "Менеджер В2В", "Manager B2B")
+                "Менеджер В2В", "Manager B2B", "Senior front-end developer", "Frontend разработчик", "#react")
     },
 
     'ba': {
@@ -157,7 +162,7 @@ pattern = {
         'ma': ("trainee", "junior", "джун"),
         'mex': ("не готовы рассматривать", "джуниоров пока не рассматриваем",
                 "джуниоров к сожалению пока не рассматриваем", "джуниоров, к сожалению, пока не рассматриваем",
-                "Работать с junior")
+                "Работать с junior", "Senior Sales Manager")
     },
 
     'middle': {

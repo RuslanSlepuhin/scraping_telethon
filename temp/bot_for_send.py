@@ -3,7 +3,7 @@ import configparser
 
 config = configparser.ConfigParser()
 config.read("config.ini")
-ad_channel = config['My_channels']['ad_channel']
+no_sorted_channel = config['My_channels']['no_sorted_channel']
 backend_channel = config['My_channels']['backend_channel']
 frontend_channel =config['My_channels']['frontend_channel']
 devops_channel = config['My_channels']['devops_channel']
@@ -16,6 +16,8 @@ qa_channel = config['My_channels']['qa_channel']
 hr_channel = config['My_channels']['hr_channel']
 mobile_channel = config['My_channels']['mobile_channel']
 game_channel = config['My_channels']['game_channel']
+test_channel = config['My_channels']['test_channel']
+ba_channel = config['My_channels']['ba_channel']
 
 bot = telebot.TeleBot("5484849364:AAF0fPhis-GLuQNsSdR7EbmnYa0QjTXpGdE")
 
@@ -37,44 +39,42 @@ def some_text(message):
         profession = message.text.split("/", 1)[0]
         message_to_send = message.text.replace(f'{profession}/', '')
 
+        bot.send_message(no_sorted_channel, f'{profession}\n\n{message_to_send}')
+
         match profession:
             case 'backend':
-                bot.send_message(backend_channel, message_to_send)
+                bot.send_message(backend_channel, message_to_send)  #+
             case 'frontend':
-                bot.send_message(frontend_channel, message_to_send)
+                bot.send_message(frontend_channel, message_to_send)  #+
             case 'devops':
-                bot.send_message(devops_channel, message_to_send)
+                bot.send_message(devops_channel, message_to_send)  #+
             case 'fullstack':
-                bot.send_message(fullstack_channel, message_to_send)
+                bot.send_message(fullstack_channel, message_to_send)  #+
             case 'mobile':
-                bot.send_message(mobile_channel, message_to_send)
+                bot.send_message(mobile_channel, message_to_send)  #+
             case 'pm':
-                bot.send_message(pm_channel, message_to_send)
+                bot.send_message(pm_channel, message_to_send)  #+
             case 'product':
-                bot.send_message(product_channel, message_to_send)
+                bot.send_message(product_channel, message_to_send)  #+
             case 'designer':
-                bot.send_message(designer_channel, message_to_send)
+                bot.send_message(designer_channel, message_to_send)  #+
             case 'qa':
-                bot.send_message(qa_channel, message_to_send)
+                bot.send_message(qa_channel, message_to_send)  #+
             case 'analyst':
-                 bot.send_message(analyst_channel, message_to_send)
+                 bot.send_message(analyst_channel, message_to_send)  #+
             case 'hr':
-                bot.send_message(hr_channel, message_to_send)
+                bot.send_message(hr_channel, message_to_send)  #+
             case 'game':
-                bot.send_message(game_channel, message_to_send)
+                bot.send_message(game_channel, message_to_send)  #+
             case 'ad':
-                bot.send_message(ad_channel, message_to_send)
-
-    else:
-        profession = message.text.split("/", 1)
-        message_to_send = message.text.replace(profession)[1:-1]
-        # match profession:
-        #     case:
-        pass
-
-
-
-
+                bot.send_message(no_sorted_channel, f'{profession}\n\n'+message_to_send)
+            case 'ba':
+                bot.send_message(no_sorted_channel, f'{profession}\n\n'+message_to_send)  #+
+            case 'marketing':
+                bot.send_message(no_sorted_channel, f'{profession}\n\n'+message_to_send)  # +
+            case 'no_sort':
+                bot.send_message(no_sorted_channel, f'{profession}\n\n' + message_to_send)
+        print(profession)
 
 
 def send_invite(message, invite_text):
