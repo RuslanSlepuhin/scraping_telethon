@@ -14,7 +14,8 @@ pattern = {
                 "lookingforajob", "вебинар", "правила чата", "онлайн-школе", "количество мест ограничено",
                 "@foranalysts", "free training courses", "Ищу Работу", "Как это сделать", "@jobforjunior",
                 "Шукаю работу", "xodim", "Шукаю віддалену роботу", "Каналы для", "Канал для", "ВАКАНСИЯ ЗАКРЫТА",
-                "в поиске новых карьерных возможностей", "Очікування зп")
+                "в поиске новых карьерных возможностей", "Очікування зп", "Шукаю роботу", "Открыт к новым предложениям",
+                "в поиске новых карьерных")
     },
 
     'contacts': {
@@ -27,7 +28,7 @@ pattern = {
                "Chief Technical Officer", " CTO", "Golang"),
         'mex': (" UI/UX designer", "контакт до CTO", "Golang собеседований", "QA Full", "stack QA", "Kotlin",
                 "Position:Backend Engineer", "Вакансия: Разработчик Android", "Вакансия : Android Developer",
-                "Release Engineer", "Middle QA")
+                "Release Engineer", "Middle QA", "Вакансия: QA Engineer")
     },
 
     'frontend': {
@@ -36,7 +37,7 @@ pattern = {
         'mex': ("React as a plus", "understanding of front-end", "взаимодействие с отделом frontend", "QA Automation",
                 "Test Automation Engineer", "C\\+\\+", "Position:Backend Engineer", "Вакансия: Senior PHP Developer",
                 "PHP Developer", "PHP backend-разработчик", "Java developer", "Senior Backend Developer",
-                "Position:IT Recruiter", "Senior C\\+\\+", "Senior C\\+\\+")
+                "Position:IT Recruiter", "Senior C\\+\\+", "Senior C\\+\\+", "Backend engineer")
     },
 
     'backend': {
@@ -90,7 +91,7 @@ pattern = {
                 "C\\+\\+", "C#", "ObjectiveC", "React", "SoapUI", "Postman", "iOS разработчик", "Full Stack",
                 "fullstack Web Developer", "Flutter Developer", "Senior Dealer", "Инженер-электронщик",
                 "Marketing Manager", "Unity Dev", "C#", "SMM Specialist", "Rest Api", "SQLite", "QA Automation",
-                "Senior Android  developer")
+                "Senior Android  developer", "Qa engineer")
     },
 
     'hr': {
@@ -121,7 +122,8 @@ pattern = {
                "Test Automation Engineer", "QA Automation", "QA Auto", "Manual testing", "mobile applications testing"),
         'mex': ("тестировщиков", "тестировщиками", "проводить QA", " и QA", "to junior", "PHP Developer",
                 "Senior Product Designer (UX/UI)", "Администратор баз данных", "DBA", "Ios developer middle",
-                "Менеджер В2В", "Manager B2B", "Senior front-end developer", "Frontend разработчик", "#react")
+                "Менеджер В2В", "Manager B2B", "Senior front-end developer", "Frontend разработчик", "#react",
+                "C\\+\\+ Gameplay Developer")
     },
 
     'ba': {
@@ -142,7 +144,10 @@ pattern = {
                "Cloud Engineer", "DBA", "Администратор баз данных", "Linux System Administrator"),
         'mex': (" и SRE", ", DevOps,", "DevOps командой", "участвовать в DevOps", "Опыт DevOps", "участвуют в DevOps",
                 "DevOps practices", "devops навыки", "DevOps tools", "Java Developer", "PHP разработчик",
-                "Go разработчик", "Backend .NET Developer", "product lead", "Flutter разработчик", "Graphic designer")
+                "Go разработчик", "Backend .NET Developer", "product lead", "Flutter разработчик", "Graphic designer",
+                "Automation QA engineer", "Senior Java", "Sales manager", "QA  инженер", "Backend engineer", "Flutter",
+                "React developer", "Системный аналитик", "Senior react developer", "Middle react developer",
+                "Django", "Middle QA", "Mobile manual QA", "SeniorQA")
     },
 
     'marketing': {
