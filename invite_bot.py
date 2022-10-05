@@ -36,6 +36,9 @@ marker = False
 file_name = ''
 marker_code = False
 password = 0
+con = None
+
+client = None
 
 print(f'Bot started at {datetime.now()}')
 
@@ -89,27 +92,30 @@ async def send_welcome(message: types.Message):
 
 # -------- make an parse keyboard for admin ---------------
     parsing_kb = ReplyKeyboardMarkup(resize_keyboard=True)
-    parsing_button = KeyboardButton('Add news to channels')
-    parsing_kb.add(parsing_button)
+    parsing_button1 = KeyboardButton('Add news to channels')
+    parsing_button2 = KeyboardButton('Invite')
 
-    con = db_connect()
-    await bot.send_message(message.chat.id, f'Привет, {message.from_user.first_name}!')
+    parsing_kb.add(parsing_button1, parsing_button2)
+
+    # con = db_connect()
+    await bot.send_message(message.chat.id, f'Привет, {message.from_user.first_name}!', reply_markup=parsing_kb)
     await bot.send_message(137336064, f'Start user {message.from_user.id}', reply_markup=parsing_kb)
-
-    id_customer = message.from_user.id
-    customer = await check_customer(message, id_customer)
-
-    if customer:
-            get_customer_from_db = get_db(id_customer)
-            api_id = get_customer_from_db[0][2]
-            api_hash = get_customer_from_db[0][3]
-            phone_number = get_customer_from_db[0][4]
-            try:
-                if client.is_connected():
-                    await client.disconnect()
-            except:
-                pass
-            await connect_with_client(message, api_id, api_hash, id_customer, phone_number, password)
+    pass
+    #
+    # id_customer = message.from_user.id
+    # customer = await check_customer(message, id_customer)
+    #
+    # if customer:
+    #         get_customer_from_db = get_db(id_customer)
+    #         api_id = get_customer_from_db[0][2]
+    #         api_hash = get_customer_from_db[0][3]
+    #         phone_number = get_customer_from_db[0][4]
+    #         try:
+    #             if client.is_connected():
+    #                 await client.disconnect()
+    #         except:
+    #             pass
+    #         await connect_with_client(message, api_id, api_hash, id_customer, phone_number, password)
 
 # Возможность отмены, если пользователь передумал заполнять
 @dp.message_handler(state='*', commands=['cancel', 'start'])
@@ -340,6 +346,23 @@ async def messages(message):
             await bot.send_message(message.chat.id, 'Scraping is starting')
             await main(client)
             pass
+
+        if message.text == 'Invite':
+
+            id_customer = message.from_user.id
+            customer = await check_customer(message, id_customer)
+            con = db_connect()
+            if customer:
+                get_customer_from_db = get_db(id_customer)
+                api_id = get_customer_from_db[0][2]
+                api_hash = get_customer_from_db[0][3]
+                phone_number = get_customer_from_db[0][4]
+                try:
+                    if client.is_connected():
+                        await client.disconnect()
+                except:
+                    pass
+                await connect_with_client(message, api_id, api_hash, id_customer, phone_number, password)
 
 
             # await bot.delete_message(message.chat.id, message.message_id)

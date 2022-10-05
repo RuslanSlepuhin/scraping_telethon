@@ -22,6 +22,9 @@ config.read("./settings/config.ini")
 #--------------------------- забираем значения из config.ini-------------------------------
 alexandr_channel = config['My_channels']['alexandr_channel']
 bot = config['My_channels']['bot']
+api_id = config['Ruslan']['api_id']
+api_hash = config['Ruslan']['api_hash']
+
 
 quant = 1  # счетчик вывода количества запушенных в базу сообщений (для контроля в консоли)
 
@@ -121,9 +124,12 @@ class PushChannels:  # I bring that class from scarping_push_to_channel.py
 class WriteToDbMessages():
 
     def __init__(self, client):
-        # client = TelegramClient('username', api_id, api_hash)
-        # # client.disconnect()
-        # client.start()
+
+        #if client is empty
+        if not client:
+            client = TelegramClient('137336064', int(api_id), api_hash)
+            client.start()
+
         self.client = client
 
     async def dump_all_participants(self, channel):
