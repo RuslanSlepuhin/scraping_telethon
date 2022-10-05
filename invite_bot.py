@@ -95,11 +95,11 @@ async def send_welcome(message: types.Message):
     parsing_button1 = KeyboardButton('Add news to channels')
     parsing_button2 = KeyboardButton('Invite')
 
-    parsing_kb.add(parsing_button1, parsing_button2)
+    parsing_kb.row(parsing_button1, parsing_button2)
 
     # con = db_connect()
     await bot.send_message(message.chat.id, f'Привет, {message.from_user.first_name}!', reply_markup=parsing_kb)
-    await bot.send_message(137336064, f'Start user {message.from_user.id}', reply_markup=parsing_kb)
+    await bot.send_message(137336064, f'Start user {message.from_user.id}')
     pass
     #
     # id_customer = message.from_user.id
@@ -344,7 +344,7 @@ async def messages(message):
         if message.text == 'Add news to channels':
             await bot.delete_message(message.chat.id, message.message_id)
             await bot.send_message(message.chat.id, 'Scraping is starting')
-            await main(client)
+            await main(client, bot_dict={'bot': bot, 'chat_id': message.chat.id})
             pass
 
         if message.text == 'Invite':

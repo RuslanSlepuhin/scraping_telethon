@@ -1,7 +1,6 @@
 import asyncio
 import random
 from types import NoneType
-
 import pandas as pd
 import configparser
 import time
@@ -9,7 +8,7 @@ from datetime import timedelta, datetime
 import psycopg2
 from db_operations.scraping_db import DataBaseOperations
 from telethon.tl.functions.channels import GetParticipantsRequest
-from telethon.tl.types import ChannelParticipantsSearch
+from telethon.tl.types import ChannelParticipantsSearch, PeerChannel, InputPeerChannel
 from links import list_links
 from telethon.sync import TelegramClient
 from telethon import client
@@ -21,7 +20,6 @@ config.read("./settings/config.ini")
 
 #--------------------------- забираем значения из config.ini-------------------------------
 alexandr_channel = config['My_channels']['alexandr_channel']
-bot = config['My_channels']['bot']
 api_id = config['Ruslan']['api_id']
 api_hash = config['Ruslan']['api_hash']
 
@@ -46,43 +44,101 @@ except:
 
 class PushChannels:  # I bring that class from scarping_push_to_channel.py
 
-    def __init__(self, client):
+    def __init__(self, client, bot_dict):
         self.client = client
+        self.msg = []
+        self.bot_dict = bot_dict
+        self.bot = self.bot_dict['bot']
 
-    async def push(self, results_dict, client, i, bot=bot):
+
+    async def push(self, results_dict, forwarded_message):
         block = False
         channels = None
-        # print('PUSH_TO_DB')
+        channels_for_new_bot = []
         response_dict = DataBaseOperations(con=None).push_to_bd(results_dict)
-        if type(response_dict) is NoneType:
+
+# ------------- new code -------------------
+        values = response_dict.values()  # are there any False?
+        short_message = forwarded_message['message'].replace('\n', '').strip()[0:40]
+        if False in values:
+            print(f'message: {short_message}\n')
+            # self.msg.append(await bot.send_message(bot_dict['chat_id'], f"message: {short_message}"))
+        else:
+            print(f'message: {short_message}\n')
+            # self.msg.append(await bot.send_message(bot_dict['chat_id'], f"message: {short_message}\n<b>exists in DB</b>", parse_mode='html'))
+
+
+        if 'no_sort' not in response_dict:  # if there is the professions than add 'agregator' to the dict
+            if False in values:
+                response_dict['agregator'] = False
+
+# ------------------------- end ----------------
+        if type(response_dict) is NoneType:  # is it really needs?
             print('&&&&&&&&& NONeTYPE')
         else:
             channels = response_dict.keys()
 
-        if 'block' in channels:
-            block = response_dict['block']
-
-# check profession is not true in response_dict = {'backend': True, frontend: False} (for example), doesn't exist
-        channel_list = []
-        if not block:
+#         if 'block' in channels:
+#             block = response_dict['block']
+#
+# # check profession is not true in response_dict = {'backend': True, frontend: False} (for example), doesn't exist
+#         channel_list = []
+#         if not block:
+#             message = ''
+#             length = 0
             message = ''
-            length = 0
             for channel in channels:
                 if not response_dict[channel]:
-                    message = message + f'{channel}/'
-                    channel_list.append(channel)
-                    length += 1
 
-# collect prefix for message with numbers/profession/profession/profession (if it is False in dict)
-            if message:
-                await self.client.send_message(entity=bot, message=f"{length}/{message}{i['message']}")
-                await asyncio.sleep(15)
-                for i in channel_list:
-                    print(f"pushed to channel = {i}\n")
+#------------------ the new code for don't use forward bot and send message from this code ------------------------
+                    channel_id = config['My_channels'][f'{channel}_channel']
 
-        else:
-            pass
+                    if channel != 'agregator':
+                        await self.try_to_send_message_to_channel(channel_id, forwarded_message, message)
+                        print(f'have pushed to channel = {channel}')
 
+                    elif channel == 'agregator':
+                        # compose message More vacancies in <link>
+                        for i in channels:
+                            if i != 'agregator':
+                                message += f"Больше вакансий <b>{i.capitalize()}</b> в канале {config['Links'][i]}\n\n"
+
+                        await self.try_to_send_message_to_channel(channel_id, forwarded_message, message)
+                        print(f'have pushed to channel = {channel}')
+                        await asyncio.sleep(random.randrange(2, 3))
+        await self.delete_messages()
+
+#------------------------------------------------ end ------------------------------------------------------------
+#--------------------------------- old code that push to old forward bot -----------------------------------------
+#                     message = message + f'{channel}/'
+#                     channel_list.append(channel)
+#                     length += 1
+#
+# # collect prefix for message with numbers/profession/profession/profession (if it is False in dict)
+#             if message:
+#                 await self.client.send_message(entity=bot, message=f"{length}/{message}{forwarded_message['message']}")
+#                 await asyncio.sleep(15)
+#                 for chan in channel_list:
+#                     print(f"pushed to channel = {chan}\n")
+#         else:
+#             pass
+
+    async def delete_messages(self):
+        for i in self.msg:
+            await i.delete()
+
+    async def try_to_send_message_to_channel(self, channel_id, forwarded_message, message):
+        try:
+            await self.bot.send_message(int(channel_id), forwarded_message['message'] + f'\n\n{message}', parse_mode='html')
+        except Exception as e:
+            await self.bot.send_message(self.bot_dict['chat_id'], f'Error = {str(e)}\nЭто сообщение автоматически переслано Руслану')
+            await asyncio.sleep(1)
+            await self.bot.send_message(137336064, f'Error = {str(e)}\n\nchannel = {channel_id}')
+            await asyncio.sleep(1)
+            await self.bot.send_message(137336064, forwarded_message['message'] + f'\n\n{message}', parse_mode='html')
+            await asyncio.sleep(1)
+
+        await asyncio.sleep(random.randrange(1, 2))
 
 # class ListenChat:
 #
@@ -123,7 +179,7 @@ class PushChannels:  # I bring that class from scarping_push_to_channel.py
 
 class WriteToDbMessages():
 
-    def __init__(self, client):
+    def __init__(self, client, bot_dict):
 
         #if client is empty
         if not client:
@@ -131,6 +187,7 @@ class WriteToDbMessages():
             client.start()
 
         self.client = client
+        self.bot_dict=bot_dict
 
     async def dump_all_participants(self, channel):
         """Записывает json-файл с информацией о всех участниках канала/чата"""
@@ -266,12 +323,12 @@ class WriteToDbMessages():
             DataBaseOperations(con).write_to_one_table(results_dict)  # write all messages on one table
 
             # записать в таблицы с профессиями и разложить по каналам
-            await PushChannels(self.client).push(results_dict, self.client, i)  # это вместо закомментированного кода
+            await PushChannels(self.client, self.bot_dict).push(results_dict=results_dict, forwarded_message=i)  # это вместо закомментированного кода
 
             print(f"{self.count_message_in_one_channel} from_channel = {channel_name}")
             # self.count_message_in_one_channel += 1
 
-        print('time_sleep')
+        print('pause 5-9 sec.')
         time.sleep(random.randrange(5, 9))
 
     async def main_start(self, list_links, limit_msg, action):
@@ -317,8 +374,8 @@ class WriteToDbMessages():
             await self.main_start(list_links, limit_msg, action)
 
 
-async def main(client):
-    get_messages = WriteToDbMessages(client)
+async def main(client, bot_dict):
+    get_messages = WriteToDbMessages(client, bot_dict)
     await get_messages.start(limit_msg=10, action='get_message')  #get_participants get_message
 
     # print("Listening chats...")

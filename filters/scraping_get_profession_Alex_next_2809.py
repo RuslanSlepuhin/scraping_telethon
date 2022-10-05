@@ -56,8 +56,8 @@ class AlexSort2809:
         pass
 
 #------------------- вывести в консоль result_dict ----------------------
-        for i in self.result_dict2:
-            print(f'{i}: {self.result_dict2[i]}')
+        # for i in self.result_dict2:
+        #     print(f'{i}: {self.result_dict2[i]}')
 
 # ---------------- delete not used keys and values as contact and vacancy -------------------
         k=0
@@ -109,7 +109,7 @@ class AlexSort2809:
             match = re.findall(exclude_word, message_to_check)
             if match:
                 self.tag_alex_anti += f'TAG ANTI {key}={match}\n'
-                print(f'TAG ANTI {key} = {match}')
+                print(f'ANTI TAG {key} = {match}')
                 self.result_dict2[key] = 0
 
         pass
@@ -121,7 +121,7 @@ class AlexSort2809:
         """
 
 #  -------------- it reads from file for testing ------------------
-# with open('file.txt', 'r', encoding='utf-8') as file:
+# with open('./../file.txt', 'r', encoding='utf-8') as file:
 #     text = file.read()
 #
 # text = text.split(f'\n', 1)
