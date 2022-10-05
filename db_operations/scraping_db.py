@@ -243,7 +243,7 @@ class DataBaseOperations:
 
                     new_post = f"""INSERT INTO {pro} (chat_name, title, body, profession, time_of_public, created_at) 
                                 VALUES ('{chat_name}', '{title}', '{body}', '{pro}', '{time_of_public}', '{created_at}');"""
-                    # cur.execute(new_post) # !!!!!!!!!
+                    cur.execute(new_post) # !!!!!!!!!
                     self.con.commit()
                     print(self.quant, f'= Added to DB {pro}\n')
                     self.quant += 1
@@ -342,7 +342,7 @@ class DataBaseOperations:
 
                     new_post = f"""INSERT INTO all_messages (chat_name, title, body, profession, time_of_public, created_at) 
                                                VALUES ('{chat_name}', '{title}', '{body}', '{None}', '{time_of_public}', '{created_at}');"""
-                    # cur.execute(new_post) #!!!!!!!!
+                    cur.execute(new_post) #!!!!!!!!
                     print(f'= Added to DB all_messages\n')
 
                 else:
