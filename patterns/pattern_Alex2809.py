@@ -15,11 +15,11 @@ pattern = {
                 "@foranalysts", "free training courses", "Ищу Работу", "Как это сделать", "@jobforjunior",
                 "Шукаю работу", "xodim", "Шукаю віддалену роботу", "Каналы для", "Канал для", "ВАКАНСИЯ ЗАКРЫТА",
                 "в поиске новых карьерных возможностей", "Очікування зп", "Шукаю роботу", "Открыт к новым предложениям",
-                "в поиске новых карьерных")
+                "в поиске новых карьерных", "в поиске работы", "Шукаю віддалену роботу", "Шукаю роботу")
     },
 
     'contacts': {
-        'ma': ("@", "www", "http"),
+        'ma': ("@", "www.", "http:"),
         'mex': ()
     },
 
@@ -37,7 +37,11 @@ pattern = {
         'mex': ("React as a plus", "understanding of front-end", "взаимодействие с отделом frontend", "QA Automation",
                 "Test Automation Engineer", "C\\+\\+", "Position:Backend Engineer", "Вакансия: Senior PHP Developer",
                 "PHP Developer", "PHP backend-разработчик", "Java developer", "Senior Backend Developer",
-                "Position:IT Recruiter", "Senior C\\+\\+", "Senior C\\+\\+", "Backend engineer")
+                "Position:IT Recruiter", "Senior C\\+\\+", "Senior C\\+\\+", "Backend engineer", "QA Engineer",
+                "Python Developer", 'C\\+\\+ Qt Developer', 'Position:Backend Engineer', "Middle Ruby Developer",
+                "Вакансия: Senior PHP Developer", "Sеnior Jаvа-рaзрaбoтчик", "Вакансия: Automation QA",
+                "Должность: Manual QA", "Web-дизайнер (UI/UX) middle", "Laravel", 'Senior Java developer',
+                "Вакансия: Java Software Developer", "HCM", "на позицию DevOps")
     },
 
     'backend': {
@@ -63,7 +67,7 @@ pattern = {
             "Менеджер IT проектов", "Руководитель ИТ-проект", "Product Owner", "Product Manager"),
         'mex': ("собеседование с РМ", "Вакансия: Senior PHP Developer", "product lead", "Менеджер В2В", "Manager B2B",
                 "Senior Front-End Developer", "Senior Software Testing Engineer", "Sales manager", "Tech Lead",
-                "Android Developer")
+                "Android Developer", "QA Automation (Python)")
     },
 
     'mobile': {
@@ -91,7 +95,8 @@ pattern = {
                 "C\\+\\+", "C#", "ObjectiveC", "React", "SoapUI", "Postman", "iOS разработчик", "Full Stack",
                 "fullstack Web Developer", "Flutter Developer", "Senior Dealer", "Инженер-электронщик",
                 "Marketing Manager", "Unity Dev", "C#", "SMM Specialist", "Rest Api", "SQLite", "QA Automation",
-                "Senior Android  developer", "Qa engineer")
+                "Senior Android  developer", "Qa engineer", "Middle Тестировщик", "Senior ios разработчик",
+                "Android-разработчик", "Продакт-менеджер", "product manager", "Аналитик DWH")
     },
 
     'hr': {
@@ -102,7 +107,8 @@ pattern = {
                 "Пишите нашему HR-менеджеру", "HR-Link", "HR-Prime", "HR-у", "Контакт HR", "Связаться с HR",
                 "Вакансия: Android  developer", "встреча с HRD", "HR-специалистом", "Android  developer", "Созвон с HR",
                 "Frontent developer", "TeamLead Python", "Senior DevOps", "Middle devops", "Java Developer",
-                "Раскадровщик", "@Recruiter", "@IraRecruiter")
+                "Раскадровщик", "@Recruiter", "@IraRecruiter", "разработчика BackEnd", "3D художников",
+                "Вакансия: DevOps")
     },
 
     'analyst': {
@@ -114,7 +120,7 @@ pattern = {
             "системный аналитик", "Системный Аналитик"),
         'mex': ("Business Analyst", "/BA", " BA", "бизнес аналитик", " ВА", "business analyst", "Бизнес аналитик",
                 "Senior Product Designer (UX/UI)", "Product manager", 'Senior Dealer', "Консультант",
-                "backend engineer")
+                "backend engineer", "Product Manager")
     },
 
     'qa': {
@@ -147,14 +153,14 @@ pattern = {
                 "Go разработчик", "Backend .NET Developer", "product lead", "Flutter разработчик", "Graphic designer",
                 "Automation QA engineer", "Senior Java", "Sales manager", "QA  инженер", "Backend engineer", "Flutter",
                 "React developer", "Системный аналитик", "Senior react developer", "Middle react developer",
-                "Django", "Middle QA", "Mobile manual QA", "SeniorQA")
+                "Django", "Middle QA", "Mobile manual QA", "SeniorQA", "QA Automation (Python)")
     },
 
     'marketing': {
         'ma': ("SMM", "Copyrighter", "SEO", "Marketer", "Маркетолог", "Marketing manager", "Менеджер по маркетингу",
                "Video Tutorial Creator", "Producer", "Lead Generation Specialist", "#leadgeneration",
                "User Acquisition"),
-        'mex': ("SEO HR", "Product manager", "SEO HR", "HRBP", "Sales Manager", "Manual QA")
+        'mex': ("SEO HR", "Product manager", "SEO HR", "HRBP", "Sales Manager", "Manual QA", "Product Manager")
     },
 
     'sales_manager': {
@@ -167,7 +173,7 @@ pattern = {
         'ma': ("trainee", "junior", "джун"),
         'mex': ("не готовы рассматривать", "джуниоров пока не рассматриваем",
                 "джуниоров к сожалению пока не рассматриваем", "джуниоров, к сожалению, пока не рассматриваем",
-                "Работать с junior", "Senior Sales Manager")
+                "Работать с junior", "Senior Sales Manager", "не рассматриваем Junior", "Required 5 to 7 Years")
     },
 
     'middle': {
