@@ -329,7 +329,7 @@ class WriteToDbMessages():
             # self.count_message_in_one_channel += 1
 
         print('pause 5-9 sec.')
-        time.sleep(random.randrange(5, 9))
+        time.sleep(random.randrange(15, 25))
 
     async def main_start(self, list_links, limit_msg, action):
 
