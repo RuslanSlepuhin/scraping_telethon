@@ -538,7 +538,7 @@ class DataBaseOperations:
 #     response = DataBaseOperations(None).get_all_from_db(i, param="WHERE created_at > '2022-10-11 19:00:00'")
 #     for resp in response:
 #         print(i, resp[6])
-#     DataBaseOperations(None).delete_data(table_name=i, param="WHERE created_at > '2022-10-11 19:00:00'")
+#     # DataBaseOperations(None).delete_data(table_name=i, param="WHERE created_at > '2022-10-11 19:00:00'")
 #     response = DataBaseOperations(None).get_all_from_db(i, param="WHERE created_at > '2022-10-11 19:00:00'")
 #     if not response:
 #         print('Is empty')
