@@ -569,6 +569,9 @@ class WriteToDbMessages():
         time.sleep(random.randrange(15, 20))
         return last_id_agregator
 
+        print('pause 5-9 sec.')
+        time.sleep(random.randrange(15, 25))
+
 
     async def main_start(self, list_links, limit_msg, action):
 
