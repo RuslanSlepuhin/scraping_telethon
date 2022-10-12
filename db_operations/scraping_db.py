@@ -8,8 +8,10 @@ from filters.scraping_get_profession_Alex_Rus import AlexRusSort
 from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
 
 # from scraping_send_to_bot import PushToDB
+from patterns import pattern_Alex2809
+
 config = configparser.ConfigParser()
-config.read("./settings/config.ini")
+config.read("./../settings/config.ini")
 
 # ---------------------DB operations ----------------------
 class DataBaseOperations:
@@ -38,7 +40,6 @@ class DataBaseOperations:
         except:
             print('No connect with db')
         return self.con
-
     #-------------participants-------------------------
     def push_to_bd_participants(self, participant, all_user_dictionary, channel_name, channel_username):
 
@@ -98,9 +99,7 @@ class DataBaseOperations:
                         print(e)
                 else:
                     print('This user exist already', i)
-
     #--------------------------------------------------
-
     def check_or_create_table(self, cur, table_name):
         with self.con:
 
@@ -111,140 +110,56 @@ class DataBaseOperations:
                 body VARCHAR (6000),
                 profession VARCHAR (30),
                 time_of_public TIMESTAMP,
-                created_at TIMESTAMP
+                created_at TIMESTAMP,
+                agregator_link VARCHAR(200)
                 );"""
                         )
             self.con.commit()
 
-    def push_to_bd(self, results_dict):
+    def push_to_bd(self, results_dict, profession_list=None, agregator_id=None):
 
         response_dict = {}
-        # response_dict['time_sleep'] = False
-
         if not self.con:
             self.connect_db()
-
         cur = self.con.cursor()
-
-        print(f'\n****************************************\n'
-              f'INPUT IN DB FUNC = \n', results_dict)
-
         chat_name = results_dict['chat_name']
         title = results_dict['title'].replace(f'\'', '"')
         body = str(results_dict['body']).replace(f'\'', '"')
-
-        prof = AlexSort2809()
-        params = prof.sort_by_profession_by_Alex(title, body)
-        if params['block']:
-            response_dict['block'] = True
-            return response_dict
-
-        pro = params['profession']
-
+        pro = profession_list['profession']
 # -------------------- if add or no_sort -------------------
-        if params['profession'] in ['ad', 'no_sort'] and len(params)>1:
-            params = {'profession': params['profession']}
-        # response_dict['profession'] = pro
-
+        if profession_list['profession'] in ['ad', 'no_sort'] and len(profession_list)>1:
+            profession_list = {'profession': profession_list['profession']}
         print(f'\nResponse DB: profession = {pro}\n')
-
         time_of_public = results_dict['time_of_public']
         try:
             created_at = results_dict['created_at']
         except:
             created_at = datetime.now()
-
         self.quant = 1
-
+# -------------------------- create short message --------------------------------
         if type(pro) is list or type(pro) is set:
             pro_set = pro
 
             for pro in pro_set:
                 self.check_or_create_table(cur, pro)
-                self.push_to_db_write_message(cur, pro, title, body, chat_name, time_of_public, created_at, response_dict)
-
+                self.push_to_db_write_message(cur, pro, title, body, chat_name, time_of_public, created_at, response_dict, agregator_id)
         else:
             self.check_or_create_table(cur, pro)
-            response_dict = self.push_to_db_write_message(cur, pro, title, body, chat_name, time_of_public, created_at, response_dict)
-
-            # self.check_or_create_table(cur, pro)
-
-    # ------------ add to db table's name pro message ----------------
-    #     with self.con:
-    #         try:
-    #             query = f"""SELECT * FROM {pro} WHERE title='{title}' AND body='{body}'"""
-    #             cur.execute(query)
-    #             r = cur.fetchall()
-    #
-    #             if not r:
-    #                 response_dict[pro] = False
-    #                 # response_dict['time_sleep'] = True
-    #
-    #                 new_post = f"""INSERT INTO {pro} (chat_name, title, body, profession, time_of_public, created_at)
-    #                             VALUES ('{chat_name}', '{title}', '{body}', '{pro}', '{time_of_public}', '{created_at}');"""
-    #                 cur.execute(new_post)
-    #                 self.con.commit()
-    #                 print(self.quant, f'= Added to DB {pro}\n')
-    #                 self.quant += 1
-    #
-    #             else:
-    #                 response_dict[pro] = True
-    #                 print(self.quant, f'!!!! This message exists already in {pro}\n')
-    #
-    #         except Exception as e:
-    #             print('Dont push in db, error = ', e)
-    #             # return response_dict['error', e]
-
-# ------------ add to db table's name params message ----------------
-
-        # for param in params:
-        #     if param not in ['profession', 'block'] and params[param]:
-        #
-        #         self.check_or_create_table(cur, param)
-        #         response_dict = self.push_to_db_write_params(cur, pro, param, title, body, chat_name, time_of_public, created_at, response_dict)
-        #
-        #         with self.con:
-        #             try:
-        #                 query = f"""SELECT * FROM {param} WHERE title='{title}' AND body='{body}'"""
-        #                 cur.execute(query)
-        #                 r = cur.fetchall()
-        #
-        #                 if not r:
-        #                     response_dict[param] = False
-        #                     # response_dict['time_sleep'] = True
-        #
-        #                     new_post = f"""INSERT INTO {param} (chat_name, title, body, profession, time_of_public, created_at)
-        #                                 VALUES ('{chat_name}', '{title}', '{body}', '{pro}', '{time_of_public}', '{created_at}');"""
-        #                     cur.execute(new_post)
-        #                     self.con.commit()
-        #                     print(self.quant, f'= Added to DB {param}\n')
-        #                     self.quant += 1
-        #
-        #                 else:
-        #                     print(self.quant, f'!!!!! This message exists already in {param}\n')
-        #                     response_dict[param] = True
-        #
-        #             except Exception as e:
-        #                 print('Dont push in db, error = ', e)
-        #                 # return response_dict['error', e]
-        pass
+            response_dict = self.push_to_db_write_message(cur, pro, title, body, chat_name, time_of_public, created_at, response_dict, agregator_id)
         return response_dict
 
-    def push_to_db_write_message(self, cur, pro, title, body, chat_name, time_of_public, created_at, response_dict):
+    def push_to_db_write_message(self, cur, pro, title, body, chat_name, time_of_public, created_at, response_dict, agregator_id):
         with self.con:
             try:
                 query = f"""SELECT * FROM {pro} WHERE title='{title}' AND body='{body}'"""
                 cur.execute(query)
                 r = cur.fetchall()
-
                 if not r:
                     response_dict[pro] = False
-                    # response_dict['time_sleep'] = True
-
-                    new_post = f"""INSERT INTO {pro} (chat_name, title, body, profession, time_of_public, created_at) 
-                                VALUES ('{chat_name}', '{title}', '{body}', '{pro}', '{time_of_public}', '{created_at}');"""
-                    cur.execute(new_post) # !!!!!!!!!!!!!!!!!!!!!!!
-                    print(self.quant, f'= Added to DB {pro}\n')
+                    new_post = f"""INSERT INTO {pro} (chat_name, title, body, profession, time_of_public, created_at, agregator_link) 
+                                VALUES ('{chat_name}', '{title}', '{body}', '{pro}', '{time_of_public}', '{created_at}', '{agregator_id}');"""
+                    cur.execute(new_post) # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                    print(self.quant, f'Has added to DB {pro}\n')
                     self.quant += 1
 
                 else:
@@ -253,77 +168,56 @@ class DataBaseOperations:
 
             except Exception as e:
                 print('Dont push in db, error = ', e)
-                # return response_dict['error', e]
-        pass
         return response_dict
-    # def push_to_db_write_params(self, cur, pro, param, title, body, chat_name, time_of_public, created_at, response_dict):
-    #     with self.con:
-    #         try:
-    #             query = f"""SELECT * FROM {param} WHERE title='{title}' AND body='{body}'"""
-    #             cur.execute(query)
-    #             r = cur.fetchall()
-    #
-    #             if not r:
-    #                 response_dict[param] = False
-    #                 # response_dict['time_sleep'] = True
-    #
-    #                 new_post = f"""INSERT INTO {param} (chat_name, title, body, profession, time_of_public, created_at)
-    #                             VALUES ('{chat_name}', '{title}', '{body}', '{pro}', '{time_of_public}', '{created_at}');"""
-    #                 cur.execute(new_post)
-    #                 self.con.commit()
-    #                 print(self.quant, f'= Added to DB {param}\n')
-    #                 self.quant += 1
-    #
-    #             else:
-    #                 print(self.quant, f'!!!!! This message exists already in {param}\n')
-    #                 response_dict[param] = True
-    #
-    #         except Exception as e:
-    #             print('Dont push in db, error = ', e)
-    #             # return response_dict['error', e]
-    #
 
-    def get_all_from_db(self, table_name, param=None):
+    def get_all_from_db(self, table_name, param=None, without_sort=False, order=None):
         if not self.con:
             self.connect_db()
 
         cur = self.con.cursor()
 
+        if not order:
+            order = "ORDER BY time_of_public"
+
         if not param:
-            query = f"""SELECT * FROM {table_name} ORDER BY time_of_public"""
+            query = f"""SELECT * FROM {table_name} {order}"""
         else:
-            query = f"""SELECT * FROM {table_name} {param} ORDER BY time_of_public"""
+            query = f"""SELECT * FROM {table_name} {param} {order}"""
+        if without_sort:
+            query = f"""SELECT * FROM {table_name}"""
+
+        print('query = ', query)
 
         with self.con:
             cur.execute(query)
             response = cur.fetchall()
-            n=0
-            for i in response:
-                print('n = ', n)
-                print(i)
-                n += 1
+            # n=0
+            # for i in response:
+            #     print('n = ', n)
+            #     print(i)
+            #     n += 1
                 # for j in i:
                 #     print('j = ', j)
                 #     n += 1
         return response
 
-    def delete_data(self, table_name):
+    def delete_data(self, table_name, param):
         if not self.con:
             self.connect_db()
 
         cur = self.con.cursor()
 
-        query = f"""DELETE FROM {table_name}"""
+        query = f"""DELETE FROM {table_name} {param}"""
+        print('query: ', query)
         with self.con:
             cur.execute(query)
-
 #-----------просто в одну таблицу записать все сообщения без професии, чтобы потом достать, рассортировать и записать в файл ------------------
     def write_to_one_table(self, results_dict):
         if not self.con:
             self.connect_db()
         cur = self.con.cursor()
 
-        self.check_or_create_table(cur, 'all_messages')
+        self.check_or_create_table(cur, 'all_messages')  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 
         chat_name = results_dict['chat_name']
         title = results_dict['title'].replace(f'\'', '"')
@@ -341,7 +235,7 @@ class DataBaseOperations:
 
                     new_post = f"""INSERT INTO all_messages (chat_name, title, body, profession, time_of_public, created_at) 
                                                VALUES ('{chat_name}', '{title}', '{body}', '{None}', '{time_of_public}', '{created_at}');"""
-                    cur.execute(new_post) #!!!!!!!!!!!!!!!!!!!!!!!!!
+                    # cur.execute(new_post) #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                     print(f'= Added to DB all_messages\n')
 
                 else:
@@ -351,7 +245,6 @@ class DataBaseOperations:
                 print('Dont push in db, error = ', e)
                 # return response_dict['error', e]
             pass
-
 # ---------------- это для того, чтобы достать неотсортированные сообщения из базы и прогнать через оба алгоритма ---------
     def get_from_bd_for_analyze_python_vs_excel(self):
         """
@@ -427,41 +320,6 @@ class DataBaseOperations:
 
         df.to_excel('all_messages.xlsx', sheet_name='Sheet1')
 
-    # def send_to_bot(self, response):
-    #     """
-    #     It bring message to WriteTelegramChats class, where it sends to bot
-    #     :param response: all records from DB with all messages
-    #     :return: nothing
-    #     """
-    #     print(response)
-    #     for record in response:
-    #
-    #         channel_name = record[1]
-    #         title = self.clear_text_control(record[2]).replace('\u200b', '')
-    #         body = self.clear_text_control(record[3]).replace('\u200b', '')
-    #         # time_of_public = record[5]
-    #         # created_at = record[6]
-    #
-    #         # profession = Professions().sort_by_profession(title, body)
-    #         profession = AlexSort2809().sort_by_profession_by_Alex(title, body)
-    #         print('PROFESSION scr_db  ============ ', profession)
-    #         pass
-    #
-    #         profession_message = self.collect_data_for_send_to_bot(profession) # собрать в правильном виде для отправки в бота
-    #
-    #         if re.findall(r'/', profession_message):
-    #             len_profession_message = len(profession_message.split('/'))-1
-    #         else:
-    #             len_profession_message = 1
-    #
-    #         message = f'{title}\n{body}'
-    #         print('len = ', len_profession_message)
-    #         print('message = ', message.replace(f'\n', '')[0:40])
-    #
-    #         pass
-    #         PushToDB().start_push_to_bot(length=len_profession_message, prof=profession_message, message=message)
-    #         pass
-
     def collect_data_for_send_to_bot(self, profession):
         """
 
@@ -516,11 +374,109 @@ class DataBaseOperations:
                     marker = True
         return new_response
 
+    def write_to_db_companies(self, companies):
+        con = self.connect_db()
+        cur = con.cursor()
+
+        query = """CREATE TABLE IF NOT EXISTS companies (
+            id SERIAL PRIMARY KEY,
+            company VARCHAR(100)
+            );
+            """
+        with con:
+            cur.execute(query)
+
+        for value in companies:
+
+            query = f"""SELECT * FROM companies WHERE company='{value}'"""
+            with con:
+                try:
+                    cur.execute(query)
+                    response = cur.fetchall()
+                except Exception as e:
+                    print(e)
+
+
+            if not response:
+                query = f"""INSERT INTO companies (company) VALUES ('{value}')"""
+                with con:
+                    cur.execute(query)
+                    print(f'to put: {value}')
+
+    def rewrite_to_archive(self):
+        for i in ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'analyst',
+                                    'fullstack', 'mobile', 'qa', 'hr', 'game', 'ba', 'marketing', 'junior',
+                                    'sales_manager']:
+        # for i in ['no_sort', 'middle', 'senior']:
+            response = self.get_all_from_db(i)
+            if not self.con:
+                self.connect_db()
+            cur = self.con.cursor()
+            table_archive = f"{i}_archive"
+            self.check_or_create_table(cur=cur, table_name=table_archive)
+            for message in response:
+                query = f"""INSERT INTO {table_archive} (chat_name, title, body, profession, time_of_public, created_at) 
+                        VALUES ('{message[1]}', '{message[2]}', '{message[3]}', '{message[4]}', '{message[5]}', '{message[6]}')"""
+                with self.con:
+                    try:
+                        cur.execute(query)
+                        print(f'{i} rewrited to {table_archive}')
+                    except Exception as e:
+                        print('error: ', e)
+
+    def add_columns_to_tables(self):
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+
+        for i in ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'analyst',
+                                    'fullstack', 'mobile', 'qa', 'hr', 'game', 'ba', 'marketing', 'junior',
+                                    'sales_manager', 'middle', 'senior']:
+
+            query = f"""ALTER TABLE {i} ADD COLUMN agregator_link VARCHAR(200)"""
+            with self.con:
+                cur.execute(query)
+                print(f'Added agr_link to {i}')
+
+    def output_tables(self):
+
+        db_tables = []
+
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+
+        query = """select * from information_schema.tables where table_schema='public';"""
+        with self.con:
+            cur.execute(query)
+            result = cur.fetchall()
+        summ = 0
+        for i in result:
+            # print(i[2])
+            query = f"SELECT MAX(id) FROM {i[2]}"
+            with self.con:
+                cur.execute(query)
+                result = cur.fetchall()[0][0]
+                print(f"{i[2]} = {result}")
+                if result:
+                    summ += result
+        print(f'\nвсего записей: {summ}')
+
+    def delete_table(self, table_name):
+
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+
+        query = f"""DROP TABLE {table_name};"""
+        with self.con:
+            cur.execute(query)
+            print(f'{table_name} was deleted')
 
 
 # con=''
 # for i in ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'fullstack', 'mobile', 'qa', 'hr',
-#               'game', 'ba', 'marketing', 'junior', 'middle', 'senior', 'ad']:
+#               'game', 'ba', 'marketing', 'junior', 'middle', 'senior', 'ad', 'sales_manager']:
 #
 #     DataBaseOperations(con).delete_data(i)
 #     print(f'Удалены записи из {i}')
@@ -565,5 +521,29 @@ class DataBaseOperations:
 # --------------- delete old bases and rewrite to them messages ------------------
 # delete bases
 # get from all messages, check profession and write to profession db
+
+# DataBaseOperations(con=None).add_columns_to_tables()
+# pass
+# for i in ['tag']:
+#     DataBaseOperations(con=None).delete_table(table_name=i)
+# DataBaseOperations(con=None).output_tables()
+
+# response = DataBaseOperations(None).get_all_from_db('backend', order="ORDER BY created_at")
+# for i in response:
+#     print(i[6])
+
+# for i in ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'analyst',
+#                                     'mobile', 'qa', 'hr', 'game', 'ba', 'marketing', 'junior',
+#                                     'sales_manager']:
+#     response = DataBaseOperations(None).get_all_from_db(i, param="WHERE created_at > '2022-10-11 19:00:00'")
+#     for resp in response:
+#         print(i, resp[6])
+#     DataBaseOperations(None).delete_data(table_name=i, param="WHERE created_at > '2022-10-11 19:00:00'")
+#     response = DataBaseOperations(None).get_all_from_db(i, param="WHERE created_at > '2022-10-11 19:00:00'")
+#     if not response:
+#         print('Is empty')
+#     else:
+#         for resp in response:
+#             print(i, resp[6])
 
 

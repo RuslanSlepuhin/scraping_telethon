@@ -226,7 +226,7 @@ params = {
     'jobs_type': ('[Ff]ull[\W]{0,1}[Tt]ime', '[Зз]анятость[\W]{0,3}[Пп]олная', '[Пп]олная[\W]{1,3}[Зз]анятость',
                   'из офиса'),
     'english_level': ('[Ee]nglish[\W]{0,2}[A-Za-zА-Яа-я][\W]{0,3}[\d]', '[Uu]pper[\W]{0,1}intermediate', '[Ii]ntermediate', '[Pp]re[\W]{0,1}[Ii]ntermediate', '[Uu]pper'),
-    'relocation': ('[Рр]елокация', ),
+    'relocation': ('[Рр]елокация', 'relocation', 'relocate'),
     'country_relocation': (),
     'possibility_relocaton': ()
 }

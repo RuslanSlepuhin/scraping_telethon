@@ -1,3 +1,4 @@
+import asyncio
 import re
 import time
 from datetime import datetime
@@ -9,7 +10,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
-from bot.scraping_push_to_channels import PushChannels
+# from bot.scraping_push_to_channels import PushChannels
 from db_operations.scraping_db import DataBaseOperations
 
 class GeekJobGetInformation:
@@ -17,6 +18,8 @@ class GeekJobGetInformation:
     def __init__(self, client):
         self.client = client
         self.db_tables = None
+        self.options = None
+        self.page = None
 
 
     async def get_content(self, count_message_in_one_channel, db_tables=None):
@@ -31,25 +34,28 @@ class GeekJobGetInformation:
 
         self.count_message_in_one_channel = count_message_in_one_channel
 
-        options = Options()
-        options.add_argument("--headless")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--no-sandbox")
+        self.options = Options()
+        # self.options.add_argument("--headless")
+        # self.options.add_argument("--disable-dev-shm-usage")
+        # self.options.add_argument("--no-sandbox")
 
         link = f'https://geekjob.ru/vacancies?'
-        self.browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
+        for self.page in range(1, 48):
+            link = f'https://geekjob.ru/vacancies/{self.page}'
+            await self.get_info(link)
+
+    async def get_info(self, link):
+        self.browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=self.options)
         self.browser.get(link)
         time.sleep(2)
-        button = self.browser.find_element(By.XPATH, "//button[@class='btn btn-small waves-effect']")
-        button.click()
-        time.sleep(2)
+        # button = self.browser.find_element(By.XPATH, "//button[@class='btn btn-small waves-effect']")
+        # button.click()
+        # time.sleep(2)
         self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
-
         await self.get_link_message(self.browser.page_source)
-
         return 'Compete'
-
 
     async def get_link_message(self, raw_content):
         message_dict ={}
@@ -105,7 +111,7 @@ class GeekJobGetInformation:
             print('body = ', body)
 
             try:
-                hiring = self.clean_company_name(soup.find('h5', class_='company-name').get_text())
+                hiring = self.clean_company_name(soup.find('h5', class_='company-name').get_text()).strip()
                 title += f'\nContacts: {hiring.strip()} '
             except:
                 hiring = ''
@@ -143,10 +149,10 @@ class GeekJobGetInformation:
                 to_write_excel_dict['title'].append(title)
                 to_write_excel_dict['body'].append(body)
                 to_write_excel_dict['time_create'].append(date)
-                # to_write_excel_dict['job_format'].append(job_format)
-                # to_write_excel_dict['hiring'].append(hiring)
-                # to_write_excel_dict['hiring_link'].append(hiring_link)
-                # to_write_excel_dict['contacts'].append(contacts)
+                to_write_excel_dict['job_format'].append(job_format)
+                to_write_excel_dict['hiring'].append(hiring)
+                to_write_excel_dict['hiring_link'].append(hiring_link)
+                to_write_excel_dict['contacts'].append(contacts)
 
                 results_dict['chat_name'] = 'geek_jobs.ru'
                 results_dict['title'] = title
@@ -155,11 +161,11 @@ class GeekJobGetInformation:
 
                 message_dict['message'] = f'{title}\n{body}'
 
-                if self.db_tables:
-                    await PushChannels().push(results_dict, self.client, message_dict)
-                    await DataBaseOperations(con=None).write_to_one_table(results_dict)
-                else:
-                    await DataBaseOperations(con=None).write_to_one_table(results_dict)
+                # if self.db_tables:
+                #     await PushChannels().push(results_dict, self.client, message_dict)  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                #     await DataBaseOperations(con=None).write_to_one_table(results_dict) # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                # else:
+                #     await DataBaseOperations(con=None).write_to_one_table(results_dict) # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
                 print(f"{self.count_message_in_one_channel} from_channel = geek_jobs.ru'")
                 self.count_message_in_one_channel += 1
@@ -173,14 +179,14 @@ class GeekJobGetInformation:
                 'title': to_write_excel_dict['title'],
                 'body': to_write_excel_dict['body'],
                 'time_create': to_write_excel_dict['time_create'],
-                # 'job_format': to_write_excel_dict['job_format'],
-                # 'hiring': to_write_excel_dict['hiring'],
-                # 'hiring_link': to_write_excel_dict['hiring_link'],
-                # 'contacts': to_write_excel_dict['contacts']
+                'job_format': to_write_excel_dict['job_format'],
+                'hiring': to_write_excel_dict['hiring'],
+                'hiring_link': to_write_excel_dict['hiring_link'],
+                'contacts': to_write_excel_dict['contacts']
             }
         )
 
-        df.to_excel('ggg.xlsx', sheet_name='Sheet1')
+        df.to_excel(f'./../messages/geek{self.page}.xlsx', sheet_name='Sheet1')
         print('записал в файл')
 
         pass
@@ -238,4 +244,40 @@ class GeekJobGetInformation:
         text = text.replace(f'\n', '')
         return text
 
-# GeekJobGetInformation().get_content()
+    async def compose_in_one_file(self):
+        hiring = []
+        link = []
+        contacts = []
+
+        for i in range(1, 48):
+            excel_data_df = pd.read_excel(f'./../messages/geek{i}.xlsx', sheet_name='Sheet1')
+
+            hiring.extend(excel_data_df['hiring'].tolist())
+            link.extend(excel_data_df['hiring_link'].tolist())
+            contacts.extend(excel_data_df['contacts'].tolist())
+
+        df = pd.DataFrame(
+            {
+            'hiring': hiring,
+            'access_hash': link,
+            'contacts': contacts,
+            }
+        )
+
+        df.to_excel(f'all_geek.xlsx', sheet_name='Sheet1')
+
+    async def write_to_db_table_companies(self):
+        excel_data_df = pd.read_excel('all_geek.xlsx', sheet_name='Sheet1')
+        companies = excel_data_df['hiring'].tolist()
+        links = excel_data_df['access_hash'].tolist()
+
+        companies = set(companies)
+
+        db=DataBaseOperations(con=None)
+        db.write_to_db_companies(companies)
+
+# task = asyncio.create_task(GeekJobGetInformation(client=None).get_content(1))
+# loop = asyncio.new_event_loop()
+# loop.run_until_complete(GeekJobGetInformation(client=None).get_content(1))
+# loop.run_until_complete(GeekJobGetInformation(client=None).compose_in_one_file())
+# loop.run_until_complete(GeekJobGetInformation(client=None).write_to_db_table_companies())
