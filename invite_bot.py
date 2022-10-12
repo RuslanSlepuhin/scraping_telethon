@@ -3,10 +3,10 @@ import psycopg2
 import os
 import random
 import re
-from scraping_telegramchats2 import main
+from scraping_telegramchats2 import main, WriteToDbMessages
 import requests
 import urllib
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas
 from aiogram import Bot, Dispatcher, executor, types
 import logging
@@ -24,6 +24,7 @@ from telethon.tl.types import InputPeerChannel, InputPeerUser, InputUser, PeerUs
 
 config = configparser.ConfigParser()
 config.read("./settings/config.ini")
+# token = config['Token']['token']
 token = config['Token']['token']
 
 logging.basicConfig(level=logging.INFO)
@@ -344,7 +345,12 @@ async def messages(message):
         if message.text == 'Add news to channels':
             await bot.delete_message(message.chat.id, message.message_id)
             await bot.send_message(message.chat.id, 'Scraping is starting')
+
+            time_start = await get_separate_time(datetime.now())
+            print('time_start = ', time_start)
+
             await main(client, bot_dict={'bot': bot, 'chat_id': message.chat.id})
+            await WriteToDbMessages(client, bot_dict={'bot': bot, 'chat_id': message.chat.id}).get_last_and_tgpublic_shorts(time_start)
             pass
 
         if message.text == 'Invite':
@@ -371,7 +377,15 @@ async def messages(message):
         else:
             await bot.send_message(message.chat.id, 'Отправьте файл')
 
-
+async def get_separate_time(time_in):
+    start_time = {}
+    start_time['year'] = time_in.strftime('%Y')
+    start_time['month'] = time_in.strftime('%m')
+    start_time['day'] = time_in.strftime('%d')
+    start_time['hour'] = time_in.strftime('%H')
+    start_time['minute'] = time_in.strftime('%M')
+    start_time['sec'] = time_in.strftime('%S')
+    return start_time
 
 @dp.message_handler(content_types=['document'])
 async def download_doc(message: types.Message):

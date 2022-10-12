@@ -7,7 +7,7 @@ list_links = [
     'https://t.me/qajoboffer',
     'https://t.me/javascript_jobs_feed',
     'https://t.me/joinchat/AAAAAE41V66UBtfXtuSrpg',  # подписаться
-    'https://t.me/itjobsinam',  # +
+    # 'https://t.me/itjobsinam',  # +
     'https://t.me/remotejun',
     'https://t.me/hiddengurus',
     'https://t.me/it_vac',

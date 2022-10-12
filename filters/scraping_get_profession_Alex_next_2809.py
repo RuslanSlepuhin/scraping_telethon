@@ -4,6 +4,7 @@ It is the new pattern from Alexander
 
 import re
 from patterns import pattern_Alex2809
+# from db_operations.scraping_db import DataBaseOperations
 
 
 class AlexSort2809:
@@ -19,7 +20,25 @@ class AlexSort2809:
         self.keys_result_dict = ['fullstack', 'frontend', 'qa', 'ba', 'backend', 'pm', 'mobile', 'game', 'designer',
                                  'hr', 'analyst', 'product', 'devops', 'marketing', 'sales_manager']
 
-    def sort_by_profession_by_Alex(self, title, body):
+    def sort_by_profession_by_Alex(self, title, body, companies=None):
+        params = {}
+
+        params['company_hiring'] = []
+        # search company
+        for i in companies:
+            match = re.findall(rf'{i}', title+body)
+            if match:
+                params['company_hiring'] = match[0]
+                break
+        if not params['company_hiring']:
+            p = self.get_company(title, body, companies) #new code
+            companies_list = self.clean_company(p)
+            params['company_hiring'] = companies_list
+
+        params['english_level'] = self.english_requirements(title, body)
+        params['jobs_type'] = self.work_type_fulltime(title, body)
+        params['city'] = self.get_city(title, body)
+        params['relocation'] = self.get_relocation(title, body)
 
         profession = []
         profession_dict = {}
@@ -68,6 +87,12 @@ class AlexSort2809:
                 k += 1
 
         profession = set(profession)
+        skills = {'middle', 'senior', 'junior'}
+        names_profession = {'backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'analyst',
+                                    'fullstack', 'mobile', 'qa', 'hr', 'game', 'ba', 'marketing',
+                                    'sales_manager'}
+        if skills.intersection(profession) and not names_profession.intersection(profession):
+            profession = {'no_sort'}
 
 # -------------- collect dict for return it to main code ----------------
         profession_dict['profession'] = profession
@@ -81,8 +106,7 @@ class AlexSort2809:
         if not profession_dict['profession']:
             profession_dict['profession'] = 'no_sort'
 
-        return profession_dict
-
+        return {'profession': profession_dict, 'params': params}
 
     def get_profession(self, message, capitalize, key):
         message_to_check = ''
@@ -113,6 +137,87 @@ class AlexSort2809:
                 self.result_dict2[key] = 0
 
         pass
+
+    def get_company(self, title, body, companies):  # new code
+        text = title+body
+        company = []
+
+        # companies = DataBaseOperations(con=None).get_all_from_db('companies', without_sort=True)
+        for comp in companies:
+            el = comp[1]
+            match = re.findall(el, text)
+            if match:
+                company.append(match)
+
+        if not company:
+            for param in pattern_Alex2809.params['company_hiring']:
+                match = re.findall(rf'{param}', text)
+                if match:
+                    company.append(match)
+        company = self.check_clear_element(company) # transform to string
+        return company
+
+    def english_requirements(self, title, body):
+        text = title + body
+        english = []
+        for param in pattern_Alex2809.params['english_level']:
+            match = re.findall(rf'{param}', text)
+            if match:
+                english.append(match)
+        english = self.check_clear_element(english) # transform to string
+        return english
+
+    def work_type_fulltime(self, title, body):
+        text = title+body
+        fulltime = []
+        for param in pattern_Alex2809.params['jobs_type']:
+            match = re.findall(param, text)
+            if match:
+                fulltime.append(match)
+        fulltime = self.check_clear_element(fulltime) # transform to string
+        return fulltime
+
+    def get_relocation(self, title, body):
+        text = title+body
+        relocation = []
+        for param in pattern_Alex2809.params['relocation']:
+            match = re.findall(param, text)
+            if match:
+                relocation.append(match)
+        relocation = self.check_clear_element(relocation) # transform to string
+        return relocation
+
+    def get_city(self, title, body):
+        text = title+body
+        city = []
+        for key in pattern_Alex2809.cities_pattern:
+            for param in pattern_Alex2809.cities_pattern[key]:
+                match = re.findall(param, text)
+                if match:
+                    city.append(match)
+        city = self.check_clear_element(city) # transform to string
+        return city
+
+    def clean_company(self, company_list):
+        elements_list = []
+        if type(company_list) in [tuple, list, set]:
+            for elements in company_list:
+                for element in elements:
+                    e = re.sub(r'[Кк]омпан[иi][яий][:\-\s]{0,3}|[Cc]ompany[:\-\s]{0,3}|[Р,р]аботодатель[:\-\s]{0,3}', '', str(element))
+                    if e:
+                        elements_list.append(e)
+        else:
+            elements_list = company_list
+        return elements_list
+
+    def check_clear_element(self, element):
+        if element == []:
+            return ''
+        for i in range(0, 3):
+            if type(element) in [list, tuple, set]:
+                element = element[0]
+            else:
+                return element
 
     def get_content_from_telegraph(self, link_telegraph):
         print('link_telegraph = ', link_telegraph)
