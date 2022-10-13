@@ -521,8 +521,8 @@ class WriteToDbMessages():
                         short_message, parse_mode='HTML',
                         disable_web_page_preview = True)
 
-                    print(f'\nprints short in channel {pro}\n')
-                    time.sleep(3)
+                    print(f'\nprinted short in channel {pro}\n')
+                    time.sleep(2)
                     short_message = ''
                     messages_counter = 1
                 else:
@@ -542,10 +542,10 @@ class WriteToDbMessages():
 
                 try:
                     await self.bot_dict['bot'].send_message(config['My_channels'][f"{pro}_channel"], text)
+                    time.sleep(2)
                 except Exception as e:
                     await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], f'There is the error {e} (send_fulls')
-
-
+                    time.sleep(2)
 
     async def clear_not_valid_professions(self, profession):
         exclude_list = []
