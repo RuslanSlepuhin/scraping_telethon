@@ -548,7 +548,7 @@ class WriteToDbMessages():
 
                 try:
                     await self.bot_dict['bot'].send_message(config['My_channels'][f"{pro}_channel"], text)
-                    time.sleep(random.randrange(3, 13))
+                    time.sleep(random.randrange(4, 13))
                 except Exception as e:
                     await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], f'There is the error {e} (send_fulls')
                     time.sleep(2)
