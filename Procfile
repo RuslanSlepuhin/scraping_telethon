@@ -1,1 +1,1 @@
-worker: python invite_bot.py
+worker: python invite_bot2.py
