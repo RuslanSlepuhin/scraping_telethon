@@ -1,4 +1,5 @@
 import asyncio
+import os
 from datetime import datetime, timedelta
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -22,11 +23,15 @@ class FindJobGetInformation:
 
     async def get_content(self, count_message_in_one_channel=20):
 
-        options = Options()
-        options.add_argument("--headless")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--no-sandbox")
-        self.browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        chrome_options = webdriver.ChromeOptions()
+        chrome_options.binary_location = os.environ.get('GOOGLE_CHROME_SHIM', None)
+        self.browser = webdriver.Chrome(executable_path="chromedriver", chrome_options=chrome_options)
+
+        # options = Options()
+        # options.add_argument("--headless")
+        # options.add_argument("--disable-dev-shm-usage")
+        # options.add_argument("--no-sandbox")
+        # self.browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
 
         self.count_message_in_one_channel = count_message_in_one_channel
