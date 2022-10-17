@@ -20,25 +20,26 @@ class AlexSort2809:
         self.keys_result_dict = ['fullstack', 'frontend', 'qa', 'ba', 'backend', 'pm', 'mobile', 'game', 'designer',
                                  'hr', 'analyst', 'product', 'devops', 'marketing', 'sales_manager']
 
-    def sort_by_profession_by_Alex(self, title, body, companies=None):
+    def sort_by_profession_by_Alex(self, title, body, companies=None, get_params=True, only_profession=False):
         params = {}
 
-        params['company_hiring'] = []
-        # search company
-        for i in companies:
-            match = re.findall(rf'{i}', title+body)
-            if match:
-                params['company_hiring'] = match[0]
-                break
-        if not params['company_hiring']:
-            p = self.get_company(title, body, companies) #new code
-            companies_list = self.clean_company(p)
-            params['company_hiring'] = companies_list
+        if get_params:
+            params['company_hiring'] = []
+            # search company
+            for i in companies:
+                match = re.findall(rf'{i}', title+body)
+                if match:
+                    params['company_hiring'] = match[0]
+                    break
+            if not params['company_hiring']:
+                p = self.get_company(title, body, companies) #new code
+                companies_list = self.clean_company(p)
+                params['company_hiring'] = companies_list
 
-        params['english_level'] = self.english_requirements(title, body)
-        params['jobs_type'] = self.work_type_fulltime(title, body)
-        params['city'] = self.get_city(title, body)
-        params['relocation'] = self.get_relocation(title, body)
+            params['english_level'] = self.english_requirements(title, body)
+            params['jobs_type'] = self.work_type_fulltime(title, body)
+            params['city'] = self.get_city(title, body)
+            params['relocation'] = self.get_relocation(title, body)
 
         profession = []
         profession_dict = {}
@@ -59,14 +60,15 @@ class AlexSort2809:
                     pass
                 self.get_profession(message, capitalize, key=i)
 
-                if i == 'contacts' and self.result_dict2['contacts'] == 0:
-                    print('*****************NO CONTACTS!!!!!!!!!')
-                    profession = ['no_sort']
-                    break
-                if i == 'vacancy' and self.result_dict2['vacancy'] == 0:
-                    print('*****************NO VACANCY!!!!!!!!!')
-                    profession = ['no_sort']
-                    break
+                if not only_profession:
+                    if i == 'contacts' and self.result_dict2['contacts'] == 0:
+                        print('*****************NO CONTACTS!!!!!!!!!')
+                        profession = ['no_sort']
+                        break
+                    if i == 'vacancy' and self.result_dict2['vacancy'] == 0:
+                        print('*****************NO VACANCY!!!!!!!!!')
+                        profession = ['no_sort']
+                        break
 
 
         for i in self.result_dict2:
@@ -111,11 +113,10 @@ class AlexSort2809:
     def get_profession(self, message, capitalize, key):
         message_to_check = ''
         link_telegraph = ''
-        if key == 'remote':
-            pass
 # --------------- collect all matches in 'ma' -----------------------
         for word in self.pattern_alex[key]['ma']:
-
+            if word == 'Sales Manager':
+                pass
             if not capitalize:
                 word = word.lower()
                 message_to_check = message.lower()

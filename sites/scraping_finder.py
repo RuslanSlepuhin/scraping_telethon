@@ -10,18 +10,17 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 import re
+from patterns.pattern_Alex2809 import cities_pattern, params
 
 
 class FindJobGetInformation:
 
-    def __init__(self, client):
-        self.client = client
-
+    def __init__(self):
         self.base_url = 'https://finder.vc'
         self.options = Options()
-        # self.options.add_argument("--headless")
-        # self.options.add_argument("--disable-dev-shm-usage")
-        # self.options.add_argument("--no-sandbox")
+        self.options.add_argument("--headless")
+        self.options.add_argument("--disable-dev-shm-usage")
+        self.options.add_argument("--no-sandbox")
         self.browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=self.options)
 
 
@@ -42,37 +41,48 @@ class FindJobGetInformation:
         self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
 
-        await self.get_link_message(self.browser.page_source)
+        result_dict = await self.get_link_message(self.browser.page_source)
 
-        return 'Compete'
+        return result_dict
 
     async def get_link_message(self, raw_content):
         message_dict ={}
         results_dict = {}
+
         to_write_excel_dict = {
+            'chat_name': [],
             'title': [],
             'body': [],
-            'time_create': [],
-            'job_format': [],
-            'hiring': [],
-            'hiring_link': [],
+            'vacancy': [],
+            'vacancy_url': [],
+            'company': [],
+            'company_link': [],
+            'english': [],
+            'relocation': [],
+            'job_type': [],
+            'city': [],
+            'salary': [],
+            'experience': [],
+            'time_of_public': [],
             'contacts': []
         }
         links = []
         soup = BeautifulSoup(raw_content, 'lxml')
-        # self.browser.quit()
-
         list_links = soup.find_all('a', class_='vacancy-card vacancy-card_result')
-        pass
 
         for i in list_links:
 
             links.append(i.get('href'))
             print(self.base_url + i.get('href'))  # собираем все ссылки в list, чтобы получить оттуда полный текст вакансии
-
             response = requests.get(self.base_url + i.get('href'))
-
             soup = BeautifulSoup(response.text, 'lxml')
+
+            try:
+                vacancy = soup.find('h1', class_='vacancy-info-header__title').get_text()
+            except:
+                vacancy = ''
+            print('title = ', vacancy)
+
             try:
                 title = soup.find('h1', class_='vacancy-info-header__title').get_text()  # Программист 1С
             except:
@@ -86,10 +96,10 @@ class FindJobGetInformation:
             print('body = ', body)
 
             try:
-                responsibilities = soup.find('ul', class_="vacancy-info-body__list").get_text()
+                description = soup.find('div', class_='vacancy-info-body__lists').get_text()
             except:
-                responsibilities = ''
-            print('responsibilities = ', responsibilities)
+                description = ''
+            print('requirements = ', description)
 
             try:
                 terms = soup.find('ul', class_="vacancy-info-body__list").get_text()
@@ -98,17 +108,10 @@ class FindJobGetInformation:
             print('terms = ', terms)
 
             try:
-                hiring = soup.find('a', class_='link').get_text()
+                company = soup.find('a', class_='link').get_text()
             except:
-                hiring = ''
-            print('hiring = ', hiring)
-
-            # try:
-            #     hiring_link = soup.find('a', class_='link').get('href')
-            #     title += hiring_link.strip() + ' '
-            # except:
-            #     hiring_link = ''
-            # print('hiring_link = ', hiring_link)
+                company = ''
+            print('hiring = ', company)
 
             try:
                 time_job = soup.find('div', class_="employment-label__text").get_text()
@@ -119,20 +122,21 @@ class FindJobGetInformation:
 
             try:
                 item = soup.find_all('div', class_="row-text")
-                cost = item[0].get_text()
+                salary = item[0].get_text()
                 experience = item[1].get_text()
                 # body = f'\nЗарплата: {cost}\nОпыт: {experience}\n' + body
             except:
-                cost = ''
+                salary = ''
                 experience= ''
-            print('cost = ', cost)
+            print('cost = ', salary)
             print('experience = ', experience)
 
-            time_created = soup.find('div', class_='vacancy-info-header__publication-date').get_text()
-            print(time_created)
+            time_of_public = soup.find('div', class_='vacancy-info-header__publication-date').get_text()
+            print('time_of_public = ', time_of_public)
+            time_of_public = self.convert_date(time_of_public)
+            print('time_of_public after = ', time_of_public)
 
-
-# --------------------- get contacts by click button ----------------------------
+# --------------------- get contacts after click button ----------------------------
             link_vacancy = self.base_url + links[-1]
             print('vacancy_url = ', link_vacancy)
             self.browser.get(link_vacancy)
@@ -145,59 +149,70 @@ class FindJobGetInformation:
             contacts = soup_contacts.find('div', class_='contacts__item').get_text()
             print('contacts = ', contacts)
 
-# ------------------- collect title and body ------------------------------------
-            body = f'' \
-                   f'Компания: {hiring}\n' \
-                   f'Контакты: {contacts}\n' \
-                   f'Заработная плата: {cost}\n' \
-                   f'Требуемый опыт: {experience}\n\n' \
-                   f'График работы: {time_job}\n\n' \
-                   f'Описание вакансии:\n{body}\n\n' \
-                   f'Требования: \n{responsibilities}\n\n' \
-                   f'Условия: \n{terms}'
+            body += f'\n{description}'
 
-            pass
+# ------------------------- search relocation ----------------------------
+            relocation = ''
+            if re.findall(r'[Рр]елокация', body):
+                relocation = 'релокация'
 
+# ------------------------- search city ----------------------------
+            city = ''
+            for key in cities_pattern:
+                for item in cities_pattern[key]:
+                    match = re.findall(rf"{item}", body)
+                    if match and key != 'others':
+                        for i in match:
+                            city += f"{i} "
+
+# ------------------------- search english ----------------------------
+            english = ''
+            for item in params['english_level']:
+                match = re.findall(rf"{item}", body)
+                if match:
+                    for i in match:
+                        english += f"{i} "
+
+# ------------------- compose title and body ------------------------------------
             if contacts:
+                to_write_excel_dict['chat_name'].append('https://finder.vc')
                 to_write_excel_dict['title'].append(title)
                 to_write_excel_dict['body'].append(body)
-                to_write_excel_dict['time_create'].append(self.convert_date(time_created))
-            #     # to_write_excel_dict['job_format'].append(job_format)
-            #     # to_write_excel_dict['hiring'].append(hiring)
-            #     # to_write_excel_dict['hiring_link'].append(hiring_link)
-            #     # to_write_excel_dict['contacts'].append(contacts)
-            #
-                # results_dict['chat_name'] = 'geek_jobs.ru'
-                # results_dict['title'] = title
-                # results_dict['body'] = body
-                # results_dict['time_of_public'] = time_created
-            #
-                # message_dict['message'] = f'{title}\n{body}'
-            #     # await PushChannels().push(results_dict, self.client, message_dict)
-            #
-            #     print(f"{self.count_message_in_one_channel} from_channel = geek_jobs.ru'")
-            #     self.count_message_in_one_channel += 1
-            #     print('time_sleep')
-            #     # time.sleep(random.randrange(10, 15))
-        #
-        #     pass
+                to_write_excel_dict['vacancy'].append(vacancy)
+                to_write_excel_dict['vacancy_url'].append(str(link_vacancy))
+                to_write_excel_dict['company'].append(company)
+                to_write_excel_dict['english'].append('')
+                to_write_excel_dict['relocation'].append(relocation)
+                to_write_excel_dict['job_type'].append(time_job)
+                to_write_excel_dict['city'].append(city)
+                to_write_excel_dict['salary'].append(salary)
+                to_write_excel_dict['experience'].append(experience)
+                to_write_excel_dict['time_of_public'].append(time_of_public)
+                to_write_excel_dict['contacts'].append(contacts)
+
         self.browser.quit()
 
         df = pd.DataFrame(
             {
                 'title': to_write_excel_dict['title'],
                 'body': to_write_excel_dict['body'],
-                'time_create': to_write_excel_dict['time_create'],
-        #         # 'job_format': to_write_excel_dict['job_format'],
-        #         # 'hiring': to_write_excel_dict['hiring'],
-        #         # 'hiring_link': to_write_excel_dict['hiring_link'],
-        #         # 'contacts': to_write_excel_dict['contacts']
+                'vacancy': to_write_excel_dict['vacancy'],
+                'vacancy_url': to_write_excel_dict['vacancy_url'],
+                'company': to_write_excel_dict['company'],
+                'english': to_write_excel_dict['english'],
+                'relocation': to_write_excel_dict['relocation'],
+                'job_type': to_write_excel_dict['job_type'],
+                'city': to_write_excel_dict['city'],
+                'salary': to_write_excel_dict['salary'],
+                'experience': to_write_excel_dict['experience'],
+                'time_of_public': to_write_excel_dict['time_of_public'],
+                'contacts': to_write_excel_dict['contacts'],
             }
         )
 
         df.to_excel('finder.vc.xlsx', sheet_name='Sheet1')
 
-        pass
+        return to_write_excel_dict
 
 
 
@@ -220,7 +235,11 @@ class FindJobGetInformation:
         date = date.split(' ')
         if date[1] == 'сегодня':
             date = datetime.now()
-        elif re.findall(r'дн[ейя]{1,2}', date[2]):
+        elif date[1] == 'вчера':
+            date  = datetime.now()-timedelta(days=1)
+        elif date[1] == 'неделю':
+            date = datetime.now()-timedelta(days=7)
+        elif re.findall(r'д[е]{0,1}н[ьейя]{1,2}', date[2]):
             date = datetime.now()-timedelta(days=int(date[1]))
         elif re.findall(r'месяц[ева]{0,2}', date[2]):
             date = datetime.now() - timedelta(days=int(date[1]*30))
@@ -263,8 +282,8 @@ class FindJobGetInformation:
         text = text.replace(f'\n', '')
         return text
 
-print('go')
+# print('go')
 # task = asyncio.create_task(FindJobGetInformation().get_content())
-loop = asyncio.new_event_loop()
-loop.run_until_complete(FindJobGetInformation().get_content())
+# loop = asyncio.new_event_loop()
+# loop.run_until_complete(FindJobGetInformation().get_content())
 # loop.run_until_complete(FindJobGetInformation().get_content())

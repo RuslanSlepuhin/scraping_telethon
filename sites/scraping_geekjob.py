@@ -15,14 +15,13 @@ from db_operations.scraping_db import DataBaseOperations
 
 class GeekJobGetInformation:
 
-    def __init__(self, client):
-        self.client = client
+    def __init__(self):
         self.db_tables = None
         self.options = None
         self.page = None
 
 
-    async def get_content(self, count_message_in_one_channel, db_tables=None):
+    async def get_content(self, db_tables=None):
         """
         If DB_tables = 'all', that it will push to all DB include professions.
         If None (default), that will push in all_messages only
@@ -32,7 +31,7 @@ class GeekJobGetInformation:
         """
         self.db_tables = db_tables
 
-        self.count_message_in_one_channel = count_message_in_one_channel
+        self.count_message_in_one_channel = 1
 
         self.options = Options()
         # self.options.add_argument("--headless")
@@ -40,10 +39,11 @@ class GeekJobGetInformation:
         # self.options.add_argument("--no-sandbox")
 
         link = f'https://geekjob.ru/vacancies?'
-
-        for self.page in range(1, 48):
-            link = f'https://geekjob.ru/vacancies/{self.page}'
-            await self.get_info(link)
+        response_dict = await self.get_info(link)
+        # for self.page in range(1, 48):
+        #     link = f'https://geekjob.ru/vacancies/{self.page}'
+        #     await self.get_info(link)
+        return response_dict
 
     async def get_info(self, link):
         self.browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=self.options)
@@ -54,8 +54,8 @@ class GeekJobGetInformation:
         # time.sleep(2)
         self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
-        await self.get_link_message(self.browser.page_source)
-        return 'Compete'
+        response_dict = await self.get_link_message(self.browser.page_source)
+        return response_dict
 
     async def get_link_message(self, raw_content):
         message_dict ={}
@@ -63,10 +63,16 @@ class GeekJobGetInformation:
         to_write_excel_dict = {
             'title': [],
             'body': [],
-            'time_create': [],
-            'job_format': [],
-            'hiring': [],
-            'hiring_link': [],
+            'vacancy': [],
+            'company': [],
+            'english': [],
+            'relocation': [],
+            'job_type': [],
+            'city': [],
+            'salary': [],
+            'experience': [],
+            'responsibilities': [],
+            'time_of_public': [],
             'contacts': []
         }
         base_url = 'https://geekjob.ru'
@@ -75,6 +81,8 @@ class GeekJobGetInformation:
         self.browser.quit()
 
         list_links = soup.find_all('a', class_='title')
+
+# --------------------- LOOP -------------------------
         for i in list_links:
             links.append(i.get('href'))
             print(base_url + i.get('href'))  # собираем все ссылки в list, чтобы получить оттуда полный текст вакансии
@@ -124,12 +132,17 @@ class GeekJobGetInformation:
                 hiring_link = ''
             print('hiring_link = ', hiring_link)
 
+            relocation = ''
             try:
                 job_format = soup.find('span', class_="jobformat").get_text()
                 title += f'\n{job_format}'
+                if 'Релокация' in job_format:
+                    relocation = 'релокация'
             except:
                 job_format = ''
+                relocation = ''
             print('job_format = ', job_format)
+            print('relocation = ', relocation)
 
             try:
                 date = soup.find('div', class_="time").get_text()
@@ -145,14 +158,43 @@ class GeekJobGetInformation:
                 contacts = ''
             print('contacts = ', contacts)
 
+            try:
+                vacancy_name = soup.find('h1').get_text()
+            except:
+                vacancy_name = ''
+            print('vacancy_name = ', vacancy_name)
+
+            try:
+                city = soup.find('div', class_='location').get_text()
+            except:
+                city = ''
+            print('city = ', city)
+
+            try:
+                salary = soup.find('span', class_='salary').get_text()
+            except:
+                salary = ''
+            print('salary = ', salary)
+
+
+
             if hiring_link:
                 to_write_excel_dict['title'].append(title)
                 to_write_excel_dict['body'].append(body)
-                to_write_excel_dict['time_create'].append(date)
-                to_write_excel_dict['job_format'].append(job_format)
-                to_write_excel_dict['hiring'].append(hiring)
-                to_write_excel_dict['hiring_link'].append(hiring_link)
+                to_write_excel_dict['time_of_public'].append(date)
+                to_write_excel_dict['job_type'].append(job_format)
+                to_write_excel_dict['company'].append(hiring)
+                to_write_excel_dict['company_link'].append(hiring_link)
                 to_write_excel_dict['contacts'].append(contacts)
+                to_write_excel_dict['relocation'].append(relocation)
+                to_write_excel_dict['vacancy'].append(vacancy_name)
+                to_write_excel_dict['city'].append(city)
+                to_write_excel_dict['salary'].append(salary)
+                to_write_excel_dict['english'].append('')
+                to_write_excel_dict['experience'].append('')
+                to_write_excel_dict['responsibilities'].append('')
+
+
 
                 results_dict['chat_name'] = 'geek_jobs.ru'
                 results_dict['title'] = title
@@ -172,24 +214,30 @@ class GeekJobGetInformation:
                 print('time_sleep')
                 # time.sleep(random.randrange(10, 15))
 
-            pass
-
         df = pd.DataFrame(
             {
                 'title': to_write_excel_dict['title'],
                 'body': to_write_excel_dict['body'],
-                'time_create': to_write_excel_dict['time_create'],
-                'job_format': to_write_excel_dict['job_format'],
-                'hiring': to_write_excel_dict['hiring'],
-                'hiring_link': to_write_excel_dict['hiring_link'],
-                'contacts': to_write_excel_dict['contacts']
+                'vacancy': to_write_excel_dict['vacancy'],
+                'company': to_write_excel_dict['company'],
+                'company_link': to_write_excel_dict['company_link'],
+                'english': to_write_excel_dict['english'],
+                'relocation': to_write_excel_dict['relocation'],
+                'job_type': to_write_excel_dict['job_type'],
+                'city': to_write_excel_dict['city'],
+                'salary': to_write_excel_dict['salary'],
+                'experience': to_write_excel_dict['experience'],
+                'responsibilities': to_write_excel_dict['responsibilities'],
+                'time_of_public': to_write_excel_dict['time_of_public'],
+                'contacts': to_write_excel_dict['contacts'],
+
             }
         )
 
-        df.to_excel(f'./../messages/geek{self.page}.xlsx', sheet_name='Sheet1')
+        df.to_excel(f'geek{self.page}.xlsx', sheet_name='Sheet1')
         print('записал в файл')
 
-        pass
+        return to_write_excel_dict
 
     def normalize_text(self, text):
         text = str(text)
@@ -276,8 +324,6 @@ class GeekJobGetInformation:
         db=DataBaseOperations(con=None)
         db.write_to_db_companies(companies)
 
-# task = asyncio.create_task(GeekJobGetInformation(client=None).get_content(1))
 # loop = asyncio.new_event_loop()
-# loop.run_until_complete(GeekJobGetInformation(client=None).get_content(1))
-# loop.run_until_complete(GeekJobGetInformation(client=None).compose_in_one_file())
-# loop.run_until_complete(GeekJobGetInformation(client=None).write_to_db_table_companies())
+# loop.run_until_complete(GeekJobGetInformation().get_content(1))
+

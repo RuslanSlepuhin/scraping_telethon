@@ -24,11 +24,20 @@ class DataBaseOperations:
     def connect_db(self):
 
         self.con = None
-        database = config['DB3']['database']
-        user = config['DB3']['user']
-        password = config['DB3']['password']
-        host = config['DB3']['host']
-        port = config['DB3']['port']
+        config.read("./../settings/config.ini")
+        try:
+            database = config['DB3']['database']
+            user = config['DB3']['user']
+            password = config['DB3']['password']
+            host = config['DB3']['host']
+            port = config['DB3']['port']
+        except:
+            config.read("./settings/config.ini")
+            database = config['DB3']['database']
+            user = config['DB3']['user']
+            password = config['DB3']['password']
+            host = config['DB3']['host']
+            port = config['DB3']['port']
         try:
             self.con = psycopg2.connect(
                 database=database,
@@ -104,16 +113,27 @@ class DataBaseOperations:
         with self.con:
 
             cur.execute(f"""CREATE TABLE IF NOT EXISTS {table_name} (
-                id SERIAL PRIMARY KEY,
-                chat_name VARCHAR(150),
-                title VARCHAR(1000),
-                body VARCHAR (6000),
-                profession VARCHAR (30),
-                time_of_public TIMESTAMP,
-                created_at TIMESTAMP,
-                agregator_link VARCHAR(200)
-                );"""
+                            id SERIAL PRIMARY KEY,
+                            chat_name VARCHAR(150),
+                            title VARCHAR(1000),
+                            body VARCHAR (6000),
+                            profession VARCHAR (30),
+                            vacancy VARCHAR (700),
+                            vacancy_url VARCHAR (150),
+                            company VARCHAR (200),
+                            english VARCHAR (100),
+                            relocation VARCHAR (100),
+                            job_type VARCHAR (700),
+                            city VARCHAR (150),
+                            salary VARCHAR (300),
+                            experience VARCHAR (700),
+                            contacts VARCHAR (500),
+                            time_of_public TIMESTAMP,
+                            created_at TIMESTAMP,
+                            agregator_link VARCHAR(200)
+                            );"""
                         )
+
             self.con.commit()
 
     def push_to_bd(self, results_dict, profession_list=None, agregator_id=None):
@@ -122,19 +142,20 @@ class DataBaseOperations:
         if not self.con:
             self.connect_db()
         cur = self.con.cursor()
-        chat_name = results_dict['chat_name']
-        title = results_dict['title'].replace(f'\'', '"')
-        body = str(results_dict['body']).replace(f'\'', '"')
+
+#         chat_name = results_dict['chat_name']
+#         title = results_dict['title'].replace(f'\'', '"')
+#         body = str(results_dict['body']).replace(f'\'', '"')
         pro = profession_list['profession']
-# -------------------- if add or no_sort -------------------
-        if profession_list['profession'] in ['ad', 'no_sort'] and len(profession_list)>1:
-            profession_list = {'profession': profession_list['profession']}
-        print(f'\nResponse DB: profession = {pro}\n')
-        time_of_public = results_dict['time_of_public']
-        try:
-            created_at = results_dict['created_at']
-        except:
-            created_at = datetime.now()
+# # -------------------- if add or no_sort -------------------
+#         if profession_list['profession'] in ['ad', 'no_sort'] and len(profession_list)>1:
+#             profession_list = {'profession': profession_list['profession']}
+#         print(f'\nResponse DB: profession = {pro}\n')
+#         time_of_public = results_dict['time_of_public']
+#         try:
+#             created_at = results_dict['created_at']
+#         except:
+#             created_at = datetime.now()
         self.quant = 1
 # -------------------------- create short message --------------------------------
         if type(pro) is list or type(pro) is set:
@@ -142,24 +163,38 @@ class DataBaseOperations:
 
             for pro in pro_set:
                 self.check_or_create_table(cur, pro)
-                self.push_to_db_write_message(cur, pro, title, body, chat_name, time_of_public, created_at, response_dict, agregator_id)
+                self.push_to_db_write_message(cur, pro, results_dict, response_dict, agregator_id)
         else:
             self.check_or_create_table(cur, pro)
-            response_dict = self.push_to_db_write_message(cur, pro, title, body, chat_name, time_of_public, created_at, response_dict, agregator_id)
+            response_dict = self.push_to_db_write_message(cur, pro, results_dict, response_dict, agregator_id)
         return response_dict
 
-    def push_to_db_write_message(self, cur, pro, title, body, chat_name, time_of_public, created_at, response_dict, agregator_id):
+    def push_to_db_write_message(self, cur, pro, results_dict, response_dict, agregator_id):
         with self.con:
             try:
-                query = f"""SELECT * FROM {pro} WHERE title='{title}' AND body='{body}'"""
+                query = f"""SELECT * FROM {pro} WHERE title='{results_dict['title']}' AND body='{results_dict['body']}'"""
                 cur.execute(query)
                 r = cur.fetchall()
                 if not r:
+                    results_dict['title'] = results_dict['title'].replace('\'', '').replace('\'', '')
+                    results_dict['body'] = results_dict['body'].replace('\"', '').replace('\'', '')
+                    results_dict['company'] = results_dict['company'].replace('\"', '').replace('\'', '')
+
+                    # for i in results_dict:
+                    #     print(i, results_dict[i])
+
                     response_dict[pro] = False
-                    new_post = f"""INSERT INTO {pro} (chat_name, title, body, profession, time_of_public, created_at, agregator_link) 
-                                VALUES ('{chat_name}', '{title}', '{body}', '{pro}', '{time_of_public}', '{created_at}', '{agregator_id}');"""
+                    new_post = f"""INSERT INTO {pro} (
+                    chat_name, title, body, profession, vacancy, vacancy_url, company, english, relocation, job_type, 
+                    city, salary, experience, contacts, time_of_public, created_at, agregator_link) 
+                                VALUES ('{results_dict['chat_name']}', '{results_dict['title']}', '{results_dict['body']}', 
+                                '{pro}', '{results_dict['vacancy']}', '{results_dict['vacancy_url']}', '{results_dict['company']}', 
+                                '{results_dict['english']}', '{results_dict['relocation']}', '{results_dict['job_type']}', 
+                                '{results_dict['city']}', '{results_dict['salary']}', '{results_dict['experience']}', 
+                                '{results_dict['contacts']}', '{results_dict['time_of_public']}', '{datetime.now()}', '{agregator_id}');"""
+                    # print('query in db: ', new_post)
                     cur.execute(new_post) # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                    print(self.quant, f'Has added to DB {pro}\n')
+                    print(self.quant, f'+++++++++++++ Has added to DB {pro}\n')
                     self.quant += 1
 
                 else:
@@ -167,7 +202,7 @@ class DataBaseOperations:
                     print(self.quant, f'!!!! This message exists already in {pro}\n')
 
             except Exception as e:
-                print('Dont push in db, error = ', e)
+                print('-/--/-/-/-/-//-/-/-/ Dont push in db, error = ', e)
         return response_dict
 
     def get_all_from_db(self, table_name, param=None, without_sort=False, order=None):
@@ -386,9 +421,9 @@ class DataBaseOperations:
         with con:
             cur.execute(query)
 
-        for value in companies:
+        for company in companies:
 
-            query = f"""SELECT * FROM companies WHERE company='{value}'"""
+            query = f"""SELECT * FROM companies WHERE company='{company}'"""
             with con:
                 try:
                     cur.execute(query)
@@ -398,10 +433,10 @@ class DataBaseOperations:
 
 
             if not response:
-                query = f"""INSERT INTO companies (company) VALUES ('{value}')"""
+                query = f"""INSERT INTO companies (company) VALUES ('{company}')"""
                 with con:
                     cur.execute(query)
-                    print(f'to put: {value}')
+                    print(f'to put: {company}')
 
     def rewrite_to_archive(self):
         for i in ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'analyst',
@@ -473,6 +508,47 @@ class DataBaseOperations:
             cur.execute(query)
             print(f'{table_name} was deleted')
 
+    def append_columns(self, table_name_list):
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+
+        for table in table_name_list:
+            # query = f"""ALTER TABLE {table}
+            #     ADD COLUMN IF NOT EXISTS vacancy VARCHAR (700),
+            #     ADD COLUMN IF NOT EXISTS vacancy_url VARCHAR (150),
+            #     ADD COLUMN IF NOT EXISTS company VARCHAR (200),
+            #     ADD COLUMN IF NOT EXISTS english VARCHAR (100),
+            #     ADD COLUMN IF NOT EXISTS relocation VARCHAR (100),
+            #     ADD COLUMN IF NOT EXISTS job_type VARCHAR (700),
+            #     ADD COLUMN IF NOT EXISTS city VARCHAR (150),
+            #     ADD COLUMN IF NOT EXISTS salary VARCHAR (300),
+            #     ADD COLUMN IF NOT EXISTS experience VARCHAR (700),
+            #     ADD COLUMN IF NOT EXISTS contacts VARCHAR (500),
+            #     ADD COLUMN IF NOT EXISTS agregator_link VARCHAR(200);
+            # """
+            query = f"""ALTER TABLE {table} 
+                ADD COLUMN IF NOT EXISTS agregator_link VARCHAR(200);
+            """
+            with self.con:
+                cur.execute(query)
+                print(f'Added columns to table {table}')
+
+
+#     def view_all_columns(self, table_name_list):
+#         if not self.con:
+#             self.connect_db()
+#         cur = self.con.cursor()
+#
+#         query = """
+#         select * from information_schema.columns
+# where table_catalog = 'my_database' and
+# table_schema = 'public';"""
+#
+#         with self.con:
+#             cur.execute(query)
+#         print(cur.fetchall())
+
 
 # con=''
 # for i in ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'fullstack', 'mobile', 'qa', 'hr',
@@ -538,12 +614,20 @@ class DataBaseOperations:
 #     response = DataBaseOperations(None).get_all_from_db(i, param="WHERE created_at > '2022-10-11 19:00:00'")
 #     for resp in response:
 #         print(i, resp[6])
-#     # DataBaseOperations(None).delete_data(table_name=i, param="WHERE created_at > '2022-10-11 19:00:00'")
+#     DataBaseOperations(None).delete_data(table_name=i, param="WHERE created_at > '2022-10-11 19:00:00'")
 #     response = DataBaseOperations(None).get_all_from_db(i, param="WHERE created_at > '2022-10-11 19:00:00'")
 #     if not response:
 #         print('Is empty')
 #     else:
 #         for resp in response:
 #             print(i, resp[6])
+
+#
+# t = ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'analyst',
+#             'mobile', 'qa', 'hr', 'game', 'ba', 'marketing', 'junior',
+#             'sales_manager']
+# t= ['no_sort']
+# DataBaseOperations(con=None).append_columns(t)
+
 
 

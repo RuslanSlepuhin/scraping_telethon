@@ -12,7 +12,7 @@ from telethon.tl.functions.channels import GetParticipantsRequest
 from telethon.tl.types import ChannelParticipantsSearch, PeerChannel, InputPeerChannel
 from links import list_links
 from telethon.sync import TelegramClient
-from telethon import client
+from telethon import client, events
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest
 from sites.scraping_geekjob import GeekJobGetInformation
 from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
@@ -21,7 +21,6 @@ from aiogram.utils.markdown import hlink
 config = configparser.ConfigParser()
 config.read("./settings/config.ini")
 #--------------------------- забираем значения из config.ini-------------------------------
-alexandr_channel = config['My_channels']['alexandr_channel']
 api_id = config['Ruslan']['api_id']
 api_hash = config['Ruslan']['api_hash']
 
@@ -32,20 +31,25 @@ user = config['DB3']['user']
 password = config['DB3']['password']
 host = config['DB3']['host']
 port = config['DB3']['port']
-try:
-    con = psycopg2.connect(
-        database=database,
-        user=user,
-        password=password,
-        host=host,
-        port=port
-    )
-except:
-    print('No connect with db')
+
+con = psycopg2.connect(
+    database=database,
+    user=user,
+    password=password,
+    host=host,
+    port=port
+)
+
+# client = TelegramClient('137336064', int(api_id), api_hash)
+# client.connect()
+# companies = DataBaseOperations(con=con).get_all_from_db('companies')
 
 class PushChannels:  # I bring that class from scarping_push_to_channel.py
 
     def __init__(self, client, bot_dict):
+        # if not client:
+        #     client=TelegramClient('137336064', int(api_id), api_hash)
+        #     client.start()
         self.client = client
         self.msg = []
         self.bot_dict = bot_dict
@@ -89,10 +93,6 @@ class PushChannels:  # I bring that class from scarping_push_to_channel.py
                 else:
                     short_message += f"\n\n"
                     count_messages += 1
-
-
-
-
 
     async def push_new_hub(self, results_dict, forwarded_message, last_id_agregator):
 
@@ -232,42 +232,6 @@ class PushChannels:  # I bring that class from scarping_push_to_channel.py
             short_message += f"\nРелокация: {params['relocation']}"
 
         return short_message
-# class ListenChat:
-#
-#     @client.on(events.NewMessage(chats=(list_links)))
-#     async def normal_handler(event):
-#
-#         print('I,m listening chats ....')
-#
-#         info = event.message.to_dict()
-#         title = info['message'].partition(f'\n')[0]
-#         body = info['message'].replace(title, '').replace(f'\n\n', f'\n')
-#         date = (info['date'] + timedelta(hours=3))
-#
-#         if event.chat.username:
-#             chat_name = f'@{event.chat.username} | {event.chat.title}'
-#         else:
-#             chat_name = event.chat.title
-#
-#         results_dict = {
-#             'chat_name': chat_name,
-#             'title': title,
-#             'body': body,
-#             'time_of_public': date
-#         }
-#         # db = DataBaseOperations(con=None)
-#         # dict_bool = db.push_to_bd(results_dict)  # из push_to_db возвращается bool or_exists
-#
-#         # записать в общую таблицу со всеми сообщениями
-#         DataBaseOperations(con).write_to_one_table(results_dict)  # write all messages on one table
-#
-#         # записать в таблицы с профессиями и разложить по каналам
-#         await PushChannels().push(results_dict, client, info['message'])
-#
-#         # if dict_bool['not_exists']:
-#         #     send_message = f'{chat_name}\n\n' + info['message']
-#         #     await client.send_message(entity=bot, message=send_message)
-#         # print(results_dict)
 
 class WriteToDbMessages():
 
@@ -276,8 +240,15 @@ class WriteToDbMessages():
         #if client is empty
         if not client:
             client = TelegramClient('137336064', int(api_id), api_hash)
-            client.start()
-
+            self.client = client
+            self.client.start()
+        else:
+            self.client = client
+            if not self.client.is_connected():
+                self.client.start()
+                print('client needed to connect')
+            else:
+                print('client is on connection')
         self.client = client
         self.bot_dict = bot_dict
         self.last_id_agregator = 0
@@ -404,91 +375,113 @@ class WriteToDbMessages():
             if total_count_limit != 0 and total_messages >= total_count_limit:
                 break
 
-        # channel_name = f'@{channel.username} | {channel.title}'
-        channel_name = channel
+        await self.process_messages(channel, all_messages)
+        print('pause 25-35 sec.')
+        time.sleep(random.randrange(25, 35))
 
+    async def process_messages(self, channel, all_messages):
+        # channel_name = f'@{channel.username} | {channel.title}'
+        # channel_name = channel
+        for one_message in reversed(all_messages):
+            await self.operations_with_each_message(channel, one_message)
+
+
+    async def operations_with_each_message(self, channel, one_message):
+
+        title = one_message['message'].partition(f'\n')[0]
+        body = one_message['message'].replace(title, '').replace(f'\n\n', f'\n')
+        date = (one_message['date'] + timedelta(hours=3))
+        results_dict = {
+            'chat_name': channel,
+            'title': title,
+            'body': body,
+            'profession': '',
+            'vacancy': '',
+            'vacancy_url': '',
+            'company': '',
+            'english': '',
+            'relocation': '',
+            'job_type': '',
+            'city': '',
+            'salary': '',
+            'experience': '',
+            'contacts': '',
+            'time_of_public': date,
+            'created_at': ''
+        }
+
+        print(f"channel = {channel}")
+# =============================== scheme next steps =======================================
+        # we are in the messages loop, it takes them by one
+        # -----------------------LOOP---------------------------------
+        # STEP0/ I have to get id for last message in agregator_channel
+        #          I did it previous step (look at up)
+
+        # STEP NEXT/ Get the profession/ previous it needs to get companies list from table companies
+        #           I have got the companies previous. Look at up
         self.companies = DataBaseOperations(con=con).get_all_from_db(table_name='companies', without_sort=True)  # check!!!
 
-        for i in reversed(all_messages):
-            title = i['message'].partition(f'\n')[0]
-            body = i['message'].replace(title, '').replace(f'\n\n', f'\n')
-            date = (i['date'] + timedelta(hours=3))
-            results_dict = {
-                'chat_name': channel_name,
-                'title': title,
-                'body': body,
-                'time_of_public': date
-            }
+        response = AlexSort2809().sort_by_profession_by_Alex(title, body, self.companies)
+        profession = response['profession']
+        params = response['params']
 
-            print(f"channel = {channel}")
-# =============================== scheme next steps =======================================
-            # we are in the messages loop, it takes them by one
-            # -----------------------LOOP---------------------------------
-            # STEP0/ I have to get id for last message in agregator_channel
-            #          I did it previous step (look at up)
+        # STEP1/ we need to write to DB by professions that message with last message's id in agregator_channel
+        #       I can get this with DBOperations()
+        if 'no_sort' not in profession['profession']:
+            profession = await self.clear_not_valid_professions(profession)  # delete not valid keys (middle, senior and others)
+            print('valid professions ', profession['profession'])
+            if profession['profession']:
+                # write to profession's tables. Returns dict with professions as a key and False, if it was written and True if existed
+                response_dict = DataBaseOperations(con=con).push_to_bd(results_dict, profession, self.last_id_agregator) #check!!!
+                print('from db professions ', response_dict)
 
-            # STEP NEXT/ Get the profession/ previous it needs to get companies list from table companies
-            #           I have got the companies previous. Look at up
-            response = AlexSort2809().sort_by_profession_by_Alex(title, body, self.companies)
-            profession = response['profession']
-            params = response['params']
+        # STEP2/ send they to agregator channel if they have the professions
+        #       We need to control id message and send it to field on profession table
+        #       Increase number last message's id += 1
+                if False in response_dict.values():
 
-            # STEP1/ we need to write to DB by professions that message with last message's id in agregator_channel
-            #       I can get this with DBOperations()
-            if 'no_sort' not in profession['profession']:
-                profession = await self.clear_not_valid_professions(profession)  # delete not valid keys (middle, senior and others)
-                print('valid professions ', profession['profession'])
-                if profession['profession']:
-                    # write to profession's tables. Returns dict with professions as a key and False, if it was written and True if existed
-                    response_dict = DataBaseOperations(con=con).push_to_bd(results_dict, profession, self.last_id_agregator) #check!!!
-                    print('from db professions ', response_dict)
-
-            # STEP2/ send they to agregator channel if they have the professions
-            #       We need to control id message and send it to field on profession table
-            #       Increase number last message's id += 1
-                    if False in response_dict.values():
-
-                        # send to agregator channel one time
-                        try:
-                            await self.bot_dict['bot'].send_message(
-                                config['My_channels']['agregator_channel'], i['message'])
-                            self.last_id_agregator += 1
-                            print('\nit was sended in agregator channel')
-                            print('time_sleep 3 sec\n')
-                            time.sleep(3)
-                        except Exception as e:
-                            await self.bot_dict['bot'].send_message(
-                                self.bot_dict['chat_id'],
-                                f'Error to send to channel {e}')
-            else:
-                try:
-                    await self.bot_dict['bot'].send_message(
-                        config['My_channels']['no_sort_channel'], i['message'])
-                    time.sleep(2)
-                except Exception as e:
-                    await self.bot_dict['bot'].send_message(
-                        self.bot_dict['chat_id'], f"Error in channel no_sort: {e}")
-                    time.sleep(2)
+                    # send to agregator channel one time
+                    try:
+                        await self.bot_dict['bot'].send_message(
+                            config['My_channels']['agregator_channel'], one_message['message'])
+                        self.last_id_agregator += 1
+                        print('\nit was sended in agregator channel')
+                        print('time_sleep 3 sec\n')
+                        time.sleep(3)
+                    except Exception as e:
+                        await self.bot_dict['bot'].send_message(
+                            self.bot_dict['chat_id'],
+                            f'Error to send to channel {e}')
+        else:
+            try:
+                await self.bot_dict['bot'].send_message(
+                    config['My_channels']['no_sort_channel'], one_message['message'])
+                await asyncio.sleep(2)
+            except Exception as e:
+                await self.bot_dict['bot'].send_message(
+                    self.bot_dict['chat_id'], f"Error in channel no_sort: {e}")
+                await asyncio.sleep(2)
 
 #---------------------- END OF LOOP ---------------------------------
 
         # STEP3/ we have to get from each table last messages and compose the shorts with 5 short messages with links
 
-
-        print('pause 25-35 sec.')
-        time.sleep(random.randrange(25, 35))
-
-    async def get_last_and_tgpublic_shorts(self, time_start):
+    async def get_last_and_tgpublic_shorts(self, time_start, shorts=False):
         """
         It gets last messages from profession's tables,
         composes shorts from them
         and send to profession's tg channels
-        :return: nothing
+        Here user decide short or full sending
+
         """
         self.companies = DataBaseOperations(con=con).get_all_from_db(table_name='companies', without_sort=True)  # check!!!
 
-        # await self.send_sorts(time_start=time_start)  # 1. for send shorts
-        await self.send_fulls(time_start=time_start)  # 2. for send last full messages from db
+        if shorts:
+            await self.send_sorts(time_start=time_start)  # 1. for send shorts
+        else:
+            await self.send_fulls(time_start=time_start)  # 2. for send last full messages from db
+
+        await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], 'DONE')
 
     async def send_sorts(self, time_start):
         messages_counter = 1
@@ -569,10 +562,6 @@ class WriteToDbMessages():
         time.sleep(random.randrange(15, 20))
         return last_id_agregator
 
-        print('pause 5-9 sec.')
-        time.sleep(random.randrange(15, 25))
-
-
     async def main_start(self, list_links, limit_msg, action):
 
         print('main_start')
@@ -631,16 +620,18 @@ class WriteToDbMessages():
         print('start')
         # async with self.client:
         #     self.client.loop.run_until_complete(self.main_start(list_links, limit_msg, action))
-        async with self.client:
-            await self.main_start(list_links, limit_msg, action)
+        # async with self.client:
+        await self.main_start(list_links, limit_msg, action)
+        # return self.client
 
 async def main(client, bot_dict):
     get_messages = WriteToDbMessages(client, bot_dict)
-    await get_messages.start(limit_msg=10, action='get_message')  #get_participants get_message
+    await get_messages.start(limit_msg=5, action='get_message')  #get_participants get_message
 
     # print("Listening chats...")
     # client.start()
     # ListenChat()
     # client.run_until_disconnected()
+    # return client
 
 # main()
