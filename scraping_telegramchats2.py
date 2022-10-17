@@ -257,6 +257,7 @@ class WriteToDbMessages():
                                       'designer', 'devops', 'hr', 'backend', 'qa', 'junior']
         self.start_date_time = None
         self.companies = []
+        self.msg = []
 
     async def dump_all_participants(self, channel):
         """Записывает json-файл с информацией о всех участниках канала/чата"""
@@ -448,9 +449,12 @@ class WriteToDbMessages():
                         print('\nit was sended in agregator channel')
                         print('time_sleep 3 sec\n')
                         time.sleep(3)
-                        await self.bot_dict['bot'].send_message(
-                            config['My_channels']['bot'], one_message['message'])
-                        # info to bot user will control the process
+
+                    # info to bot user will control the process
+                        # await self.delete_messages()
+                        # self.msg.append(await self.bot_dict['bot'].send_message(
+                        #     self.bot_dict['chat_id'], f"{one_message['message']}\n{response_dict.keys()}"))
+                        # time.sleep(2)
 
                     except Exception as e:
                         await self.bot_dict['bot'].send_message(
@@ -469,6 +473,11 @@ class WriteToDbMessages():
 #---------------------- END OF LOOP ---------------------------------
 
         # STEP3/ we have to get from each table last messages and compose the shorts with 5 short messages with links
+    async def delete_messages(self):
+        for i in self.msg:
+            i.delete()
+        self.msg = []
+
 
     async def get_last_and_tgpublic_shorts(self, time_start, shorts=False):
         """
@@ -539,7 +548,7 @@ class WriteToDbMessages():
 
                 try:
                     await self.bot_dict['bot'].send_message(config['My_channels'][f"{pro}_channel"], text)
-                    time.sleep(2)
+                    time.sleep(random.randrange(4, 13))
                 except Exception as e:
                     await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], f'There is the error {e} (send_fulls')
                     time.sleep(2)
