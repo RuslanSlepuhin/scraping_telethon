@@ -417,18 +417,18 @@ class InviteBot:
 
 
         # -----------------------parsing telegram channels -------------------------------------
-        #             await main(client, bot_dict={'bot': bot, 'chat_id': message.chat.id})  # run parser tg channels and write to profession's tables
-        #             await bot.send_message(
-        #                 message.chat.id,
-        #                 'Парсинг ТГ каналов прошел успешно, всё записано в базу',
-        #                 parse_mode='HTML')
-        #             time.sleep(2)
+                    await main(client, bot_dict={'bot': bot, 'chat_id': message.chat.id})  # run parser tg channels and write to profession's tables
+                    await bot.send_message(
+                        message.chat.id,
+                        'Парсинг ТГ каналов прошел успешно, всё записано в базу',
+                        parse_mode='HTML')
+                    time.sleep(2)
 
         # ---------------------- parsing the sites. List of them will grow ------------------------
         #             if not client.is_connected():
         #                 client.disconnect()
         #                 client.connect()
-        #             await bot.send_message(message.chat.id, 'Парсятся сайты...')
+                    await bot.send_message(message.chat.id, 'Парсятся сайты...')
                     psites = ParseSites(client=client)
                     await psites.call_sites()  # paes
                     await bot.send_message(message.chat.id, 'Парсинг сайтов прошел успешно, всё записано в базу. Можно выгрузить кнопкой <b>Digest</b>', parse_mode='html')
