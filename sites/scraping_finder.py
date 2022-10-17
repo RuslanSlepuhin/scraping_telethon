@@ -17,15 +17,17 @@ class FindJobGetInformation:
 
     def __init__(self):
         self.base_url = 'https://finder.vc'
-        self.options = Options()
-        self.options.add_argument("--headless")
-        self.options.add_argument("--disable-dev-shm-usage")
-        self.options.add_argument("--no-sandbox")
-        self.browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=self.options)
-
+        self.browser = None
 
 
     async def get_content(self, count_message_in_one_channel=20):
+
+        options = Options()
+        options.add_argument("--headless")
+        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--no-sandbox")
+        self.browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
 
         self.count_message_in_one_channel = count_message_in_one_channel
 
