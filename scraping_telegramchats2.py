@@ -448,6 +448,10 @@ class WriteToDbMessages():
                         print('\nit was sended in agregator channel')
                         print('time_sleep 3 sec\n')
                         time.sleep(3)
+                        await self.bot_dict['bot'].send_message(
+                            config['My_channels']['bot'], one_message['message'])
+                        # info to bot user will control the process
+
                     except Exception as e:
                         await self.bot_dict['bot'].send_message(
                             self.bot_dict['chat_id'],
