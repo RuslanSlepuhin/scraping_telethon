@@ -263,7 +263,7 @@ class InviteBot:
                     except Exception as e:
                         print(e)
                 await msg.delete()
-                await bot.send_message(callback.message.chat.id, short_digest, parse_mode='HTML', reply_markup=self.markup)
+                await bot.send_message(callback.message.chat.id, short_digest, parse_mode='html', reply_markup=self.markup)
                 pass
 
             if callback.data == 'download_excel':
@@ -412,7 +412,7 @@ class InviteBot:
                     self.start_time_scraping_channels = datetime.now()
                     print('time_start = ', self.start_time_scraping_channels)
 
-                    await bot.delete_message(message.chat.id, message.message_id)
+                    # await bot.delete_message(message.chat.id, message.message_id)
                     await bot.send_message(message.chat.id, 'Scraping is starting')
 
 
@@ -428,13 +428,10 @@ class InviteBot:
         #             if not client.is_connected():
         #                 client.disconnect()
         #                 client.connect()
-                    await bot.send_message(
-                        message.chat.id,
-                        'Парсятся сайты...',
-                        parse_mode='HTML')
+        #             await bot.send_message(message.chat.id, 'Парсятся сайты...')
                     psites = ParseSites(client=client)
                     await psites.call_sites()  # paes
-                    await bot.send_message(message.chat.id, 'Парсинг сайтов прошел успешно, всё записано в базу. Можно выгрузить кнопкой <b>Digest</b>', parse_mode='HTML')
+                    await bot.send_message(message.chat.id, 'Парсинг сайтов прошел успешно, всё записано в базу. Можно выгрузить кнопкой <b>Digest</b>', parse_mode='html')
 
 
                 #----------------------- Listening channels at last --------------------------------------
