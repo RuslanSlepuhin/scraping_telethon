@@ -626,7 +626,7 @@ class WriteToDbMessages():
 
 async def main(client, bot_dict):
     get_messages = WriteToDbMessages(client, bot_dict)
-    await get_messages.start(limit_msg=5, action='get_message')  #get_participants get_message
+    await get_messages.start(limit_msg=10, action='get_message')  #get_participants get_message
 
     # print("Listening chats...")
     # client.start()
