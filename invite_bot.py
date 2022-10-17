@@ -1,10 +1,10 @@
 import asyncio
+import time
+
 import psycopg2
 import os
 import random
 import re
-from scraping_telegramchats2 import main, WriteToDbMessages
-import requests
 import urllib
 from datetime import datetime, timedelta
 import pandas
@@ -16,16 +16,23 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup
+from telethon import events
 from telethon.sync import TelegramClient
 from telethon.tl import functions
-from telethon.tl.functions.channels import InviteToChannelRequest, DeleteMessagesRequest
 from telethon.tl.functions.messages import GetHistoryRequest
 from telethon.tl.types import InputPeerChannel, InputPeerUser, InputUser, PeerUser, InputChannel, MessageService
+
+from db_operations.scraping_db import DataBaseOperations
+from links import list_links
+from scraping_telegramchats2 import WriteToDbMessages
+from sites.parsing_sites_runner import ParseSites
 
 config = configparser.ConfigParser()
 config.read("./settings/config.ini")
 # token = config['Token']['token']
-token = config['Token']['token']
+token = config['Test2Token']['token']
+api_id = config['Ruslan']['api_id']
+api_hash = config['Ruslan']['api_hash']
 
 logging.basicConfig(level=logging.INFO)
 bot = Bot(token=token)
@@ -39,9 +46,11 @@ marker_code = False
 password = 0
 con = None
 
-client = None
-
 print(f'Bot started at {datetime.now()}')
+
+client = TelegramClient('ruslanslepuhin', int(api_id), api_hash)
+client.start()
+
 
 async def connect_with_client(message, api_id, api_hash, id_user, phone_number, password):
 
@@ -94,9 +103,13 @@ async def send_welcome(message: types.Message):
 # -------- make an parse keyboard for admin ---------------
     parsing_kb = ReplyKeyboardMarkup(resize_keyboard=True)
     parsing_button1 = KeyboardButton('Add news to channels')
-    parsing_button2 = KeyboardButton('Invite')
+    parsing_button2 = KeyboardButton('Listen to channels')
+    parsing_button3 = KeyboardButton('Digest')
+    parsing_button4 = KeyboardButton('Invite people')
 
     parsing_kb.row(parsing_button1, parsing_button2)
+    parsing_kb.row(parsing_button3, parsing_button4)
+
 
     # con = db_connect()
     await bot.send_message(message.chat.id, f'Привет, {message.from_user.first_name}!', reply_markup=parsing_kb)
@@ -222,7 +235,7 @@ async def process_phone_number(message: types.Message, state: FSMContext):
 @dp.message_handler(content_types=['text'])
 async def messages(message):
 
-    global all_participant, marker, file_name, marker_code
+    global all_participant, marker, file_name, marker_code, client
     channel_to_send = None
     user_to_send = []
     msg = None
@@ -343,17 +356,27 @@ async def messages(message):
 
     else:
         if message.text == 'Add news to channels':
+
+            if not client.is_connected():  # run client if it was working in invite
+                client.start()
+
             await bot.delete_message(message.chat.id, message.message_id)
             await bot.send_message(message.chat.id, 'Scraping is starting')
 
             time_start = await get_separate_time(datetime.now())
             print('time_start = ', time_start)
 
-            await main(client, bot_dict={'bot': bot, 'chat_id': message.chat.id})
-            await WriteToDbMessages(client, bot_dict={'bot': bot, 'chat_id': message.chat.id}).get_last_and_tgpublic_shorts(time_start)
-            pass
+# -----------------------parsing telegram channels -------------------------------------
+            # await main(client, bot_dict={'bot': bot, 'chat_id': message.chat.id})  # run parser tg channels and write to profession's tables
+            # await WriteToDbMessages(client, bot_dict={'bot': bot, 'chat_id': message.chat.id}).get_last_and_tgpublic_shorts(time_start)  # get from profession's tables and put to tg channels
 
-        if message.text == 'Invite':
+# ---------------------- parsing the sites. List of them will grow ------------------------
+            # await ParseSites(client=client).call_sites()  # paes
+
+#----------------------- Listening channels at last --------------------------------------
+
+        if message.text == 'Invite people':
+            client.disconnect()
 
             id_customer = message.from_user.id
             customer = await check_customer(message, id_customer)
@@ -374,6 +397,13 @@ async def messages(message):
             # await bot.delete_message(message.chat.id, message.message_id)
             # response = requests.get(url='https://tg-channel-parse.herokuapp.com/scrape')
             # await bot.send_message(message.chat.id, response.status_code)
+        if message.text == 'Listen to channels':
+            # await bot.delete_message(message.chat.id, message.message_id)
+            # await bot.send_message(message.chat.id, "Bot is listening TG channels and it will send notifications here")
+            # ListenChats()
+            # await client.run_until_disconnected()
+            pass
+
         else:
             await bot.send_message(message.chat.id, 'Отправьте файл')
 
@@ -552,11 +582,17 @@ async def clear_invite_history(channel):
             await client.delete_messages(channel, message.id)
     await asyncio.sleep(10)
 
+# class ListenChats:
 
+@client.on(events.NewMessage(chats=(list_links)))
+async def normal_handler(event):
+    print('I,m listening chats ....')
+    one_message = event.message.to_dict()
+    print(one_message)
+
+    # companies = DataBaseOperations(con=con).get_all_from_db(table_name='companies', without_sort=True)  # check!!!
+    await WriteToDbMessages(client=client, bot_dict={'bot': bot, 'chat.id': message.chat.id}).operations_with_each_message(channel=event.chat.title, one_message=one_message)
+
+    await client.send_message(int(config['My_channels']['bot_test']), one_message['message'][0:40])
 
 executor.start_polling(dp, skip_updates=True)
-# send_to_db(1763672666, 13105861, '6b31f72207b8e47b588701a9761da84b', '+375256286824')
-# user = get_db(758905227)
-# print('success', user[0][4])
-
-# bd_delete(3)
