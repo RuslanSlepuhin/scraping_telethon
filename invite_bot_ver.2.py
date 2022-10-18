@@ -35,9 +35,9 @@ api_id = config['Ruslan']['api_id']
 api_hash = config['Ruslan']['api_hash']
 
 logging.basicConfig(level=logging.INFO)
-bot = Bot(token=token)
+bot_aiogram = Bot(token=token)
 storage = MemoryStorage()
-dp = Dispatcher(bot, storage=storage)
+dp = Dispatcher(bot_aiogram, storage=storage)
 
 all_participant = []
 marker = False
@@ -61,7 +61,8 @@ class InviteBot:
                                       'pm', 'sales_manager', 'analyst', 'frontend',
                                       'designer', 'devops', 'hr', 'backend', 'qa', 'junior']
         self.markup = None
-        self.client=client
+        self.api_id = config['Ruslan']['api_id']
+        self.api_hash = config['Ruslan']['api_hash']
 
     def main_invitebot(self):
         async def connect_with_client(message, api_id, api_hash, id_user, phone_number, password):
@@ -81,18 +82,18 @@ class InviteBot:
                     hash_phone = phone_code_hash.phone_code_hash
 
                 except Exception as e:
-                    await bot.send_message(message.chat.id, str(e))
+                    await bot_aiogram.send_message(message.chat.id, str(e))
 
                 if not e:
                     await get_code(message)
             else:
-                await bot.send_message(message.chat.id, 'Connect - ok')
+                await bot_aiogram.send_message(message.chat.id, 'Connect - ok')
 
         async def or_connect(message):
             try:
                 is_connect = client.is_connected()
             except Exception as e:
-                return await bot.send_message(message.chat.id, str(e))
+                return await bot_aiogram.send_message(message.chat.id, str(e))
 
             if is_connect:
                 return True
@@ -124,8 +125,8 @@ class InviteBot:
 
 
             # con = db_connect()
-            await bot.send_message(message.chat.id, f'Привет, {message.from_user.first_name}!', reply_markup=parsing_kb)
-            await bot.send_message(137336064, f'Start user {message.from_user.id}')
+            await bot_aiogram.send_message(message.chat.id, f'Привет, {message.from_user.first_name}!', reply_markup=parsing_kb)
+            await bot_aiogram.send_message(137336064, f'Start user {message.from_user.id}')
             pass
             #
             # id_customer = message.from_user.id
@@ -162,7 +163,7 @@ class InviteBot:
                 data['api_id'] = message.text
 
             await Form.next()
-            await bot.send_message(message.chat.id, "Введите api_hash (отменить /cancel)")
+            await bot_aiogram.send_message(message.chat.id, "Введите api_hash (отменить /cancel)")
 
         #-------------------------- api_hash ------------------------------
         # api_hash
@@ -172,7 +173,7 @@ class InviteBot:
                 data['api_hash'] = message.text
 
             await Form.next()
-            await bot.send_message(message.chat.id, "Введите password, если есть двухэтапная верификация (отменить /cancel)\n"
+            await bot_aiogram.send_message(message.chat.id, "Введите password, если есть двухэтапная верификация (отменить /cancel)\n"
                                                     "Введите '0', если нет двухэтапной верификации")
 
         #-------------------------- password ------------------------------
@@ -183,7 +184,7 @@ class InviteBot:
                 data['password'] = message.text
 
             await Form.next()
-            await bot.send_message(message.chat.id, "Введите номер телефона (отменить /cancel)")
+            await bot_aiogram.send_message(message.chat.id, "Введите номер телефона (отменить /cancel)")
 
         #-------------------------- phone number ------------------------------
         # phone_number
@@ -195,7 +196,7 @@ class InviteBot:
             async with state.proxy() as data:
                 data['phone_number'] = message.text
 
-                await bot.send_message(
+                await bot_aiogram.send_message(
                     message.chat.id,
                     f"Your api_id: {data['api_id']}\nYour api_hash: {data['api_hash']}\nYour phone number: {data['phone_number']}")
 
@@ -212,7 +213,7 @@ class InviteBot:
         # code
         async def get_code(message):
             await Form.code.set()
-            await bot.send_message(message.chat.id, 'Введите код в формате 12345XXXXX6789, где ХХХХХ - цифры телеграм кода (отмена* /cancel)')
+            await bot_aiogram.send_message(message.chat.id, 'Введите код в формате 12345XXXXX6789, где ХХХХХ - цифры телеграм кода (отмена* /cancel)')
 
         @dp.message_handler(state=Form.code)
         async def process_phone_number(message: types.Message, state: FSMContext):
@@ -238,9 +239,9 @@ class InviteBot:
                     else:
                         await client.sign_in(phone=phone, password=password, code=code, phone_code_hash=hash_phone)
 
-                    await bot.send_message(message.chat.id, 'Connect - ok')
+                    await bot_aiogram.send_message(message.chat.id, 'Connect - ok')
                 except Exception as e:
-                    await bot.send_message(message.chat.id, str(e))
+                    await bot_aiogram.send_message(message.chat.id, str(e))
 
                 await state.finish()
 
@@ -249,7 +250,7 @@ class InviteBot:
             short_digest = ''
             response = []
 
-            msg = await bot.send_message(callback.message.chat.id, 'Please wait a few seconds ...')
+            msg = await bot_aiogram.send_message(callback.message.chat.id, 'Please wait a few seconds ...')
             if callback.data == 'show_info_last_records':
                 time_start = await get_time_start()
                 for pro in self.valid_profession_list:
@@ -263,7 +264,7 @@ class InviteBot:
                     except Exception as e:
                         print(e)
                 await msg.delete()
-                await bot.send_message(callback.message.chat.id, short_digest, parse_mode='html', reply_markup=self.markup)
+                await bot_aiogram.send_message(callback.message.chat.id, short_digest, parse_mode='html', reply_markup=self.markup)
                 pass
 
             if callback.data == 'download_excel':
@@ -274,13 +275,14 @@ class InviteBot:
                 time_start = await get_time_start()
                 await WriteToDbMessages(
                     client,
-                    bot_dict={'bot': bot,'chat_id': callback.message.chat.id}).get_last_and_tgpublic_shorts(time_start, shorts=False)  # get from profession's tables and put to tg channels
+                    bot_dict={'bot': bot_aiogram, 'chat_id': callback.message.chat.id}).get_last_and_tgpublic_shorts(time_start, shorts=False)  # get from profession's tables and put to tg channels
             if callback.data == 'send_digest_shorts':
                 # ----------------------- send the messages to tg channels as digest or full --------------------------
                 time_start = await get_time_start()
                 await WriteToDbMessages(
                     client,
-                    bot_dict={'bot': bot,'chat_id': callback.message.chat.id}).get_last_and_tgpublic_shorts(time_start, shorts=True)
+                    bot_dict={'bot': bot_aiogram, 'chat_id': callback.message.chat.id}).get_last_and_tgpublic_shorts(time_start, shorts=True)
+
         @dp.message_handler(content_types=['text'])
         async def messages(message):
 
@@ -296,12 +298,12 @@ class InviteBot:
                     channel = await client.get_entity(channel)
                     channel_to_send = InputChannel(channel.id, channel.access_hash)  # был InputPeerChannel
                 except Exception as e:
-                    await bot.send_message(message.chat.id, f'{e}\nУкажате канал в формате https//t.me/<имя канала> (без @)\n'
+                    await bot_aiogram.send_message(message.chat.id, f'{e}\nУкажате канал в формате https//t.me/<имя канала> (без @)\n'
                                                             f'Обратите внимание на то, что <b>и Вы и этот бот</b> в этом канале должны быть <b>администраторами</b>', parse_mode='html')
 
                 if channel_to_send:
                     try:
-                        await bot.send_message(message.chat.id, f'<b>{channel_short_name}</b>: Инвайт запущен', parse_mode='html')
+                        await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: Инвайт запущен', parse_mode='html')
 
                         n=0
                         numbers_invite = 0
@@ -319,12 +321,12 @@ class InviteBot:
                             print(type(username))
 
                             try:
-                                user_channel_status = await bot.get_chat_member(chat_id=channel_short_name, user_id=id_user)
+                                user_channel_status = await bot_aiogram.get_chat_member(chat_id=channel_short_name, user_id=id_user)
                                 if user_channel_status.status != types.ChatMemberStatus.LEFT:
                                     if msg:
                                         await msg.delete()
                                         msg = None
-                                    msg = await bot.send_message(message.chat.id, f'<b>{channel_short_name}</b>: пользователь с id={id_user} уже подписан', parse_mode='html')
+                                    msg = await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: пользователь с id={id_user} уже подписан', parse_mode='html')
                                     await asyncio.sleep(1)
                                     was_subscribe += 1
                                     user_exists = True
@@ -336,7 +338,7 @@ class InviteBot:
                                 if msg:
                                     await msg.delete()
                                     msg = None
-                                await bot.send_message(message.chat.id, str(e))
+                                await bot_aiogram.send_message(message.chat.id, str(e))
 
                             if not user_exists:
                                 if username != 'None':
@@ -356,7 +358,7 @@ class InviteBot:
 
                                     await client(functions.channels.InviteToChannelRequest(channel_to_send, user_to_send))
 
-                                    msg = await bot.send_message(message.chat.id, f'<b>{channel_short_name}:</b> {user[0]} заинвайлся успешно\n'
+                                    msg = await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}:</b> {user[0]} заинвайлся успешно\n'
                                                                                   f'({numbers_invite+1} инвайтов)', parse_mode='html')
                                     numbers_invite += 1
 
@@ -368,7 +370,7 @@ class InviteBot:
                                         if msg:
                                             await msg.delete()
                                             msg = None
-                                        await bot.send_message(message.chat.id, f'<b>{channel_short_name}</b>: Для пользователя id={user[0]}\n{str(e)}', parse_mode='html')
+                                        await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: Для пользователя id={user[0]}\n{str(e)}', parse_mode='html')
                                         numbers_failure += 1
                                         msg = None
 
@@ -379,7 +381,7 @@ class InviteBot:
                                     if msg:
                                         await msg.delete()
                                         msg = None
-                                    msg = await bot.send_message(message.chat.id, f'<b>{channel_short_name}</b>: инвайт продолжится через 24 часа из-за ограничений Телеграм.\nНе завершайте сессию с ботом.\n'
+                                    msg = await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: инвайт продолжится через 24 часа из-за ограничений Телеграм.\nНе завершайте сессию с ботом.\n'
                                                                                   f'Пока запущено ожидание по каналу {channel_short_name}, Вы можете отправить еще один файл (с другим названием) для инвайта в <b>ДРУГОЙ канал</b>', parse_mode='html')
                                     await asyncio.sleep(60*24+15)
                                     n=0
@@ -388,7 +390,7 @@ class InviteBot:
                         if msg:
                             await msg.delete()
                             msg = None
-                        await bot.send_message(message.chat.id,
+                        await bot_aiogram.send_message(message.chat.id,
                                            f'<b>{channel_short_name}</b>: {numbers_invite} пользователей заинвайтились, проверьте в канале\n'
                                            f'{numbers_failure} не заинватились в канал\n'
                                            f'{was_subscribe} были уже подписаны на канал', parse_mode='html')
@@ -399,12 +401,15 @@ class InviteBot:
                         if msg:
                             await msg.delete()
                             msg = None
-                        await bot.send_message(message.chat.id, f'{e}')
+                        await bot_aiogram.send_message(message.chat.id, f'{e}')
 
                 #pass
 
             else:
                 if message.text == 'Get news from channels':
+
+                    # self.client = TelegramClient('ruslanslepuhin', int(self.api_id), self.api_hash)
+                    # self.client.start()
 
                     if not client.is_connected():  # run client if it was working in invite
                         client.start()
@@ -413,12 +418,12 @@ class InviteBot:
                     print('time_start = ', self.start_time_scraping_channels)
 
                     # await bot.delete_message(message.chat.id, message.message_id)
-                    await bot.send_message(message.chat.id, 'Scraping is starting')
+                    await bot_aiogram.send_message(message.chat.id, 'Scraping is starting')
 
 
         # -----------------------parsing telegram channels -------------------------------------
-                    await main(client, bot_dict={'bot': bot, 'chat_id': message.chat.id})  # run parser tg channels and write to profession's tables
-                    await bot.send_message(
+                    await main(client, bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id})  # run parser tg channels and write to profession's tables
+                    await bot_aiogram.send_message(
                         message.chat.id,
                         'Парсинг ТГ каналов прошел успешно, всё записано в базу',
                         parse_mode='HTML')
@@ -428,10 +433,10 @@ class InviteBot:
         #             if not client.is_connected():
         #                 client.disconnect()
         #                 client.connect()
-                    await bot.send_message(message.chat.id, 'Парсятся сайты...')
+                    await bot_aiogram.send_message(message.chat.id, 'Парсятся сайты...')
                     psites = ParseSites(client=client)
                     await psites.call_sites()  # paes
-                    await bot.send_message(message.chat.id, 'Парсинг сайтов прошел успешно, всё записано в базу. Можно выгрузить кнопкой <b>Digest</b>', parse_mode='html')
+                    await bot_aiogram.send_message(message.chat.id, 'Парсинг сайтов прошел успешно, всё записано в базу. Можно выгрузить кнопкой <b>Digest</b>', parse_mode='html')
 
 
                 #----------------------- Listening channels at last --------------------------------------
@@ -474,7 +479,7 @@ class InviteBot:
                     but_send_digest_shorts = InlineKeyboardButton('Разлить по каналам shorts', callback_data='send_digest_shorts')
                     self.markup.add(but_show, but_download_excel, but_send_digest_full, but_send_digest_shorts)
                     time_start = await get_time_start()
-                    await bot.send_message(
+                    await bot_aiogram.send_message(
                         message.chat.id,
                         f"В базу записаны последние сообщения, начиная с "
                         f"{time_start}. Выберите действие", reply_markup=self.markup)
@@ -510,7 +515,7 @@ class InviteBot:
                 excel_data_df = None
 
                 document_id = message.document.file_id
-                file_info = await bot.get_file(document_id)
+                file_info = await bot_aiogram.get_file(document_id)
                 fi = file_info.file_path
                 file_name = message.document.file_name
                 urllib.request.urlretrieve(f'https://api.telegram.org/file/bot{token}/{fi}', f'./{file_name}')
@@ -518,7 +523,7 @@ class InviteBot:
                 try:
                     excel_data_df = pandas.read_excel(f'{file_name}', sheet_name='Sheet1')
                 except Exception as e:
-                    await bot.send_message(message.chat.id, f'{e}')
+                    await bot_aiogram.send_message(message.chat.id, f'{e}')
 
                 if 'id_participant' in excel_data_df.columns and 'access_hash' in excel_data_df.columns:
 
@@ -540,7 +545,7 @@ class InviteBot:
 
                     print('all_participant = ', all_participant)
 
-                    await bot.send_message(
+                    await bot_aiogram.send_message(
                         message.chat.id,
                         f'Получен файл с {len(all_participant)} пользователями\n'
                         f'Введите url канала в формате https//t.me/<имя канала> без @:\n'
@@ -548,10 +553,10 @@ class InviteBot:
 
                     marker = True
                 else:
-                    await bot.send_message(message.chat.id, 'В файле нет id_participant или access_hash')
+                    await bot_aiogram.send_message(message.chat.id, 'В файле нет id_participant или access_hash')
 
             else:
-                await bot.send_message(message.chat.id, 'Для авторизации нажмите /start')
+                await bot_aiogram.send_message(message.chat.id, 'Для авторизации нажмите /start')
 
         async def check_customer(message, id_customer):
             files = os.listdir('./')
@@ -564,7 +569,7 @@ class InviteBot:
                     return True
 
             await Form.api_id.set()
-            await bot.send_message(message.chat.id, "Введите api_id (отменить /cancel)")
+            await bot_aiogram.send_message(message.chat.id, "Введите api_id (отменить /cancel)")
 
         def send_to_db(id_user, api_id, api_hash, phone_number):
 
@@ -676,18 +681,18 @@ class InviteBot:
 
         # class ListenChats:
 
-        @client.on(events.NewMessage(chats=(list_links)))
-        async def normal_handler(event):
-            print('I,m listening chats ....')
-            one_message = event.message.to_dict()
-            print(one_message)
-
-            await WriteToDbMessages(client=client, bot_dict={'bot': bot, 'chat_id': self.chat_id}).operations_with_each_message(channel=event.chat.title, one_message=one_message)
-
-            await client.send_message(int(config['My_channels']['bot_test']), one_message['message'][0:40])
+        # @client.on(events.NewMessage(chats=(list_links)))
+        # async def normal_handler(event):
+        #     print('I,m listening chats ....')
+        #     one_message = event.message.to_dict()
+        #     print(one_message)
+        #
+        #     await WriteToDbMessages(client=client, bot_dict={'bot': bot_aiogram, 'chat_id': self.chat_id}).operations_with_each_message(channel=event.chat.title, one_message=one_message)
+        #
+        #     await client.send_message(int(config['My_channels']['bot_test']), one_message['message'][0:40])
+        #     client.run_until_disconnected
 
         executor.start_polling(dp, skip_updates=True)
-        client.run_until_disconnected()
 
 
 InviteBot().main_invitebot()

@@ -123,7 +123,7 @@ class WriteToDbMessages():
                                           'last_name': last_name,
                                           'user': participant.username,
                                           'phone': participant.phone,
-                                          'is_bot': participant.bot})
+                                          'is_bot': participant.bot_aiogram})
 
             print('Numbers of followers = ', len(all_users_details))
 
