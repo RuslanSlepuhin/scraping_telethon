@@ -130,7 +130,9 @@ class DataBaseOperations:
                             contacts VARCHAR (500),
                             time_of_public TIMESTAMP,
                             created_at TIMESTAMP,
-                            agregator_link VARCHAR(200)
+                            agregator_link VARCHAR(200),
+                            session VARCHAR(15),
+                            FOREIGN KEY (session) REFERENCES current_session(session)
                             );"""
                         )
 
@@ -170,42 +172,50 @@ class DataBaseOperations:
         return response_dict
 
     def push_to_db_write_message(self, cur, pro, results_dict, response_dict, agregator_id):
+        results_dict['title'] = results_dict['title'].replace('\'', '').replace('\'', '')
+        results_dict['body'] = results_dict['body'].replace('\"', '').replace('\'', '')
+        results_dict['company'] = results_dict['company'].replace('\"', '').replace('\'', '')
+
+        query = f"""SELECT * FROM {pro} WHERE title='{results_dict['title']}' AND body='{results_dict['body']}'"""
         with self.con:
             try:
-                query = f"""SELECT * FROM {pro} WHERE title='{results_dict['title']}' AND body='{results_dict['body']}'"""
                 cur.execute(query)
                 r = cur.fetchall()
-                if not r:
-                    results_dict['title'] = results_dict['title'].replace('\'', '').replace('\'', '')
-                    results_dict['body'] = results_dict['body'].replace('\"', '').replace('\'', '')
-                    results_dict['company'] = results_dict['company'].replace('\"', '').replace('\'', '')
-
-                    # for i in results_dict:
-                    #     print(i, results_dict[i])
-
-                    response_dict[pro] = False
-                    new_post = f"""INSERT INTO {pro} (
-                    chat_name, title, body, profession, vacancy, vacancy_url, company, english, relocation, job_type, 
-                    city, salary, experience, contacts, time_of_public, created_at, agregator_link) 
-                                VALUES ('{results_dict['chat_name']}', '{results_dict['title']}', '{results_dict['body']}', 
-                                '{pro}', '{results_dict['vacancy']}', '{results_dict['vacancy_url']}', '{results_dict['company']}', 
-                                '{results_dict['english']}', '{results_dict['relocation']}', '{results_dict['job_type']}', 
-                                '{results_dict['city']}', '{results_dict['salary']}', '{results_dict['experience']}', 
-                                '{results_dict['contacts']}', '{results_dict['time_of_public']}', '{datetime.now()}', '{agregator_id}');"""
-                    # print('query in db: ', new_post)
-                    cur.execute(new_post) # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                    print(self.quant, f'+++++++++++++ Has added to DB {pro}\n')
-                    self.quant += 1
-
-                else:
-                    response_dict[pro] = True
-                    print(self.quant, f'!!!! This message exists already in {pro}\n')
-
+                print('requests is it exists in DB SUCCESSFUL')
             except Exception as e:
-                print('-/--/-/-/-/-//-/-/-/ Dont push in db, error = ', e)
+                print(f'\nError in request or exists in DB {e}\n')
+                pass
+
+        if not r:
+            response_dict[pro] = False
+            new_post = f"""INSERT INTO {pro} (
+            chat_name, title, body, profession, vacancy, vacancy_url, company, english, relocation, job_type, 
+            city, salary, experience, contacts, time_of_public, created_at, agregator_link, session) 
+                        VALUES ('{results_dict['chat_name']}', '{results_dict['title']}', '{results_dict['body']}', 
+                        '{pro}', '{results_dict['vacancy']}', '{results_dict['vacancy_url']}', '{results_dict['company']}', 
+                        '{results_dict['english']}', '{results_dict['relocation']}', '{results_dict['job_type']}', 
+                        '{results_dict['city']}', '{results_dict['salary']}', '{results_dict['experience']}', 
+                        '{results_dict['contacts']}', '{results_dict['time_of_public']}', '{datetime.now()}', '{agregator_id}', 
+                        '{results_dict['session']}');"""
+            # print('query in db: ', new_post)
+            with self.con:
+                try:
+                    cur.execute(new_post)
+                    print('pushed in DB')
+                except Exception as e:
+                    print('didnt push in DB ', e)
+                    pass
+
+                print(self.quant, f'+++++++++++++ Has added to DB {pro}\n')
+                self.quant += 1
+
+        else:
+            response_dict[pro] = True
+            print(self.quant, f'!!!! This message exists already in {pro}\n')
+
         return response_dict
 
-    def get_all_from_db(self, table_name, param=None, without_sort=False, order=None):
+    def get_all_from_db(self, table_name, param='', without_sort=False, order=None, field='*', curs=None):
         if not self.con:
             self.connect_db()
 
@@ -214,12 +224,11 @@ class DataBaseOperations:
         if not order:
             order = "ORDER BY time_of_public"
 
-        if not param:
-            query = f"""SELECT * FROM {table_name} {order}"""
+        if not without_sort:
+            query = f"""SELECT {field} FROM {table_name} {param} {order}"""
         else:
-            query = f"""SELECT * FROM {table_name} {param} {order}"""
-        if without_sort:
-            query = f"""SELECT * FROM {table_name}"""
+            query = f"""SELECT {field} FROM {table_name} {param} """
+
 
         print('query = ', query)
 
@@ -234,7 +243,32 @@ class DataBaseOperations:
                 # for j in i:
                 #     print('j = ', j)
                 #     n += 1
+        if curs:
+            return cur
         return response
+
+    def write_current_session(self, current_session):
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+
+        query = """CREATE TABLE IF NOT EXISTS current_session (
+                    id SERIAL PRIMARY KEY,
+                    session VARCHAR(15) UNIQUE
+                    );"""
+        with self.con:
+            cur.execute(query)
+            print('session create or exists')
+
+        query = f"""INSERT INTO current_session (session) VALUES ({current_session})"""
+        with self.con:
+            try:
+                cur.execute(query)
+                print(f'session {current_session} was writing')
+            except Exception as e:
+                print(e)
+            pass
+
 
     def delete_data(self, table_name, param):
         if not self.con:
@@ -508,7 +542,7 @@ class DataBaseOperations:
             cur.execute(query)
             print(f'{table_name} was deleted')
 
-    def append_columns(self, table_name_list):
+    def append_columns(self, table_name_list, column):
         if not self.con:
             self.connect_db()
         cur = self.con.cursor()
@@ -528,11 +562,106 @@ class DataBaseOperations:
             #     ADD COLUMN IF NOT EXISTS agregator_link VARCHAR(200);
             # """
             query = f"""ALTER TABLE {table} 
-                ADD COLUMN IF NOT EXISTS agregator_link VARCHAR(200);
+                ADD COLUMN IF NOT EXISTS {column};
             """
             with self.con:
                 cur.execute(query)
                 print(f'Added columns to table {table}')
+
+    def run_free_request(self, request):
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+
+        query = request
+        with self.con:
+            try:
+                cur.execute(query)
+                print('got')
+            except Exception as e:
+                print(e)
+            pass
+
+    def write_pattern_new(self, table_name, tag, value):
+
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+        query = f"""CREATE TABLE IF NOT EXISTS {table_name} (
+                    id SERIAL PRIMARY KEY,
+                    tag VARCHAR(70),
+                    value VARCHAR(100)
+                    );"""
+        with self.con:
+            cur.execute(query)
+
+        query = f"""SELECT * FROM {table_name} WHERE tag='{tag}' AND value='{value}'"""
+        with self.con:
+            cur.execute(query)
+        if not cur.fetchall():
+            query = f"""INSERT INTO {table_name} (tag, value) VALUES ('{tag}', '{value}')"""
+            with self.con:
+                try:
+                    cur.execute(query)
+                    print(f'add to {table_name} tag {tag} value {value}')
+                except Exception as e:
+                    print('error', e)
+
+    def write_pattern2(self, table_name, values):
+        """
+        :param table_name:
+        :param values: dict = {'ma': [tuple], 'mex': [tuple]
+        :return:
+        """
+
+        table_name = f"pattern_{table_name}"
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+        query = f"""CREATE TABLE IF NOT EXISTS {table_name} (
+                    id SERIAL PRIMARY KEY,
+                    mex VARCHAR(70),
+                    ma VARCHAR(70)
+                    );"""
+        with self.con:
+            cur.execute(query)
+
+        for i in values['ma']:
+            with self.con:
+                try:
+                    query = f"""SELECT * FROM {table_name} WHERE ma='{i}'"""
+                    cur.execute(query)
+                except Exception as e:
+                    print(e)
+
+                if not cur.fetchall():
+
+                    try:
+                        query_ma = f"""INSERT INTO {table_name} (ma) VALUES ('{i}')"""
+                        cur.execute(query_ma)
+                        print(table_name, i)
+                    except Exception as e:
+                        print(e)
+            pass
+
+        for i in values['mex']:
+            with self.con:
+                try:
+                    query = f"""SELECT * FROM {table_name} WHERE mex='{i}'"""
+                    cur.execute(query)
+                except Exception as e:
+                    print(e)
+
+                if not cur.fetchall():
+
+                    try:
+                        query_mex = f"""INSERT INTO {table_name} (mex) VALUES ('{i}')"""
+                        cur.execute(query_mex)
+                        print(table_name, i)
+                    except Exception as e:
+                        print(e)
+            pass
+        pass
 
 
 #     def view_all_columns(self, table_name_list):

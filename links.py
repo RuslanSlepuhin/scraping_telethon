@@ -66,7 +66,7 @@ list_links = [
     'https://t.me/offer_ua',
     'https://t.me/Getitrussia',
     'https://t.me/itrecruit_ua',  # +
-    'https://t.me/digitaljob_ch',
+    # 'https://t.me/digitaljob_ch',
     'https://t.me/jobGeeks',  # +
     'https://t.me/fordev',  # +
     'https://t.me/it_hunters',
@@ -96,7 +96,7 @@ list_links = [
     'https://t.me/+E4k5hlqjArs4OWJi',
     'https://t.me/young_june',
     'https://t.me/prog_itjobs',
-    'https://t.me/young&junior',
+    'https://t.me/young_june',
     'https://t.me/digital_partners_chat',
     'https://t.me/outstaff_it',
     'https://t.me/itrequests',

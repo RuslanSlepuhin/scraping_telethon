@@ -126,7 +126,7 @@ class AlexSort2809:
             match = re.findall(word, message_to_check)
             if match:
                 self.tag_alex += f'TAG {key}={match}\n'
-                print(f'TAG {key} = {match}')
+                # print(f'TAG {key} = {match}')
                 self.result_dict2[key] += len(match)
 
 # -------------- cancel all matches if it excludes words ------------------
@@ -134,7 +134,7 @@ class AlexSort2809:
             match = re.findall(exclude_word, message_to_check)
             if match:
                 self.tag_alex_anti += f'TAG ANTI {key}={match}\n'
-                print(f'ANTI TAG {key} = {match}')
+                # print(f'ANTI TAG {key} = {match}')
                 self.result_dict2[key] = 0
 
         pass

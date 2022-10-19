@@ -258,6 +258,7 @@ class WriteToDbMessages():
         self.start_date_time = None
         self.companies = []
         self.msg = []
+        self.current_session = ''
 
     async def dump_all_participants(self, channel):
         """Записывает json-файл с информацией о всех участниках канала/чата"""
@@ -344,6 +345,8 @@ class WriteToDbMessages():
         total_count_limit = limit_msg  # значение 0 = все сообщения
         history = None
 
+        await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], f'<em>channel {channel}</em>', parse_mode='html', disable_web_page_preview = True)
+
         while True:
             try:
                 history = await self.client(GetHistoryRequest(
@@ -362,6 +365,7 @@ class WriteToDbMessages():
 
             # if not history.messages:
             if not history:
+                print(f'Not history for channel {channel}')
                 await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], f'Not history for channel {channel}')
                 break
             messages = history.messages
@@ -383,6 +387,19 @@ class WriteToDbMessages():
     async def process_messages(self, channel, all_messages):
         # channel_name = f'@{channel.username} | {channel.title}'
         # channel_name = channel
+        session = ''
+
+        current_session = DataBaseOperations(None).get_all_from_db(
+            table_name='current_session',
+            param='ORDER BY id DESC LIMIT 1',
+            without_sort=True,
+            order=None,
+            field='session',
+            curs=None
+        )
+        for value in current_session:
+            self.current_session = value[0]
+
         for one_message in reversed(all_messages):
             await self.operations_with_each_message(channel, one_message)
 
@@ -408,7 +425,8 @@ class WriteToDbMessages():
             'experience': '',
             'contacts': '',
             'time_of_public': date,
-            'created_at': ''
+            'created_at': '',
+            'session': self.current_session
         }
 
         print(f"channel = {channel}")
@@ -432,6 +450,7 @@ class WriteToDbMessages():
             profession = await self.clear_not_valid_professions(profession)  # delete not valid keys (middle, senior and others)
             print('valid professions ', profession['profession'])
             if profession['profession']:
+
                 # write to profession's tables. Returns dict with professions as a key and False, if it was written and True if existed
                 response_dict = DataBaseOperations(con=con).push_to_bd(results_dict, profession, self.last_id_agregator) #check!!!
                 print('from db professions ', response_dict)
@@ -479,7 +498,7 @@ class WriteToDbMessages():
         self.msg = []
 
 
-    async def get_last_and_tgpublic_shorts(self, time_start, shorts=False):
+    async def get_last_and_tgpublic_shorts(self, time_start, current_session, shorts=False):
         """
         It gets last messages from profession's tables,
         composes shorts from them
@@ -488,6 +507,22 @@ class WriteToDbMessages():
 
         """
         self.companies = DataBaseOperations(con=con).get_all_from_db(table_name='companies', without_sort=True)  # check!!!
+
+        # get current session
+        if not current_session:
+            pass
+            current_session = DataBaseOperations(None).get_all_from_db(
+                table_name='current_session',
+                param='ORDER BY id DESC LIMIT 1',
+                without_sort=True,
+                order=None,
+                field='session',
+                curs=None
+            )
+            for value in current_session:
+                self.current_session = value[0]
+        else:
+            self.current_session = current_session
 
         if shorts:
             await self.send_sorts(time_start=time_start)  # 1. for send shorts
@@ -502,9 +537,10 @@ class WriteToDbMessages():
         for pro in self.valid_profession_list:
             print(f"It gets from profession's tables = {pro}")
             # get last records from table with profession PRO
+            param = f"WHERE created_at > '{time_start['year']}-{time_start['month']}-{time_start['day']} {time_start['hour']}:{time_start['minute']}:{time_start['sec']}'"
+            param = f"WHERE session='{self.current_session}'"
             response_messages = DataBaseOperations(con=con).get_all_from_db(pro,
-                                                                            param=f"WHERE created_at > "
-                                                                                  f"'{time_start['year']}-{time_start['month']}-{time_start['day']} {time_start['hour']}:{time_start['minute']}:{time_start['sec']}'")  # check!!!
+                                                                            param=param)  # check!!!
             for response in response_messages:
                 title = response[2]
                 body = response[3]
@@ -535,12 +571,16 @@ class WriteToDbMessages():
                     messages_counter += 1
 
     async def send_fulls(self, time_start):
+
         for pro in self.valid_profession_list:
             print(f"It gets from profession's tables = {pro}")
+
             # get last records from table with profession PRO
+            param = f"WHERE created_at > '{time_start['year']}-{time_start['month']}-{time_start['day']} {time_start['hour']}:{time_start['minute']}:{time_start['sec']}'"
+            param = f"WHERE session='{self.current_session}'"
+
             response_messages = DataBaseOperations(con=con).get_all_from_db(pro,
-                                                                            param=f"WHERE created_at > "
-                                                                                  f"'{time_start['year']}-{time_start['month']}-{time_start['day']} {time_start['hour']}:{time_start['minute']}:{time_start['sec']}'")  # check!!!
+                                                                            param=param)  # check!!!
             for response in response_messages:
                 title = response[2]
                 body = response[3]
@@ -576,75 +616,17 @@ class WriteToDbMessages():
         return last_id_agregator
 
     async def main_start(self, list_links, limit_msg, action):
-
         print('main_start')
-        channel = ''
-
         self.last_id_agregator = await self.get_last_id_agregator()+1
         pass
         for url in list_links:
-
             await self.dump_all_messages(url, limit_msg)  # creative resolve the problem of a wait seconds
-
-    #         bool_index = True
-    #
-    #         try:
-    #             channel = await self.client.get_entity(url)                # channel = await self.client.get_entity(url)
-    #         except Exception as e:
-    #             if e.args[0] == 'Cannot get entity from a channel (or group) that you are not part of. Join the group and retry':
-    #                 private_url = url.split('/')[-1]
-    #                 try:
-    #                     await self.client(ImportChatInviteRequest(private_url))  # если канал закрытый, подписаться на него
-    #                     channel = await self.client.get_entity(url)  # и забрать из него историю сообщений
-    #                 except Exception as e:
-    #                     print(f'Error: Цикл прошел с ошибкой в месте, где нужна подписка: {e}')
-    #
-    #                     await self.bot_dict['bot'].send_message(
-    #                         self.bot_dict['chat_id'],
-    #                         f"{str(e)}: {url}\npause 25-30 seconds...",
-    #                         parse_mode="HTML",
-    #                         disable_web_page_preview = True)
-    #                     bool_index = False
-    #
-    #             else:
-    #                 print(f'ValueError for url {url}: {e}')
-    #
-    #                 await self.bot_dict['bot'].send_message(
-    #                     self.bot_dict['chat_id'],
-    #                     f"{str(e)}: {url}\npause 25-30 seconds...", parse_mode="HTML",
-    #                     disable_web_page_preview = True)
-    #                 bool_index = False
-    #
-    #         if bool_index:
-    #             self.count_message_in_one_channel = 1
-    #             match action:
-    #                 case 'get_message':
-    #                     self.start_date_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    #                     print(f'Was started at {self.start_date_time}')
-    #                     await self.dump_all_messages(channel, limit_msg)
-    #                     print('//////////////////////////////////////////////////////////////////////////////////////////////////')
-    #                 case 'get_participants':
-    #                     await self.dump_all_participants(channel)
-    #         else:
-    #             print('Wait 25-30 seconds...')
-    #             time.sleep(random.randrange(25, 30))
 
     async def start(self, limit_msg, action):
         print('start')
-        # async with self.client:
-        #     self.client.loop.run_until_complete(self.main_start(list_links, limit_msg, action))
-        # async with self.client:
         await self.main_start(list_links, limit_msg, action)
-        # return self.client
 
 async def main(client, bot_dict):
     get_messages = WriteToDbMessages(client, bot_dict)
     await get_messages.start(limit_msg=10, action='get_message')  #get_participants get_message
 
-    # print("Listening chats...")
-    # client.start()
-    # ListenChat()
-    # client.run_until_disconnected()
-    # return client
-
-# main()
