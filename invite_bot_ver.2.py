@@ -63,6 +63,7 @@ class InviteBot:
         self.markup = None
         self.api_id = config['Ruslan']['api_id']
         self.api_hash = config['Ruslan']['api_hash']
+        self.current_session = ''
 
     def main_invitebot(self):
         async def connect_with_client(message, api_id, api_hash, id_user, phone_number, password):
@@ -251,20 +252,23 @@ class InviteBot:
             response = []
 
             msg = await bot_aiogram.send_message(callback.message.chat.id, 'Please wait a few seconds ...')
+
+
             if callback.data == 'show_info_last_records':
                 time_start = await get_time_start()
+                param = f"WHERE created_at > '{time_start['year']}-{time_start['month']}-{time_start['day']} {time_start['hour']}:{time_start['minute']}:{time_start['sec']}'"
+                param = f"WHERE session='{self.current_session}'"
                 for pro in self.valid_profession_list:
                     try:
                         response = DataBaseOperations(con=None).get_all_from_db(
                             pro,
-                            param=f"WHERE created_at > '{time_start['year']}-{time_start['month']}-{time_start['day']} "
-                                  f"{time_start['hour']}:{time_start['minute']}:{time_start['sec']}'", order=' ')
+                            param=param, order=' ')
                         short_digest += f"<b>{pro}</b>: {len(response)} новых записей\n"
 
                     except Exception as e:
                         print(e)
                 await msg.delete()
-                await bot_aiogram.send_message(callback.message.chat.id, short_digest, parse_mode='html', reply_markup=self.markup)
+                await bot_aiogram.send_message(callback.message.chat.id, f"from last session {self.current_session}\n{short_digest}", parse_mode='html', reply_markup=self.markup)
                 pass
 
             if callback.data == 'download_excel':
@@ -272,16 +276,23 @@ class InviteBot:
 
             if callback.data == 'send_digest_full':
                 # ----------------------- send the messages to tg channels as digest or full --------------------------
+                # if not self.current_session:
+                #     self.current_session = DataBaseOperations(None).get_all_from_db('current_session', without_sort=True)
+
                 time_start = await get_time_start()
                 await WriteToDbMessages(
                     client,
-                    bot_dict={'bot': bot_aiogram, 'chat_id': callback.message.chat.id}).get_last_and_tgpublic_shorts(time_start, shorts=False)  # get from profession's tables and put to tg channels
+                    bot_dict={'bot': bot_aiogram, 'chat_id': callback.message.chat.id}).get_last_and_tgpublic_shorts(time_start, current_session=self.current_session, shorts=False)  # get from profession's tables and put to tg channels
+
             if callback.data == 'send_digest_shorts':
                 # ----------------------- send the messages to tg channels as digest or full --------------------------
+                # if not self.current_getting_session:
+                #     self.current_getting_session = DataBaseOperations(None).get_all_from_db('current_session', without_sort=True)
+
                 time_start = await get_time_start()
                 await WriteToDbMessages(
                     client,
-                    bot_dict={'bot': bot_aiogram, 'chat_id': callback.message.chat.id}).get_last_and_tgpublic_shorts(time_start, shorts=True)
+                    bot_dict={'bot': bot_aiogram, 'chat_id': callback.message.chat.id}).get_last_and_tgpublic_shorts(time_start, current_session=self.current_session, shorts=True)
 
         @dp.message_handler(content_types=['text'])
         async def messages(message):
@@ -414,29 +425,37 @@ class InviteBot:
                     if not client.is_connected():  # run client if it was working in invite
                         client.start()
 
+# ----------------- make the current session and write it in DB ----------------------
+                    self.current_session = datetime.now().strftime("%Y%m%d%H%M%S")
+                    DataBaseOperations(None).write_current_session(self.current_session)
+                    await bot_aiogram.send_message(message.chat.id, f'Current scraping session {self.current_session}')
+                    await asyncio.sleep(1)
+
                     self.start_time_scraping_channels = datetime.now()
                     print('time_start = ', self.start_time_scraping_channels)
 
                     # await bot.delete_message(message.chat.id, message.message_id)
                     await bot_aiogram.send_message(message.chat.id, 'Scraping is starting')
+                    await asyncio.sleep(1)
 
 
         # -----------------------parsing telegram channels -------------------------------------
+                    await bot_aiogram.send_message(
+                        message.chat.id,
+                        'Парсит телеграм каналы...',
+                        parse_mode='HTML')
                     await main(client, bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id})  # run parser tg channels and write to profession's tables
                     await bot_aiogram.send_message(
                         message.chat.id,
-                        'Парсинг ТГ каналов прошел успешно, всё записано в базу',
+                        '...прошло успешно, записано в базу',
                         parse_mode='HTML')
-                    time.sleep(2)
+                    await asyncio.sleep(2)
 
         # ---------------------- parsing the sites. List of them will grow ------------------------
-        #             if not client.is_connected():
-        #                 client.disconnect()
-        #                 client.connect()
                     await bot_aiogram.send_message(message.chat.id, 'Парсятся сайты...')
                     psites = ParseSites(client=client)
                     await psites.call_sites()  # paes
-                    await bot_aiogram.send_message(message.chat.id, 'Парсинг сайтов прошел успешно, всё записано в базу. Можно выгрузить кнопкой <b>Digest</b>', parse_mode='html')
+                    await bot_aiogram.send_message(message.chat.id, '...прошло успешно, записано в базу. Можно выгрузить кнопкой <b>Digest</b>', parse_mode='html')
 
 
                 #----------------------- Listening channels at last --------------------------------------

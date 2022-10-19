@@ -10,6 +10,7 @@ class ParseSites:
 
     def __init__(self, client):
         self.client = client
+        self.current_session = ''
 
     async def call_sites(self):
         # response_dict_geek = await GeekJobGetInformation().get_content()
@@ -90,6 +91,19 @@ class ParseSites:
                 body = response_dict['body'][each_element].replace(':', ': ').replace(';', ';\n')
                 message += body
                 result_dict['body'] = body
+
+                current_session = DataBaseOperations(None).get_all_from_db(
+                    table_name='current_session',
+                    param='ORDER BY id DESC LIMIT 1',
+                    without_sort=True,
+                    order=None,
+                    field='session',
+                    curs=None
+                )
+                for value in current_session:
+                    self.current_session = value[0]
+
+                result_dict['session'] = self.current_session
 
                 # get a profession
                 profession_list = AlexSort2809().sort_by_profession_by_Alex(
