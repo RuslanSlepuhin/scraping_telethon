@@ -419,9 +419,6 @@ class InviteBot:
             else:
                 if message.text == 'Get news from channels':
 
-                    # self.client = TelegramClient('ruslanslepuhin', int(self.api_id), self.api_hash)
-                    # self.client.start()
-
                     if not client.is_connected():  # run client if it was working in invite
                         client.start()
 
@@ -430,14 +427,10 @@ class InviteBot:
                     DataBaseOperations(None).write_current_session(self.current_session)
                     await bot_aiogram.send_message(message.chat.id, f'Current scraping session {self.current_session}')
                     await asyncio.sleep(1)
-
                     self.start_time_scraping_channels = datetime.now()
                     print('time_start = ', self.start_time_scraping_channels)
-
-                    # await bot.delete_message(message.chat.id, message.message_id)
                     await bot_aiogram.send_message(message.chat.id, 'Scraping is starting')
                     await asyncio.sleep(1)
-
 
         # -----------------------parsing telegram channels -------------------------------------
                     await bot_aiogram.send_message(
