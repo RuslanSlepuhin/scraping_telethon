@@ -452,12 +452,16 @@ class WriteToDbMessages():
             if profession['profession']:
 
                 # write to profession's tables. Returns dict with professions as a key and False, if it was written and True if existed
+                # -------------------------------- write all message for admin in one table--------------------------------
+                DataBaseOperations(None).push_to_admin_table(results_dict, profession)
+
+                # -----------------------------------------write to DB by professions ----------------------------------
                 response_dict = DataBaseOperations(con=con).push_to_bd(results_dict, profession, self.last_id_agregator) #check!!!
                 print('from db professions ', response_dict)
 
-        # STEP2/ send they to agregator channel if they have the professions
-        #       We need to control id message and send it to field on profession table
-        #       Increase number last message's id += 1
+                # STEP2/ send they to agregator channel if they have the professions
+                #       We need to control id message and send it to field on profession table
+                #       Increase number last message's id += 1
                 if False in response_dict.values():
 
                     # send to agregator channel one time

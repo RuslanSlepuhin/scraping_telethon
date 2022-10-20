@@ -269,7 +269,6 @@ class DataBaseOperations:
                 print(e)
             pass
 
-
     def delete_data(self, table_name, param):
         if not self.con:
             self.connect_db()
@@ -662,6 +661,67 @@ class DataBaseOperations:
                         print(e)
             pass
         pass
+
+    def check_or_create_table_admin(self, cur):
+        with self.con:
+
+            cur.execute(f"""CREATE TABLE IF NOT EXISTS admin_last_session (
+                            id SERIAL PRIMARY KEY,
+                            chat_name VARCHAR(150),
+                            title VARCHAR(1000),
+                            body VARCHAR (6000),
+                            profession VARCHAR (30),
+                            vacancy VARCHAR (700),
+                            vacancy_url VARCHAR (150),
+                            company VARCHAR (200),
+                            english VARCHAR (100),
+                            relocation VARCHAR (100),
+                            job_type VARCHAR (700),
+                            city VARCHAR (150),
+                            salary VARCHAR (300),
+                            experience VARCHAR (700),
+                            contacts VARCHAR (500),
+                            time_of_public TIMESTAMP,
+                            created_at TIMESTAMP,
+                            agregator_link VARCHAR(200),
+                            session VARCHAR(15),
+                            FOREIGN KEY (session) REFERENCES current_session(session)
+                            );"""
+                        )
+
+            self.con.commit()
+
+    def push_to_admin_table(self, results_dict, profession):
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+        self.check_or_create_table_admin(cur)
+        pro = ''
+        for i in profession['profession']:
+            pro += f'{i}, '
+        results_dict['profession'] = pro[0:-2]
+        results_dict['title'] = results_dict['title'].replace('\'', '').replace('\'', '')
+        results_dict['body'] = results_dict['body'].replace('\"', '').replace('\'', '')
+        results_dict['company'] = results_dict['company'].replace('\"', '').replace('\'', '')
+        new_post = f"""INSERT INTO admin_last_session (
+                    chat_name, title, body, profession, vacancy, vacancy_url, company, english, relocation, job_type, 
+                    city, salary, experience, contacts, time_of_public, created_at, session) 
+                                VALUES ('{results_dict['chat_name']}', '{results_dict['title']}', '{results_dict['body']}', 
+                                '{results_dict['profession']}', '{results_dict['vacancy']}', '{results_dict['vacancy_url']}', '{results_dict['company']}', 
+                                '{results_dict['english']}', '{results_dict['relocation']}', '{results_dict['job_type']}', 
+                                '{results_dict['city']}', '{results_dict['salary']}', '{results_dict['experience']}', 
+                                '{results_dict['contacts']}', '{results_dict['time_of_public']}', '{datetime.now()}', 
+                                '{results_dict['session']}');"""
+        with self.con:
+            try:
+                cur.execute(new_post)
+                print('pushed in ADMIN LAST SESSION')
+            except Exception as e:
+                print('didnt push in ADMIN LAST SESSION ', e)
+                pass
+
+            print(f'+++++++++++++ Has added to DB admin_last_session\n')
+
 
 
 #     def view_all_columns(self, table_name_list):
