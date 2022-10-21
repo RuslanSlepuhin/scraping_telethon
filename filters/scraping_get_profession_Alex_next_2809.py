@@ -11,6 +11,7 @@ class AlexSort2809:
 
     def __init__(self):
         self.pattern_alex = pattern_Alex2809.pattern
+        self.capitalize = ['pm', 'game', 'designer', 'hr', 'analyst', 'qa', 'ba', 'product']
 
         self.result_dict2 = {'vacancy': 0, 'contacts': 0, 'fullstack': 0, 'frontend': 0, 'backend': 0, 'pm': 0,
                              'mobile': 0, 'game': 0, 'designer': 0, 'hr': 0, 'analyst': 0, 'qa': 0, 'ba': 0,
@@ -115,8 +116,7 @@ class AlexSort2809:
         link_telegraph = ''
 # --------------- collect all matches in 'ma' -----------------------
         for word in self.pattern_alex[key]['ma']:
-            if word == 'Sales Manager':
-                pass
+
             if not capitalize:
                 word = word.lower()
                 message_to_check = message.lower()
@@ -126,15 +126,22 @@ class AlexSort2809:
             match = re.findall(word, message_to_check)
             if match:
                 self.tag_alex += f'TAG {key}={match}\n'
-                # print(f'TAG {key} = {match}')
+                print(f'TAG {key} = {match}')
                 self.result_dict2[key] += len(match)
 
 # -------------- cancel all matches if it excludes words ------------------
         for exclude_word in self.pattern_alex[key]['mex']:
-            match = re.findall(exclude_word, message_to_check)
+
+            if not capitalize:
+                exclude_word = exclude_word.lower()
+                message_to_check = message.lower()
+            else:
+                message_to_check = message
+
+            match = re.findall(rf"{exclude_word}", message_to_check)
             if match:
                 self.tag_alex_anti += f'TAG ANTI {key}={match}\n'
-                # print(f'ANTI TAG {key} = {match}')
+                print(f'ANTI TAG {key} = {match}')
                 self.result_dict2[key] = 0
 
         pass

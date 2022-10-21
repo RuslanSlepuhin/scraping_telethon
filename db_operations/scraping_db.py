@@ -229,8 +229,7 @@ class DataBaseOperations:
         else:
             query = f"""SELECT {field} FROM {table_name} {param} """
 
-
-        print('query = ', query)
+        # print('query = ', query)
 
         with self.con:
             cur.execute(query)
