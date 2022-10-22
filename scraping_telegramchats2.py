@@ -403,7 +403,6 @@ class WriteToDbMessages():
         for one_message in reversed(all_messages):
             await self.operations_with_each_message(channel, one_message)
 
-
     async def operations_with_each_message(self, channel, one_message):
 
         title = one_message['message'].partition(f'\n')[0]
@@ -492,15 +491,12 @@ class WriteToDbMessages():
                 await self.bot_dict['bot'].send_message(
                     self.bot_dict['chat_id'], f"Error in channel no_sort: {e}")
                 await asyncio.sleep(2)
-
 #---------------------- END OF LOOP ---------------------------------
-
         # STEP3/ we have to get from each table last messages and compose the shorts with 5 short messages with links
     async def delete_messages(self):
         for i in self.msg:
             i.delete()
         self.msg = []
-
 
     async def get_last_and_tgpublic_shorts(self, time_start, current_session, shorts=False):
         """

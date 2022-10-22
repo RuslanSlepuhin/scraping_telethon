@@ -172,9 +172,9 @@ class DataBaseOperations:
         return response_dict
 
     def push_to_db_write_message(self, cur, pro, results_dict, response_dict, agregator_id):
-        results_dict['title'] = results_dict['title'].replace('\'', '').replace('\'', '')
-        results_dict['body'] = results_dict['body'].replace('\"', '').replace('\'', '')
-        results_dict['company'] = results_dict['company'].replace('\"', '').replace('\'', '')
+        results_dict['title'] = results_dict['title'].replace('\'', '\"')
+        results_dict['body'] = results_dict['body'].replace('\'', '\"')
+        results_dict['company'] = results_dict['company'].replace('\'', '\"')
 
         query = f"""SELECT * FROM {pro} WHERE title='{results_dict['title']}' AND body='{results_dict['body']}'"""
         with self.con:
@@ -721,101 +721,26 @@ class DataBaseOperations:
 
             print(f'+++++++++++++ Has added to DB admin_last_session\n')
 
+    def try_and_delete_after(self):
+        a = 'Mother"s fucker'
+        b = f"Mother's fucker 2"
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+        query = """CREATE TABLE IF NOT EXISTS try (
+                    id SERIAL PRIMARY KEY,
+                    value VARCHAR(1000)
+                    );"""
+        with self.con:
+            cur.execute(query)
+            print('Table created or exists')
 
-
-#     def view_all_columns(self, table_name_list):
-#         if not self.con:
-#             self.connect_db()
-#         cur = self.con.cursor()
-#
-#         query = """
-#         select * from information_schema.columns
-# where table_catalog = 'my_database' and
-# table_schema = 'public';"""
-#
-#         with self.con:
-#             cur.execute(query)
-#         print(cur.fetchall())
-
-
-# con=''
-# for i in ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'fullstack', 'mobile', 'qa', 'hr',
-#               'game', 'ba', 'marketing', 'junior', 'middle', 'senior', 'ad', 'sales_manager']:
-#
-#     DataBaseOperations(con).delete_data(i)
-#     print(f'Удалены записи из {i}')
-#     DataBaseOperations(con).get_all_from_db(i)
-
-# DataBaseOperations(con).get_from_bd_for_analyze_python_vs_excel()
-
-# -------------- get one message from test file ---------------
-# response = []
-# response_gl = []
-# with open('text.txt', 'r', encoding='utf-8') as file:
-#     text = file.read()
-# text = text.split(f'\n', 1)
-# t_text_title2 = text[0].lower()
-# t_text_body2 = text[1].lower()
-# response.append('0')
-# response.append('1')
-# response.append(t_text_title2)
-# response.append(t_text_body2)
-# response_gl.append(response)
-# DataBaseOperations(con).send_to_bot(response_gl)
-# -------------- end get one message from test file ---------------
-
-# -------------- get all messages from all_messages to send in channels -------------
-# param = "WHERE DATE(time_of_public) > '2022-10-01'"
-# response = DataBaseOperations(con).get_all_from_db('all_messages', param=param)
-
-# response_start_since_text = DataBaseOperations(con).find_last_record(
-#     response,
-#     title_search='#CV #Javascript #Angular #junior #frontend #',
-#     body_search='HTML-coder/Junior Frontend developer(Angular)'
-# )
-# pass
-
-# DataBaseOperations(con).send_to_bot(response)
-# ----------------------------------------------------------------------------------
-
-#
-# profession = Professions().sort_by_profession(t_text_title2, t_text_body2)
-# print('profession = ', profession)
-
-# --------------- delete old bases and rewrite to them messages ------------------
-# delete bases
-# get from all messages, check profession and write to profession db
-
-# DataBaseOperations(con=None).add_columns_to_tables()
-# pass
-# for i in ['tag']:
-#     DataBaseOperations(con=None).delete_table(table_name=i)
-# DataBaseOperations(con=None).output_tables()
-
-# response = DataBaseOperations(None).get_all_from_db('backend', order="ORDER BY created_at")
-# for i in response:
-#     print(i[6])
-
-# for i in ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'analyst',
-#                                     'mobile', 'qa', 'hr', 'game', 'ba', 'marketing', 'junior',
-#                                     'sales_manager']:
-#     response = DataBaseOperations(None).get_all_from_db(i, param="WHERE created_at > '2022-10-11 19:00:00'")
-#     for resp in response:
-#         print(i, resp[6])
-#     DataBaseOperations(None).delete_data(table_name=i, param="WHERE created_at > '2022-10-11 19:00:00'")
-#     response = DataBaseOperations(None).get_all_from_db(i, param="WHERE created_at > '2022-10-11 19:00:00'")
-#     if not response:
-#         print('Is empty')
-#     else:
-#         for resp in response:
-#             print(i, resp[6])
-
-#
-# t = ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'analyst',
-#             'mobile', 'qa', 'hr', 'game', 'ba', 'marketing', 'junior',
-#             'sales_manager']
-# t= ['no_sort']
-# DataBaseOperations(con=None).append_columns(t)
-
+        query = f"""INSERT INTO try (value) VALUES ('{a}')"""
+        with self.con:
+            try:
+                cur.execute(query)
+                print('Data was creating')
+            except Exception as e:
+                print(f'Error ', e)
 
 

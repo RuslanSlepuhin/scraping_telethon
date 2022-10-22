@@ -103,4 +103,5 @@ list_links = [
     'https://t.me/itoutstaff',
     'https://t.me/outstaff_us',
     'https://t.me/extyl_outstaff',
-    'https://t.me/kesmaty_outstaff']
+    'https://t.me/kesmaty_outstaff',
+    'https://t.me/digital_partners_chat']
