@@ -1,6 +1,6 @@
 import asyncio
 import time
-
+import pandas as pd
 import psycopg2
 import os
 import random
@@ -19,8 +19,10 @@ from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMar
 from telethon import events
 from telethon.sync import TelegramClient
 from telethon.tl import functions
+from telethon.tl.functions.channels import GetParticipantRequest, GetParticipantsRequest
 from telethon.tl.functions.messages import GetHistoryRequest
-from telethon.tl.types import InputPeerChannel, InputPeerUser, InputUser, PeerUser, InputChannel, MessageService
+from telethon.tl.types import InputPeerChannel, InputPeerUser, InputUser, PeerUser, InputChannel, MessageService, \
+    ChannelParticipantsSearch
 
 from db_operations.scraping_db import DataBaseOperations
 from links import list_links
@@ -33,6 +35,8 @@ config.read("./settings/config.ini")
 token = config['Token']['token']
 api_id = config['Ruslan']['api_id']
 api_hash = config['Ruslan']['api_hash']
+username = 'ruslanslepuhin'
+username_test = 'test_ruslan'
 
 logging.basicConfig(level=logging.INFO)
 bot_aiogram = Bot(token=token)
@@ -48,7 +52,7 @@ con = None
 
 print(f'Bot started at {datetime.now()}')
 
-client = TelegramClient('ruslanslepuhin', int(api_id), api_hash)
+client = TelegramClient(username, int(api_id), api_hash)
 client.start()
 
 class InviteBot:
@@ -120,10 +124,11 @@ class InviteBot:
             parsing_button2 = KeyboardButton('Listen to channels')
             parsing_button3 = KeyboardButton('Digest')
             parsing_button4 = KeyboardButton('Invite people')
+            persing_button5 = KeyboardButton('Subscr.statistics')
 
             parsing_kb.row(parsing_button1, parsing_button2)
             parsing_kb.row(parsing_button3, parsing_button4)
-
+            parsing_kb.add(persing_button5)
 
             # con = db_connect()
             await bot_aiogram.send_message(message.chat.id, f'Привет, {message.from_user.first_name}!', reply_markup=parsing_kb)
@@ -501,6 +506,9 @@ class InviteBot:
                     # - send digest to the channels without change
                     pass
 
+                if message.text == 'Subscr.statistics':
+                    await get_subscribers_statistic(message)
+                    # await send_excel(message)
                 else:
                     pass
                     # await bot.send_message(message.chat.id, 'Отправьте файл')
@@ -703,6 +711,131 @@ class InviteBot:
         #
         #     await client.send_message(int(config['My_channels']['bot_test']), one_message['message'][0:40])
         #     client.run_until_disconnected
+
+        async def get_subscribers_statistic(message):
+            id_user_list = []
+            access_hash_list = []
+            username_list = []
+            first_name_list = []
+            last_name_list = []
+            join_time_list = []
+            is_bot_list = []
+            mutual_contact_list = []
+            is_admin_list = []
+            channel_list = []
+
+            for channel in ['backend', 'designer', 'frontend', 'devops', 'pm', 'analyst', 'mobile',
+                            'qa', 'hr', 'game', 'ba', 'marketing', 'junior', 'sales_manager', 'no_sort',
+                            'agregator']:
+
+                channel_name = channel
+                channel = config['My_channels'][f'{channel}_channel']
+
+                offset_user = 0  # номер участника, с которого начинается считывание
+                limit_user = 100  # максимальное число записей, передаваемых за один раз
+
+                all_participants = []  # список всех участников канала
+                filter_user = ChannelParticipantsSearch('')
+
+                # channel = channel[4:]
+                try:
+                    channel = await client.get_input_entity(int(channel))
+                except:
+                    try:
+                        channel = channel[4:]
+                        channel = await client.get_input_entity(int(channel))
+                    except Exception as e:
+                        await bot_aiogram.send_message(message.chat.id, 'Have the error ', str(e))
+
+                participants = await client(GetParticipantsRequest(
+                    channel, filter_user, offset_user, limit_user, hash=0))
+
+                # for participant in participants.users:
+                #     print(participant)
+                users = {}
+                users['users'] = [i for i in participants.users]
+                users['date'] = [i for i in participants.participants]
+
+                for i in range(0, len(users['users'])):
+                    id_user = users['users'][i].id
+                    access_hash = users['users'][i].access_hash
+                    username = users['users'][i].username
+                    first_name = users['users'][i].first_name
+                    last_name = users['users'][i].last_name
+                    try:
+                        join_time = users['date'][i].date
+                    except Exception as e:
+                        join_time = None
+
+                    try:
+                        is_bot = users['users'][i].bot
+                    except Exception:
+                        is_bot = None
+
+                    try:
+                        mutual_contact = users['users'][i].mutual_contact
+                    except Exception:
+                        mutual_contact = None
+
+                    is_admin = False
+                    try:
+                        if users['date'][i].admin_rigths:
+                            is_admin = True
+                    except Exception:
+                        pass
+
+                    print(f"\n{i}")
+                    print('id = ', id_user)
+                    print('access_hash = ', access_hash)
+                    print('username = ', username)
+                    print('first_name = ', first_name)
+                    print('last_name = ', last_name)
+                    print('join_time = ', join_time)
+                    print('is_bot = ', is_bot)
+                    print('mutual_contact = ', mutual_contact)
+                    print('is_admin = ', is_admin)
+
+                    channel_list.append(channel)
+                    id_user_list.append(id_user)
+                    access_hash_list.append(access_hash)
+                    username_list.append(username)
+                    first_name_list.append(first_name)
+                    last_name_list.append(last_name)
+                    if join_time:
+                        join_time = join_time.strftime('%d-%m-%Y %H:%M:%S')
+                    join_time_list.append(join_time)
+                    is_bot_list.append(is_bot)
+                    mutual_contact_list.append(mutual_contact)
+                    is_admin_list.append(is_admin)
+
+                await bot_aiogram.send_message(message.chat.id, f'There are {i} subscribers in {channel_name}\nPlease wait 15-27 sec.')
+
+                print(f'\nsleep 15 sec.')
+                time.sleep(random.randrange(15, 27))
+
+            df = pd.DataFrame(
+                {
+                'channel': channel_list,
+                'id_user': id_user_list,
+                'access_hash': access_hash_list,
+                'username': username_list,
+                'first_name': first_name_list,
+                'last_name': last_name_list,
+                'join_time': join_time_list,
+                'is_bot': is_bot_list,
+                'mutual_contact': mutual_contact_list,
+                'is_admin': is_admin_list,
+                }
+            )
+
+            df.to_excel(f'./excel/followers_statistics.xlsx', sheet_name='Sheet1')
+            print(f'\nExcel was writting')
+
+            await send_excel(message)
+
+        async def send_excel(message):
+            with open('./excel/followers_statistics.xlsx', 'rb') as file:
+                await bot_aiogram.send_document(message.chat.id, file, caption='Take the statistics')
 
         executor.start_polling(dp, skip_updates=True)
 

@@ -76,24 +76,27 @@ def filter_text_from_file_txt():
     result = AlexSort2809().sort_by_profession_by_Alex(title, body, companies)
     print(f"\n{result['profession']['profession']}")
 
+def find_message_in_db_write_to_file_get_prof():
+    search = 'Network administration'
+    where = 'body'
+    response = DataBaseOperations(None).get_all_from_db('backend', param=f"WHERE {where} LIKE '%{search}%'")
+    print('len = ', len(response))
 
-search = 'Network administration'
-where = 'body'
-response = DataBaseOperations(None).get_all_from_db('backend', param=f"WHERE {where} LIKE '%{search}%'")
-print('len = ', len(response))
+    if len(response) == 2:
+        if response[0][2] == response[1][2] and response[0][3] == response[1][3]:
+            print('DOUBLE!!?')
+        else:
+            print('different')
 
-if len(response) == 2:
-    if response[0][2] == response[1][2] and response[0][3] == response[1][3]:
-        print('DOUBLE!!?')
-    else:
-        print('different')
+    # if len(response)==2:
+    for i in range(0, len(response)):
 
-# if len(response)==2:
-for i in range(0, len(response)):
+        message = response[i][2] + response[i][3]
+        with open(f'./../file{i}.txt', 'w', encoding='utf-8') as file:
+            file.write(message)
 
-    message = response[i][2] + response[i][3]
-    with open(f'./../file{i}.txt', 'w', encoding='utf-8') as file:
-        file.write(message)
+    print(response)
+    filter_text_from_file_txt()
 
-print(response)
-filter_text_from_file_txt()
+def try_and_delete_after():
+    DataBaseOperations(None).try_and_delete_after()
