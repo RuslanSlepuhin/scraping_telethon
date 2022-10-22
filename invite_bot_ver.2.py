@@ -35,7 +35,7 @@ config.read("./settings/config.ini")
 token = config['Token']['token']
 api_id = config['Ruslan']['api_id']
 api_hash = config['Ruslan']['api_hash']
-username = 'ruslanslepuhin'
+username = 'ruslanslepuhin2'
 username_test = 'test_ruslan'
 
 logging.basicConfig(level=logging.INFO)
