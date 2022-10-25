@@ -584,10 +584,48 @@ class WriteToDbMessages():
             for response in response_messages:
                 title = response[2]
                 body = response[3]
-                text = title+body
+                vacancy = response[5]
+                vacancy_url = response[6]
+                company = response[7]
+                english = response[8]
+                relocation = response[9]
+                job_type = response[10]
+                city = response[11]
+                salary = response[12]
+                experience = response[13]
+                contacts = response[14]
+
+                message_to_send = ''
+                if vacancy:
+                    message_to_send += f"Вакансия: {vacancy}\n"
+                if company:
+                    message_to_send += f"Компания: {company}\n"
+                if english:
+                    message_to_send += f"Английский: {english}\n"
+                if relocation:
+                    message_to_send += f"Релокация: {relocation}\n"
+                if job_type:
+                    message_to_send += f"Тип работы: {job_type}\n"
+                if city:
+                    message_to_send += f"Город/страна: {city}\n"
+                if salary:
+                    message_to_send += f"Зарплата: {salary}\n"
+                if experience:
+                    message_to_send += f"Опыт работы: {experience}\n"
+                if contacts:
+                    message_to_send += f"Контакты: {contacts}\n"
+                else:
+                    message_to_send += f"Ссылка на вакансию: {vacancy_url}\n\n"
+
+                message_to_send += f"{title}\n"
+                message_to_send += body
+
+                if len(message_to_send) > 4096:
+                    message_to_send = message_to_send[0:4092] + '...'
+
 
                 try:
-                    await self.bot_dict['bot'].send_message(config['My_channels'][f"{pro}_channel"], text)
+                    await self.bot_dict['bot'].send_message(config['My_channels'][f"{pro}_channel"], message_to_send)
                     time.sleep(random.randrange(4, 13))
                 except Exception as e:
                     await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], f'There is the error {e} (send_fulls')

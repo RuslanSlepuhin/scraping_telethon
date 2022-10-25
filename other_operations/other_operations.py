@@ -8,7 +8,7 @@ def delete_since():
     """
     for i in ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'analyst', 'mobile', 'qa', 'hr', 'game',
               'ba', 'marketing', 'junior', 'sales_manager', 'no_sort']:
-        DataBaseOperations(None).delete_data(table_name=i, param="WHERE created_at > '2022-10-19 06:00:00'")
+        DataBaseOperations(None).delete_data(table_name=i, param="WHERE created_at > '2022-10-25 06:00:00'")
 
 
 def write_pattern_to_db():
@@ -100,3 +100,42 @@ def find_message_in_db_write_to_file_get_prof():
 
 def try_and_delete_after():
     DataBaseOperations(None).try_and_delete_after()
+
+def get_double_records():
+    for item in ['marketing', 'ba', 'game', 'product', 'mobile', 'pm', 'sales_manager', 'analyst', 'frontend', 'designer',
+             'devops', 'hr', 'backend', 'qa', 'junior', 'no_sort']:
+
+        response = DataBaseOperations(None).get_all_from_db(item)
+        counter = 0
+
+        with open('./../logs/logs_double.txt', 'w') as file:
+            file.write('')
+
+        for record in range(0, len(response)):
+            print(f'\nin {item} getting {response[record][0]} {response[record][2][0:40]}')
+
+            for other_record in range(counter+1, len(response)):
+                if response[record][2].replace('\'', '').replace('\"', '') == response[other_record][2].replace('\'', '').replace('\"', '') \
+                        and response[record][3].replace('\'', '').replace('\"', '') == response[other_record][3].replace('\'', '').replace('\"', ''):
+
+                    print(f'Match in {response[record][0]} and {response[other_record][0]}')
+
+                    table = item
+                    id_element = response[record][0]
+                    id_match = response[other_record][0]
+                    title_element = response[record][2][0:40]
+                    title_match = response[other_record][2][0:40]
+                    body_element = response[record][3][0:40]
+                    body_match = response[other_record][3][0:40]
+
+
+
+                    with open('./../logs/logs_double.txt', 'a', encoding="utf-8") as file:
+                        # file.write(f'table={item}\n{str(id_element)}, title={title_element}, body={body_element}')
+                        file.write(f'\nMatch in {item}:\n'
+                                   f'id={str(id_element)}, title={title_element}, body={body_element}\n'
+                                   f'id_match={str(id_match)}, title_match={title_match}, body_match={body_match}\n\n')
+
+            counter += 1
+
+delete_since()
