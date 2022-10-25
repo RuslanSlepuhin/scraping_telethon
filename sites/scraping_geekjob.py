@@ -12,6 +12,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 from bs4 import BeautifulSoup
 # from bot.scraping_push_to_channels import PushChannels
 from db_operations.scraping_db import DataBaseOperations
+from patterns.pattern_Alex2809 import cities_pattern, params
+
 
 class GeekJobGetInformation:
 
@@ -34,9 +36,9 @@ class GeekJobGetInformation:
         self.count_message_in_one_channel = 1
 
         self.options = Options()
-        # self.options.add_argument("--headless")
-        # self.options.add_argument("--disable-dev-shm-usage")
-        # self.options.add_argument("--no-sandbox")
+        self.options.add_argument("--headless")
+        self.options.add_argument("--disable-dev-shm-usage")
+        self.options.add_argument("--no-sandbox")
 
         link = f'https://geekjob.ru/vacancies?'
         response_dict = await self.get_info(link)
@@ -55,23 +57,26 @@ class GeekJobGetInformation:
         self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
         response_dict = await self.get_link_message(self.browser.page_source)
+
         return response_dict
 
     async def get_link_message(self, raw_content):
         message_dict ={}
         results_dict = {}
         to_write_excel_dict = {
+            'chat_name': [],
             'title': [],
             'body': [],
             'vacancy': [],
+            'vacancy_url': [],
             'company': [],
+            'company_link': [],
             'english': [],
             'relocation': [],
             'job_type': [],
             'city': [],
             'salary': [],
             'experience': [],
-            'responsibilities': [],
             'time_of_public': [],
             'contacts': []
         }
@@ -89,6 +94,7 @@ class GeekJobGetInformation:
             response = requests.get(base_url + i.get('href'))
 
             soup = BeautifulSoup(response.text, 'lxml')
+
             try:
                 title = soup.find('h1').get_text()
             except:
@@ -153,6 +159,15 @@ class GeekJobGetInformation:
 
             try:
                 contacts = soup.find('div', id='hrblock').get_text()
+                match = re.findall(r'[a-zA-Z]{0,}@[a-zA-Z\.-_]{3,}', contacts)
+                if match:
+                    contacts = ''
+                    for i in match:
+                        if i[-1] == '.':
+                            i = i[0:-1]
+                        contacts += f'{i}, '
+                    contacts = contacts[:-2]
+
                 body += f'\n{contacts}'
             except:
                 contacts = ''
@@ -176,23 +191,46 @@ class GeekJobGetInformation:
                 salary = ''
             print('salary = ', salary)
 
+            # ------------------------- search relocation ----------------------------
+            relocation = ''
+            if re.findall(r'[Рр]елокация', body):
+                relocation = 'релокация'
 
+            # ------------------------- search city ----------------------------
+            city = ''
+            for key in cities_pattern:
+                for item in cities_pattern[key]:
+                    match = re.findall(rf"{item}", body)
+                    if match and key != 'others':
+                        for i in match:
+                            city += f"{i} "
+
+            # ------------------------- search english ----------------------------
+            english = ''
+            for item in params['english_level']:
+                match = re.findall(rf"{item}", body)
+                if match:
+                    for i in match:
+                        english += f"{i} "
+
+            # ------------------- compose title and body ------------------------------------
 
             if hiring_link:
+                to_write_excel_dict['chat_name'].append('https://geekjob.ru/')
                 to_write_excel_dict['title'].append(title)
                 to_write_excel_dict['body'].append(body)
-                to_write_excel_dict['time_of_public'].append(date)
-                to_write_excel_dict['job_type'].append(job_format)
+                to_write_excel_dict['vacancy'].append(vacancy_name)
+                to_write_excel_dict['vacancy_url'].append(str(i))
                 to_write_excel_dict['company'].append(hiring)
                 to_write_excel_dict['company_link'].append(hiring_link)
-                to_write_excel_dict['contacts'].append(contacts)
+                to_write_excel_dict['english'].append('')
                 to_write_excel_dict['relocation'].append(relocation)
-                to_write_excel_dict['vacancy'].append(vacancy_name)
+                to_write_excel_dict['job_type'].append(job_format)
                 to_write_excel_dict['city'].append(city)
                 to_write_excel_dict['salary'].append(salary)
-                to_write_excel_dict['english'].append('')
                 to_write_excel_dict['experience'].append('')
-                to_write_excel_dict['responsibilities'].append('')
+                to_write_excel_dict['time_of_public'].append(date)
+                to_write_excel_dict['contacts'].append(contacts)
 
 
 
@@ -200,14 +238,7 @@ class GeekJobGetInformation:
                 results_dict['title'] = title
                 results_dict['body'] = body
                 results_dict['time_of_public'] = date
-
                 message_dict['message'] = f'{title}\n{body}'
-
-                # if self.db_tables:
-                #     await PushChannels().push(results_dict, self.client, message_dict)  # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                #     await DataBaseOperations(con=None).write_to_one_table(results_dict) # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                # else:
-                #     await DataBaseOperations(con=None).write_to_one_table(results_dict) # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
                 print(f"{self.count_message_in_one_channel} from_channel = geek_jobs.ru'")
                 self.count_message_in_one_channel += 1
@@ -219,22 +250,20 @@ class GeekJobGetInformation:
                 'title': to_write_excel_dict['title'],
                 'body': to_write_excel_dict['body'],
                 'vacancy': to_write_excel_dict['vacancy'],
+                'vacancy_url': to_write_excel_dict['vacancy_url'],
                 'company': to_write_excel_dict['company'],
-                'company_link': to_write_excel_dict['company_link'],
                 'english': to_write_excel_dict['english'],
                 'relocation': to_write_excel_dict['relocation'],
                 'job_type': to_write_excel_dict['job_type'],
                 'city': to_write_excel_dict['city'],
                 'salary': to_write_excel_dict['salary'],
                 'experience': to_write_excel_dict['experience'],
-                'responsibilities': to_write_excel_dict['responsibilities'],
                 'time_of_public': to_write_excel_dict['time_of_public'],
                 'contacts': to_write_excel_dict['contacts'],
-
             }
         )
 
-        df.to_excel(f'geek{self.page}.xlsx', sheet_name='Sheet1')
+        df.to_excel(f'./../excel/geekjob.xlsx', sheet_name='Sheet1')
         print('записал в файл')
 
         return to_write_excel_dict

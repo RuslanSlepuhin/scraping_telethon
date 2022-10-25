@@ -24,6 +24,7 @@ class AlexSort2809:
     def sort_by_profession_by_Alex(self, title, body, companies=None, get_params=True, only_profession=False):
         params = {}
 
+
         if get_params:
             params['company_hiring'] = []
             # search company

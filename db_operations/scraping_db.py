@@ -172,9 +172,9 @@ class DataBaseOperations:
         return response_dict
 
     def push_to_db_write_message(self, cur, pro, results_dict, response_dict, agregator_id):
-        results_dict['title'] = results_dict['title'].replace('\'', '\"')
-        results_dict['body'] = results_dict['body'].replace('\'', '\"')
-        results_dict['company'] = results_dict['company'].replace('\'', '\"')
+        results_dict['title'] = results_dict['title'].replace('\'', '\"').replace('\n\n', '')
+        results_dict['body'] = results_dict['body'].replace('\'', '\"').replace('\n\n', '')
+        results_dict['company'] = results_dict['company'].replace('\'', '\"').replace('\n\n', '')
 
         query = f"""SELECT * FROM {pro} WHERE title='{results_dict['title']}' AND body='{results_dict['body']}'"""
         with self.con:
@@ -201,7 +201,7 @@ class DataBaseOperations:
             with self.con:
                 try:
                     cur.execute(new_post)
-                    print('pushed in DB')
+                    print(f'\npushed in DB')
                 except Exception as e:
                     print('didnt push in DB ', e)
                     pass
@@ -455,20 +455,23 @@ class DataBaseOperations:
 
         for company in companies:
 
-            query = f"""SELECT * FROM companies WHERE company='{company}'"""
-            with con:
-                try:
-                    cur.execute(query)
-                    response = cur.fetchall()
-                except Exception as e:
-                    print(e)
+            # if company is recruiter, is not the company, do not write to DB
+            if not re.findall(r'[Рр]екрутер', company):
 
-
-            if not response:
-                query = f"""INSERT INTO companies (company) VALUES ('{company}')"""
+                query = f"""SELECT * FROM companies WHERE company='{company}'"""
                 with con:
-                    cur.execute(query)
-                    print(f'to put: {company}')
+                    try:
+                        cur.execute(query)
+                        response = cur.fetchall()
+                    except Exception as e:
+                        print(e)
+
+
+                if not response:
+                    query = f"""INSERT INTO companies (company) VALUES ('{company}')"""
+                    with con:
+                        cur.execute(query)
+                        print(f'to put: {company}')
 
     def rewrite_to_archive(self):
         for i in ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'analyst',

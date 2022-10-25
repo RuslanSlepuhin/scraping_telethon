@@ -47,7 +47,6 @@ class FindJobGetInformation:
         time.sleep(2)
         self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         time.sleep(2)
-
         result_dict = await self.get_link_message(self.browser.page_source)
 
         return result_dict
@@ -217,7 +216,8 @@ class FindJobGetInformation:
             }
         )
 
-        df.to_excel('finder.vc.xlsx', sheet_name='Sheet1')
+        df.to_excel('./../excel/finder.vc.xlsx', sheet_name='Sheet1')
+        print('записал в файл')
 
         return to_write_excel_dict
 
