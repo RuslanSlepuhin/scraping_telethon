@@ -20,6 +20,7 @@ from aiogram.utils.markdown import hlink
 
 config = configparser.ConfigParser()
 config.read("./settings/config.ini")
+
 #--------------------------- забираем значения из config.ini-------------------------------
 api_id = config['Ruslan']['api_id']
 api_hash = config['Ruslan']['api_hash']
@@ -239,7 +240,7 @@ class WriteToDbMessages():
 
         #if client is empty
         if not client:
-            client = TelegramClient('137336064', int(api_id), api_hash)
+            client = TelegramClient('ruslanslepuhin2', int(api_id), api_hash)
             self.client = client
             self.client.start()
         else:
@@ -445,60 +446,66 @@ class WriteToDbMessages():
 
         # STEP1/ we need to write to DB by professions that message with last message's id in agregator_channel
         #       I can get this with DBOperations()
-        if 'no_sort' not in profession['profession']:
-            profession = await self.clear_not_valid_professions(profession)  # delete not valid keys (middle, senior and others)
-            print('valid professions ', profession['profession'])
-            if profession['profession']:
+
+        # if 'no_sort' not in profession['profession']:
+        profession = await self.clear_not_valid_professions(profession)  # delete not valid keys (middle, senior and others)
+        print('valid professions ', profession['profession'])
+        if profession['profession']:
 
                 # write to profession's tables. Returns dict with professions as a key and False, if it was written and True if existed
                 # -------------------------------- write all message for admin in one table--------------------------------
                 DataBaseOperations(None).push_to_admin_table(results_dict, profession)
 
-                # -----------------------------------------write to DB by professions ----------------------------------
-                response_dict = DataBaseOperations(con=con).push_to_bd(results_dict, profession, self.last_id_agregator) #check!!!
-                print('from db professions ', response_dict)
+    async def this_func_push_to_prof_db_i_exclude_it_from_code(self, results_dict, profession, one_message):
 
-                # STEP2/ send they to agregator channel if they have the professions
-                #       We need to control id message and send it to field on profession table
-                #       Increase number last message's id += 1
-                if False in response_dict.values():
-
-                    # send to agregator channel one time
-                    try:
-                        await self.bot_dict['bot'].send_message(
-                            config['My_channels']['agregator_channel'], one_message['message'])
-                        self.last_id_agregator += 1
-                        print('\nit was sended in agregator channel')
-                        print('time_sleep 3 sec\n')
-                        time.sleep(3)
-
-                    # info to bot user will control the process
-                        # await self.delete_messages()
-                        # self.msg.append(await self.bot_dict['bot'].send_message(
-                        #     self.bot_dict['chat_id'], f"{one_message['message']}\n{response_dict.keys()}"))
-                        # time.sleep(2)
-
-                    except Exception as e:
-                        await self.bot_dict['bot'].send_message(
-                            self.bot_dict['chat_id'],
-                            f'Error to send to channel {e}')
-        else:
-            try:
-                await self.bot_dict['bot'].send_message(
-                    config['My_channels']['no_sort_channel'], one_message['message'])
-                await asyncio.sleep(2)
-            except Exception as e:
-                await self.bot_dict['bot'].send_message(
-                    self.bot_dict['chat_id'], f"Error in channel no_sort: {e}")
-                await asyncio.sleep(2)
+    #             # -----------------------------------------write to DB by professions ----------------------------------
+    #             response_dict = DataBaseOperations(con=con).push_to_bd(results_dict, profession, self.last_id_agregator) #check!!!
+    #             print('from db professions ', response_dict)
+    #
+    #             # STEP2/ send they to agregator channel if they have the professions
+    #             #       We need to control id message and send it to field on profession table
+    #             #       Increase number last message's id += 1
+    #             if False in response_dict.values():
+    #
+    #                 # send to agregator channel one time
+    #                 try:
+    #                     await self.bot_dict['bot'].send_message(
+    #                         config['My_channels']['agregator_channel'], one_message['message'])
+    #                     self.last_id_agregator += 1
+    #                     print('\nit was sended in agregator channel')
+    #                     print('time_sleep 3 sec\n')
+    #                     time.sleep(3)
+    #
+    #                 # info to bot user will control the process
+    #                     # await self.delete_messages()
+    #                     # self.msg.append(await self.bot_dict['bot'].send_message(
+    #                     #     self.bot_dict['chat_id'], f"{one_message['message']}\n{response_dict.keys()}"))
+    #                     # time.sleep(2)
+    #
+    #                 except Exception as e:
+    #                     await self.bot_dict['bot'].send_message(
+    #                         self.bot_dict['chat_id'],
+    #                         f'Error to send to channel {e}')
+    #     else:
+    #         try:
+    #             await self.bot_dict['bot'].send_message(
+    #                 config['My_channels']['no_sort_channel'], one_message['message'])
+    #             await asyncio.sleep(2)
+    #         except Exception as e:
+    #             await self.bot_dict['bot'].send_message(
+    #                 self.bot_dict['chat_id'], f"Error in channel no_sort: {e}")
+    #             await asyncio.sleep(2)
 #---------------------- END OF LOOP ---------------------------------
+        pass
+
         # STEP3/ we have to get from each table last messages and compose the shorts with 5 short messages with links
+
     async def delete_messages(self):
         for i in self.msg:
             i.delete()
         self.msg = []
 
-    async def get_last_and_tgpublic_shorts(self, time_start, current_session, shorts=False):
+    async def get_last_and_tgpublic_shorts(self, current_session, shorts=False):
         """
         It gets last messages from profession's tables,
         composes shorts from them
@@ -525,19 +532,19 @@ class WriteToDbMessages():
             self.current_session = current_session
 
         if shorts:
-            await self.send_sorts(time_start=time_start)  # 1. for send shorts
+            await self.send_sorts()  # 1. for send shorts
         else:
-            await self.send_fulls(time_start=time_start)  # 2. for send last full messages from db
+            await self.send_fulls()  # 2. for send last full messages from db
 
         await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], 'DONE')
 
-    async def send_sorts(self, time_start):
+    async def send_sorts(self):
         messages_counter = 1
         short_message = ''
         for pro in self.valid_profession_list:
             print(f"It gets from profession's tables = {pro}")
             # get last records from table with profession PRO
-            param = f"WHERE created_at > '{time_start['year']}-{time_start['month']}-{time_start['day']} {time_start['hour']}:{time_start['minute']}:{time_start['sec']}'"
+            # param = f"WHERE created_at > '{time_start['year']}-{time_start['month']}-{time_start['day']} {time_start['hour']}:{time_start['minute']}:{time_start['sec']}'"
             param = f"WHERE session='{self.current_session}'"
             response_messages = DataBaseOperations(con=con).get_all_from_db(pro,
                                                                             param=param)  # check!!!
@@ -570,68 +577,119 @@ class WriteToDbMessages():
                 else:
                     messages_counter += 1
 
-    async def send_fulls(self, time_start):
+    async def send_fulls(self):
 
-        for pro in self.valid_profession_list:
-            print(f"It gets from profession's tables = {pro}")
+        profession_list = {}
+        profession_list['profession'] = []
+        results_dict = {}
 
-            # get last records from table with profession PRO
-            param = f"WHERE created_at > '{time_start['year']}-{time_start['month']}-{time_start['day']} {time_start['hour']}:{time_start['minute']}:{time_start['sec']}'"
-            param = f"WHERE session='{self.current_session}'"
+        response_messages = DataBaseOperations(None).get_all_from_db('admin_last_session', param=f"WHERE session='{self.current_session}'")
 
-            response_messages = DataBaseOperations(con=con).get_all_from_db(pro,
-                                                                            param=param)  # check!!!
-            for response in response_messages:
-                title = response[2]
-                body = response[3]
-                vacancy = response[5]
-                vacancy_url = response[6]
-                company = response[7]
-                english = response[8]
-                relocation = response[9]
-                job_type = response[10]
-                city = response[11]
-                salary = response[12]
-                experience = response[13]
-                contacts = response[14]
+        for message in response_messages:
+            profession_list['profession'] = []
+            print(message[4])
+            if ',' in message[4]:
+                pro = message[4].split(',')
+            else:
+                pro = [message[4]]
 
-                message_to_send = ''
-                if vacancy:
-                    message_to_send += f"Вакансия: {vacancy}\n"
-                if company:
-                    message_to_send += f"Компания: {company}\n"
-                if english:
-                    message_to_send += f"Английский: {english}\n"
-                if relocation:
-                    message_to_send += f"Релокация: {relocation}\n"
-                if job_type:
-                    message_to_send += f"Тип работы: {job_type}\n"
-                if city:
-                    message_to_send += f"Город/страна: {city}\n"
-                if salary:
-                    message_to_send += f"Зарплата: {salary}\n"
-                if experience:
-                    message_to_send += f"Опыт работы: {experience}\n"
-                if contacts:
-                    message_to_send += f"Контакты: {contacts}\n"
-                else:
-                    message_to_send += f"Ссылка на вакансию: {vacancy_url}\n\n"
+            for i in pro:
+                profession_list['profession'].append(i.strip())
 
-                message_to_send += f"{title}\n"
-                message_to_send += body
+            results_dict['chat_name'] = message[1]
+            results_dict['title'] = message[2]
+            results_dict['body'] = message[3]
+            results_dict['profession'] = message[4]
+            results_dict['vacancy'] = message[5]
+            results_dict['vacancy_url'] = message[6]
+            results_dict['company'] = message[7]
+            results_dict['english'] = message[8]
+            results_dict['relocation'] = message[9]
+            results_dict['job_type'] = message[10]
+            results_dict['city'] = message[11]
+            results_dict['salary'] = message[12]
+            results_dict['experience'] = message[13]
+            results_dict['contacts'] = message[14]
+            results_dict['time_of_public'] = message[15]
+            results_dict['created_at'] = message[16]
+            results_dict['agregator_link'] = message[17]
+            results_dict['session'] = message[18]
+            pass
+            # response_from_db = DataBaseOperations(None).push_to_bd(results_dict, profession_list, agregator_id=self.last_id_agregator)
 
-                if len(message_to_send) > 4096:
-                    message_to_send = message_to_send[0:4092] + '...'
+            # compose message_to_send
+            message_to_send = ''
+            if results_dict['vacancy']:
+                message_to_send += f"<b>Вакансия:</b> {results_dict['vacancy']}\n"
+            if results_dict['company']:
+                message_to_send += f"<b>Компания:</b> {results_dict['company']}\n"
+            if results_dict['english']:
+                message_to_send += f"<b>Английский:</b> {results_dict['english']}\n"
+            if results_dict['relocation']:
+                message_to_send += f"<b>Релокация:</b> {results_dict['relocation']}\n"
+            if results_dict['job_type']:
+                message_to_send += f"<b>Тип работы:</b> {results_dict['job_type']}\n"
+            if results_dict['city']:
+                message_to_send += f"<b>Город/страна:</b> {results_dict['city']}\n"
+            if results_dict['salary']:
+                message_to_send += f"<b>Зарплата:</b> {results_dict['salary']}\n"
+            if results_dict['experience']:
+                message_to_send += f"<b>Опыт работы:</b> {results_dict['experience']}\n"
+            if results_dict['contacts']:
+                message_to_send += f"<b>Контакты:</b> {results_dict['contacts']}\n"
+            elif results_dict['vacancy_url']:
+                message_to_send += f"<b>Ссылка на вакансию:</b> {results_dict['vacancy_url']}\n\n"
+
+            message_to_send += f"{results_dict['title']}\n"
+            message_to_send += results_dict['body']
+
+            if len(message_to_send) > 4096:
+                message_to_send = message_to_send[0:4092] + '...'
 
 
-                try:
-                    await self.bot_dict['bot'].send_message(config['My_channels'][f"{pro}_channel"], message_to_send)
-                    time.sleep(random.randrange(4, 13))
-                except Exception as e:
-                    await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], f'There is the error {e} (send_fulls')
-                    time.sleep(2)
+
+            # push to profession tables
+            profession_list = await self.clear_not_valid_professions(profession_list)
+            response_dict = DataBaseOperations(None).push_to_bd(results_dict, profession_list, self.last_id_agregator)
+
+            # push to agregator
+            # if profession is not no_sort than public in agregator, else public to n0_sort
+            if 'no_sort' not in response_dict and False in response_dict.values():
+                await self.bot_dict['bot'].send_message(config['My_channels']['agregator_channel'], message_to_send, parse_mode='html')
+                self.last_id_agregator += 1
+                print(f'Send to TG channel agregator\n')
+                time.sleep(random.randrange(5, 17))
+
+            # elif 'no_sort' in response_dict and response_dict['no_sort']:
+            #     await self.bot_dict['bot'].send_message(config['My_channels']['no_sort_channel'], message_to_send)
+            #     print(f'\nSend to TG channel no_sort\n')
+            #     time.sleep(random.randrange(5, 17))
+
+            # push to profession channels
+            for channel in response_dict:
+                if not response_dict[channel]:
+                    await self.bot_dict['bot'].send_message(config['My_channels'][f'{channel}_channel'],
+                                                            message_to_send, parse_mode='html')
+                    print(f'Send to TG channel {channel}\n')
+                    time.sleep(random.randrange(5, 17))
+
+            # delete from admin_last_session
+            id_message_from_admin = message[0]
+            DataBaseOperations(None).delete_data(
+                table_name='admin_last_session',
+                param=f"WHERE id={id_message_from_admin}"
+            )
+            print(f'Message id {id_message_from_admin} was deleted')
+
+            pass
 
     async def clear_not_valid_professions(self, profession):
+        if 'fullstack' in profession['profession']:
+            if 'backend' not in profession['profession']:
+                profession['profession'].update({'backend'},)
+            if 'frontend' not in profession['profession']:
+                profession['profession'].update({'frontend'},)
+
         exclude_list = []
         values_list = profession['profession']
         for value in values_list:
@@ -639,6 +697,8 @@ class WriteToDbMessages():
                 exclude_list.append(value)
         for exclude in exclude_list:
             profession['profession'].remove(exclude)
+        if not profession['profession']:
+            profession['profession'] = ['no_sort']
         return profession
 
     async def get_last_id_agregator(self):

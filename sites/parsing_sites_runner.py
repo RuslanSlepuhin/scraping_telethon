@@ -5,7 +5,10 @@ from sites.scraping_hh import HHGetInformation
 from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
 from db_operations.scraping_db import DataBaseOperations
 from scraping_telegramchats2 import WriteToDbMessages
+import configparser
 
+config = configparser.ConfigParser()
+config.read("./settings/config.ini")
 
 class ParseSites:
 
@@ -18,16 +21,15 @@ class ParseSites:
 
     async def call_sites(self):
 
-        await self.bot.send_message(self.chat_id, 'Парсится hh.ru')
-        response_dict_hh = await HHGetInformation().get_content(bot_dict={'bot': self.bot, 'chat_id': self.chat_id})
+        bot_dict = {'bot': self.bot, 'chat_id': self.chat_id}
+
+        response_dict_hh = await HHGetInformation(bot_dict).get_content()
         messages_list = await self.compose_message_for_sending(response_dict_hh, do_write_companies=True)
 
-        await self.bot.send_message(self.chat_id, '...https://geekjob.ru')
-        response_dict_geek = await GeekJobGetInformation().get_content()
+        response_dict_geek = await GeekJobGetInformation(bot_dict).get_content()
         messages_list = await self.compose_message_for_sending(response_dict_geek, do_write_companies=True)
 
-        await self.bot.send_message(self.chat_id, '...https://finder.vc')
-        response_dict_finder = await FindJobGetInformation().get_content()
+        response_dict_finder = await FindJobGetInformation(bot_dict).get_content()
         messages_list = await self.compose_message_for_sending(response_dict_finder, do_write_companies=True)
 
 
@@ -42,7 +44,7 @@ class ParseSites:
             DataBaseOperations(con=con).write_to_db_companies(set(response_dict['company']))
 
 # -------------------------------- compose messages --------------------------------
-        last_id_agregator = await WriteToDbMessages(client=self.client, bot_dict=None).get_last_id_agregator()
+        last_id_agregator = await WriteToDbMessages(client=self.client, bot_dict=None).get_last_id_agregator() + 1
         message = ''
         body = ''
         for each_element in range(0, len(response_dict['title'])):
@@ -127,10 +129,10 @@ class ParseSites:
                 get_params=False,
                 only_profession=True,
             )
-            profession_list = profession_list['profession']
-
             # write to db (append fields)
-            r_response_dict = DataBaseOperations(con=None).push_to_bd(result_dict, profession_list, agregator_id=last_id_agregator)
+            # r_response_dict = DataBaseOperations(con=None).push_to_bd(result_dict, profession_list, agregator_id=last_id_agregator)
+            DataBaseOperations(None).push_to_admin_table(result_dict, profession_list['profession'])
+
             pass
             # send to agregator
 

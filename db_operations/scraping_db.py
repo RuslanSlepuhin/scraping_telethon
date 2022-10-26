@@ -201,12 +201,11 @@ class DataBaseOperations:
             with self.con:
                 try:
                     cur.execute(new_post)
-                    print(f'\npushed in DB')
+                    print(self.quant, f'+++++++++++++ Has added to DB {pro}\n')
                 except Exception as e:
                     print('didnt push in DB ', e)
                     pass
 
-                print(self.quant, f'+++++++++++++ Has added to DB {pro}\n')
                 self.quant += 1
 
         else:
@@ -694,35 +693,47 @@ class DataBaseOperations:
             self.con.commit()
 
     def push_to_admin_table(self, results_dict, profession):
+
         if not self.con:
             self.connect_db()
         cur = self.con.cursor()
         self.check_or_create_table_admin(cur)
         pro = ''
+
         for i in profession['profession']:
             pro += f'{i}, '
         results_dict['profession'] = pro[0:-2]
-        results_dict['title'] = results_dict['title'].replace('\'', '').replace('\'', '')
-        results_dict['body'] = results_dict['body'].replace('\"', '').replace('\'', '')
-        results_dict['company'] = results_dict['company'].replace('\"', '').replace('\'', '')
-        new_post = f"""INSERT INTO admin_last_session (
-                    chat_name, title, body, profession, vacancy, vacancy_url, company, english, relocation, job_type, 
-                    city, salary, experience, contacts, time_of_public, created_at, session) 
-                                VALUES ('{results_dict['chat_name']}', '{results_dict['title']}', '{results_dict['body']}', 
-                                '{results_dict['profession']}', '{results_dict['vacancy']}', '{results_dict['vacancy_url']}', '{results_dict['company']}', 
-                                '{results_dict['english']}', '{results_dict['relocation']}', '{results_dict['job_type']}', 
-                                '{results_dict['city']}', '{results_dict['salary']}', '{results_dict['experience']}', 
-                                '{results_dict['contacts']}', '{results_dict['time_of_public']}', '{datetime.now()}', 
-                                '{results_dict['session']}');"""
-        with self.con:
-            try:
-                cur.execute(new_post)
-                print('pushed in ADMIN LAST SESSION')
-            except Exception as e:
-                print('didnt push in ADMIN LAST SESSION ', e)
-                pass
+        results_dict['title'] = results_dict['title'].replace('\'', '\"')
+        results_dict['body'] = results_dict['body'].replace('\'', '\"')
+        results_dict['company'] = results_dict['company'].replace('\'', '\"')
 
-            print(f'+++++++++++++ Has added to DB admin_last_session\n')
+        # check message for exists
+        query_check = f"SELECT * FROM admin_last_session WHERE title='{results_dict['title']}' AND body = '{results_dict['body']}'"
+        with self.con:
+            cur.execute(query_check)
+            r = cur.fetchall()
+
+        if not r:
+
+            new_post = f"""INSERT INTO admin_last_session (
+                        chat_name, title, body, profession, vacancy, vacancy_url, company, english, relocation, job_type, 
+                        city, salary, experience, contacts, time_of_public, created_at, session) 
+                                    VALUES ('{results_dict['chat_name']}', '{results_dict['title']}', '{results_dict['body']}', 
+                                    '{results_dict['profession']}', '{results_dict['vacancy']}', '{results_dict['vacancy_url']}', '{results_dict['company']}', 
+                                    '{results_dict['english']}', '{results_dict['relocation']}', '{results_dict['job_type']}', 
+                                    '{results_dict['city']}', '{results_dict['salary']}', '{results_dict['experience']}', 
+                                    '{results_dict['contacts']}', '{results_dict['time_of_public']}', '{datetime.now()}', 
+                                    '{results_dict['session']}');"""
+            with self.con:
+                try:
+                    cur.execute(new_post)
+                    print(f'+++++++++++++ Has added to DB admin_last_session\n')
+                except Exception as e:
+                    print(f'-------------- Didn"t push in ADMIN LAST SESSION {e}\n')
+                    pass
+        else:
+            print(f'!!!!!!!!!!! Message exists in admin_last_session\n')
+
 
     def try_and_delete_after(self):
         a = 'Mother"s fucker'
