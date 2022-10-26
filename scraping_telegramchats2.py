@@ -684,6 +684,11 @@ class WriteToDbMessages():
             pass
 
     async def clear_not_valid_professions(self, profession):
+
+        # check if is it set or list? There is used methods for set, not for list and generated the error
+        if type(profession['profession']) is list:
+            profession['profession'] = set(profession['profession'])
+
         if 'fullstack' in profession['profession']:
             if 'backend' not in profession['profession']:
                 profession['profession'].update({'backend'},)

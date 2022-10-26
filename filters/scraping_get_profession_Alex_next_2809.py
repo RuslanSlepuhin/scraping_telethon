@@ -108,7 +108,7 @@ class AlexSort2809:
         profession_dict['senior'] = 0
 
         if not profession_dict['profession']:
-            profession_dict['profession'] = ['no_sort']
+            profession_dict['profession'] = {'no_sort'}
 
         return {'profession': profession_dict, 'params': params}
 
