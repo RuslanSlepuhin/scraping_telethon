@@ -16,9 +16,13 @@ from patterns.pattern_Alex2809 import cities_pattern, params
 
 class FindJobGetInformation:
 
-    def __init__(self):
+    def __init__(self, bot_dict):
         self.base_url = 'https://finder.vc'
         self.browser = None
+        self.current_message = None
+        self.bot = bot_dict['bot']
+        self.chat_id = bot_dict['chat_id']
+        self.count_message_in_one_channel = 1
 
 
     async def get_content(self, count_message_in_one_channel=20):
@@ -72,6 +76,8 @@ class FindJobGetInformation:
             'time_of_public': [],
             'contacts': []
         }
+        self.current_message = await self.bot.send_message(self.chat_id, 'https://finder.vc is starting', disable_web_page_preview=True)
+
         links = []
         soup = BeautifulSoup(raw_content, 'lxml')
         list_links = soup.find_all('a', class_='vacancy-card vacancy-card_result')
@@ -180,22 +186,27 @@ class FindJobGetInformation:
                         english += f"{i} "
 
 # ------------------- compose title and body ------------------------------------
-            if contacts:
-                to_write_excel_dict['chat_name'].append('https://finder.vc')
-                to_write_excel_dict['title'].append(title)
-                to_write_excel_dict['body'].append(body)
-                to_write_excel_dict['vacancy'].append(vacancy)
-                to_write_excel_dict['vacancy_url'].append(str(link_vacancy))
-                to_write_excel_dict['company'].append(company)
-                to_write_excel_dict['english'].append('')
-                to_write_excel_dict['relocation'].append(relocation)
-                to_write_excel_dict['job_type'].append(time_job)
-                to_write_excel_dict['city'].append(city)
-                to_write_excel_dict['salary'].append(salary)
-                to_write_excel_dict['experience'].append(experience)
-                to_write_excel_dict['time_of_public'].append(time_of_public)
-                to_write_excel_dict['contacts'].append(contacts)
-
+#             if contacts:
+            to_write_excel_dict['chat_name'].append('https://finder.vc')
+            to_write_excel_dict['title'].append(title)
+            to_write_excel_dict['body'].append(body)
+            to_write_excel_dict['vacancy'].append(vacancy)
+            to_write_excel_dict['vacancy_url'].append(str(link_vacancy))
+            to_write_excel_dict['company'].append(company)
+            to_write_excel_dict['english'].append('')
+            to_write_excel_dict['relocation'].append(relocation)
+            to_write_excel_dict['job_type'].append(time_job)
+            to_write_excel_dict['city'].append(city)
+            to_write_excel_dict['salary'].append(salary)
+            to_write_excel_dict['experience'].append(experience)
+            to_write_excel_dict['time_of_public'].append(time_of_public)
+            to_write_excel_dict['contacts'].append(contacts)
+            self.current_message = await self.bot.edit_message_text(
+                f'{self.current_message.text}\n{self.count_message_in_one_channel}. {vacancy}\n',
+                self.current_message.chat.id,
+                self.current_message.message_id,
+                disable_web_page_preview=True)
+            self.count_message_in_one_channel += 1
         self.browser.quit()
 
         df = pd.DataFrame(
@@ -215,9 +226,16 @@ class FindJobGetInformation:
                 'contacts': to_write_excel_dict['contacts'],
             }
         )
+        try:
+            df.to_excel('./../excel/finder.vc.xlsx', sheet_name='Sheet1')
+            print('записал в файл')
+        except Exception as e:
+            print('Finder didnt write to excel: ', e)
 
-        df.to_excel('./../excel/finder.vc.xlsx', sheet_name='Sheet1')
-        print('записал в файл')
+        self.current_message = await self.bot.send_message(
+            self.chat_id,
+            f'\nMessages are writting to DB, please wait a few time ...\n'
+        )
 
         return to_write_excel_dict
 

@@ -17,10 +17,13 @@ from patterns.pattern_Alex2809 import cities_pattern, params
 
 class GeekJobGetInformation:
 
-    def __init__(self):
+    def __init__(self, bot_dict):
         self.db_tables = None
         self.options = None
         self.page = None
+        self.bot = bot_dict['bot']
+        self.chat_id = bot_dict['chat_id']
+        self.current_message = None
 
 
     async def get_content(self, db_tables=None):
@@ -80,6 +83,8 @@ class GeekJobGetInformation:
             'time_of_public': [],
             'contacts': []
         }
+        self.current_message = await self.bot.send_message(self.chat_id, 'https://geekjob.ru is starting', disable_web_page_preview=True)
+
         base_url = 'https://geekjob.ru'
         links = []
         soup = BeautifulSoup(raw_content, 'lxml')
@@ -231,16 +236,20 @@ class GeekJobGetInformation:
                 to_write_excel_dict['experience'].append('')
                 to_write_excel_dict['time_of_public'].append(date)
                 to_write_excel_dict['contacts'].append(contacts)
+                self.current_message = await self.bot.edit_message_text(
+                    f'{self.current_message.text}\n{self.count_message_in_one_channel}. {vacancy_name}\n',
+                    self.current_message.chat.id,
+                    self.current_message.message_id,
+                    disable_web_page_preview=True)
+                #
+                #
+                # results_dict['chat_name'] = 'geek_jobs.ru'
+                # results_dict['title'] = title
+                # results_dict['body'] = body
+                # results_dict['time_of_public'] = date
+                # message_dict['message'] = f'{title}\n{body}'
 
-
-
-                results_dict['chat_name'] = 'geek_jobs.ru'
-                results_dict['title'] = title
-                results_dict['body'] = body
-                results_dict['time_of_public'] = date
-                message_dict['message'] = f'{title}\n{body}'
-
-                print(f"{self.count_message_in_one_channel} from_channel = geek_jobs.ru'")
+                print(f"{self.count_message_in_one_channel} from_channel = geekjob.ru")
                 self.count_message_in_one_channel += 1
                 print('time_sleep')
                 # time.sleep(random.randrange(10, 15))
@@ -263,8 +272,16 @@ class GeekJobGetInformation:
             }
         )
 
-        df.to_excel(f'./../excel/geekjob.xlsx', sheet_name='Sheet1')
-        print('записал в файл')
+        try:
+            df.to_excel(f'./../excel/geekjob.xlsx', sheet_name='Sheet1')
+            print('записал в файл')
+        except Exception as e:
+            print('Geek не записан в файл ', e)
+
+        self.current_message = await self.bot.send_message(
+            self.chat_id,
+            f'\nMessages are writting to DB, please wait a few time ...\n'
+        )
 
         return to_write_excel_dict
 
@@ -340,8 +357,10 @@ class GeekJobGetInformation:
             'contacts': contacts,
             }
         )
-
-        df.to_excel(f'all_geek.xlsx', sheet_name='Sheet1')
+        try:
+            df.to_excel(f'all_geek.xlsx', sheet_name='Sheet1')
+        except Exception as e:
+            print('Geek didnt write to excel: ', e)
 
     async def write_to_db_table_companies(self):
         excel_data_df = pd.read_excel('all_geek.xlsx', sheet_name='Sheet1')

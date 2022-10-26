@@ -260,20 +260,28 @@ class InviteBot:
 
 
             if callback.data == 'show_info_last_records':
-                time_start = await get_time_start()
-                param = f"WHERE created_at > '{time_start['year']}-{time_start['month']}-{time_start['day']} {time_start['hour']}:{time_start['minute']}:{time_start['sec']}'"
-                param = f"WHERE session='{self.current_session}'"
-                for pro in self.valid_profession_list:
-                    try:
-                        response = DataBaseOperations(con=None).get_all_from_db(
-                            pro,
-                            param=param, order=' ')
-                        short_digest += f"<b>{pro}</b>: {len(response)} новых записей\n"
+                result_dict = {}
 
-                    except Exception as e:
-                        print(e)
-                await msg.delete()
-                await bot_aiogram.send_message(callback.message.chat.id, f"from last session {self.current_session}\n{short_digest}", parse_mode='html', reply_markup=self.markup)
+                if not self.current_session:
+                    self.current_session = await get_last_session()
+
+                param = f"WHERE session='{self.current_session}'"
+                messages = DataBaseOperations(None).get_all_from_db('admin_last_session', param=param)
+
+                for value in self.valid_profession_list:
+                    result_dict[value] = 0
+
+                for message in messages:
+                    for value in self.valid_profession_list:
+                        if value in message[4]:
+                            result_dict[value] += 1
+
+                message_to_send = f'<b>Statistics:</b> on session {self.current_session}\n'
+                for profession in result_dict:
+                    message_to_send += f'{profession}: {result_dict[profession]}\n'
+
+                await bot_aiogram.send_message(callback.message.chat.id, message_to_send, parse_mode='html', reply_markup=self.markup)
+
                 pass
 
             if callback.data == 'download_excel':
@@ -283,11 +291,12 @@ class InviteBot:
                 # ----------------------- send the messages to tg channels as digest or full --------------------------
                 # if not self.current_session:
                 #     self.current_session = DataBaseOperations(None).get_all_from_db('current_session', without_sort=True)
+                if not self.current_session:
+                    self.current_session = await get_last_session()
 
-                time_start = await get_time_start()
                 await WriteToDbMessages(
                     client,
-                    bot_dict={'bot': bot_aiogram, 'chat_id': callback.message.chat.id}).get_last_and_tgpublic_shorts(time_start, current_session=self.current_session, shorts=False)  # get from profession's tables and put to tg channels
+                    bot_dict={'bot': bot_aiogram, 'chat_id': callback.message.chat.id}).get_last_and_tgpublic_shorts(current_session=self.current_session, shorts=False)  # get from profession's tables and put to tg channels
 
             if callback.data == 'send_digest_shorts':
                 # ----------------------- send the messages to tg channels as digest or full --------------------------
@@ -442,7 +451,7 @@ class InviteBot:
                         message.chat.id,
                         'Парсит телеграм каналы...',
                         parse_mode='HTML')
-                    # await main(client, bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id})  # run parser tg channels and write to profession's tables
+                    await main(client, bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id})  # run parser tg channels and write to profession's tables
                     await bot_aiogram.send_message(
                         message.chat.id,
                         '...прошло успешно, записано в базу',
@@ -491,10 +500,12 @@ class InviteBot:
                 if message.text == 'Digest':
                     self.markup = InlineKeyboardMarkup(row_width=1)
                     but_show = InlineKeyboardButton('Показать сводку по собранным сообщениям', callback_data='show_info_last_records')
-                    but_download_excel = InlineKeyboardButton('Выгрузить excel для внесения правок', callback_data='download_excel')
+                    # but_download_excel = InlineKeyboardButton('Выгрузить excel для внесения правок', callback_data='download_excel')
                     but_send_digest_full = InlineKeyboardButton('Разлить по каналам fulls', callback_data='send_digest_full')
-                    but_send_digest_shorts = InlineKeyboardButton('Разлить по каналам shorts', callback_data='send_digest_shorts')
-                    self.markup.add(but_show, but_download_excel, but_send_digest_full, but_send_digest_shorts)
+                    # but_send_digest_shorts = InlineKeyboardButton('Разлить по каналам shorts', callback_data='send_digest_shorts')
+                    self.markup.add(but_show, but_send_digest_full)
+                    # self.markup.add(but_download_excel, but_send_digest_shorts)
+
                     time_start = await get_time_start()
                     await bot_aiogram.send_message(
                         message.chat.id,
@@ -836,6 +847,19 @@ class InviteBot:
         async def send_excel(message):
             with open('./excel/followers_statistics.xlsx', 'rb') as file:
                 await bot_aiogram.send_document(message.chat.id, file, caption='Take the statistics')
+
+        async def get_last_session():
+            current_session = DataBaseOperations(None).get_all_from_db(
+                table_name='current_session',
+                param='ORDER BY id DESC LIMIT 1',
+                without_sort=True,
+                order=None,
+                field='session',
+                curs=None
+            )
+            for value in current_session:
+                last_session = value[0]
+            return last_session
 
         executor.start_polling(dp, skip_updates=True)
 

@@ -17,7 +17,7 @@ from patterns.pattern_Alex2809 import cities_pattern, params
 
 class HHGetInformation:
 
-    def __init__(self):
+    def __init__(self, bot_dict):
 
         self.db_tables = None
         self.options = None
@@ -44,10 +44,13 @@ class HHGetInformation:
         self.extended = ['game', 'product', 'mobile', 'marketing', 'sales_manager', 'analyst',
                              'frontend', 'designer', 'devops', 'hr', 'backend', 'qa', 'junior', 'ba']
 
-        self.search_words.extend(self.extended)
+        # self.search_words.extend(self.extended)
+        self.current_message = None
+        self.bot = bot_dict['bot']
+        self.chat_id = bot_dict['chat_id']
 
 
-    async def get_content(self, bot_dict, db_tables=None):
+    async def get_content(self, db_tables=None):
         """
         If DB_tables = 'all', that it will push to all DB include professions.
         If None (default), that will push in all_messages only
@@ -64,15 +67,17 @@ class HHGetInformation:
         self.options.add_argument("--disable-dev-shm-usage")
         self.options.add_argument("--no-sandbox")
 
+        await self.bot.send_message(self.chat_id, 'https://hh.ru is starting', disable_web_page_preview=True)
+
         # link = f'https://hh.ru/search/vacancy?text=backend&from=suggest_post&area=1002?'
         link = 'https://hh.ru'
-        response_dict = await self.get_info(link, bot_dict)
+        response_dict = await self.get_info(link)
         # for self.page in range(1, 48):
         #     link = f'https://geekjob.ru/vacancies/{self.page}'
         #     await self.get_info(link)
         return response_dict
 
-    async def get_info(self, link, bot_dict):
+    async def get_info(self, link):
         # full_response_dict = {
         #     'chat_name': [],
         #     'title': [],
@@ -96,7 +101,7 @@ class HHGetInformation:
 
         for word in self.search_words:
 
-            await bot_dict['bot'].send_message(bot_dict['chat_id'], f'Поиск вакансий по слову {word}...')
+            self.current_message = await self.bot.send_message(self.chat_id, f'Поиск вакансий по слову {word}...')
 
             self.browser.get('http://hh.ru')
             time.sleep(1)
@@ -110,7 +115,7 @@ class HHGetInformation:
             self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             time.sleep(1)
             # response_dict = await self.get_link_message(self.browser.page_source, word)
-            await self.get_link_message(self.browser.page_source, word, bot_dict)
+            await self.get_link_message(self.browser.page_source, word)
 
 
             # for key in response_dict:
@@ -121,7 +126,7 @@ class HHGetInformation:
         self.browser.quit()
         return self.to_write_excel_dict
 
-    async def get_link_message(self, raw_content, word, bot_dict):
+    async def get_link_message(self, raw_content, word):
         message_dict ={}
         results_dict = {}
         to_write_excel_dict = {
@@ -141,6 +146,7 @@ class HHGetInformation:
             'time_of_public': [],
             'contacts': []
         }
+
         base_url = 'https://hh.ru'
         links = []
         soup = BeautifulSoup(raw_content, 'lxml')
@@ -148,8 +154,11 @@ class HHGetInformation:
 
         list_links = soup.find_all('a', class_='serp-item__title')
         print(f'\nПо слову {word} найдено {len(list_links)} вакансий\n')
-        await bot_dict['bot'].send_message(bot_dict['chat_id'], f'\nПо слову {word} найдено {len(list_links)} вакансий\n')
 
+        self.current_message = await self.bot.edit_message_text(
+            f'{self.current_message.text}\nПо слову {word} найдено {len(list_links)} вакансий\n\n',
+            self.current_message.chat.id,
+            self.current_message.message_id)
         # --------------------- LOOP -------------------------
         for i in list_links:
             vacancy_url = i.get('href')
@@ -159,13 +168,16 @@ class HHGetInformation:
 
             self.browser.get(vacancy_url)
             time.sleep(2)
-            self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            try:
+                self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            except Exception as e:
+                print('Screen did not scroll: ', e)
 
             soup = BeautifulSoup(self.browser.page_source, 'lxml')
 
 
             # get vacancy ------------------------
-            vacancy = soup.find('div', class_='vacancy-title').get_text()
+            vacancy = soup.find('div', class_='vacancy-title').find('span').get_text()
             print('vacancy = ', vacancy)
 
             # get title --------------------------
@@ -276,16 +288,22 @@ class HHGetInformation:
                             city += f"{i} "
 
             # ------------------------- search english ----------------------------
-            english = ''
+            english_additional = ''
             for item in params['english_level']:
                 match1 = re.findall(rf"{item}", body)
                 match2 = re.findall(rf"{item}", tags)
                 if match1:
                     for i in match1:
-                        english += f"{i} "
+                        english_additional += f"{i} "
                 if match2:
                     for i in match2:
-                        english += f"{i} "
+                        english_additional += f"{i} "
+
+            if english and ('upper' in english_additional or 'b1' in english_additional or 'b2' in english_additional \
+                    or 'internediate' in english_additional or 'pre' in english_additional):
+                english = english_additional
+            elif not english and english_additional:
+                english = english_additional
 
             # ------------------- compose title and body ------------------------------------
 
@@ -310,8 +328,12 @@ class HHGetInformation:
             # results_dict['body'] = body
             # results_dict['time_of_public'] = date
             # message_dict['message'] = f'{title}\n{body}'
+            self.current_message = await self.bot.edit_message_text(
+                f'{self.current_message.text}\n{self.count_message_in_one_channel}. {vacancy}\n',
+                self.current_message.chat.id,
+                self.current_message.message_id)
 
-            print(f"{self.count_message_in_one_channel} from_channel hh.ru search {word}")
+            print(f"\n{self.count_message_in_one_channel} from_channel hh.ru search {word}")
             self.count_message_in_one_channel += 1
             print('time_sleep')
             # time.sleep(random.randrange(10, 15))
@@ -337,6 +359,11 @@ class HHGetInformation:
 
         # df.to_excel(f'./../excel/hh_{word}.xlsx', sheet_name='Sheet1')
         print('Has written to Excel')
+
+        self.current_message = await self.bot.send_message(
+            self.chat_id,
+            f'\nMessages are writting to Admin table, please wait a few time ...\n'
+        )
 
         return to_write_excel_dict
 
@@ -422,5 +449,5 @@ class HHGetInformation:
         db.write_to_db_companies(companies)
 
 # loop = asyncio.new_event_loop()
-# loop.run_until_complete(HHGetInformation().get_content(1))
+# loop.run_until_complete(HHGetInformation().get_content())
 
