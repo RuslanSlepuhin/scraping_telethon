@@ -32,12 +32,12 @@ logs = Logs()
 
 config = configparser.ConfigParser()
 config.read("./settings/config.ini")
-# token = config['Token']['token']
-token = config['Token']['token']
 api_id = config['Ruslan']['api_id']
 api_hash = config['Ruslan']['api_hash']
 username = '137336064'
 username_test = 'test_ruslan'
+token = config['Token']['token']
+token_test = config['Test2Token']['token']
 
 logging.basicConfig(level=logging.INFO)
 bot_aiogram = Bot(token=token)

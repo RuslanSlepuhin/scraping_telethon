@@ -748,7 +748,7 @@ class WriteToDbMessages():
             hash=0))
         last_id_agregator = history_argegator.messages[0].id
         print('last id in agregator = ', last_id_agregator)
-        time.sleep(random.randrange(15, 20))
+        time.sleep(random.randrange(5, 8))
         return last_id_agregator
 
     async def main_start(self, list_links, limit_msg, action):
