@@ -6,6 +6,8 @@ import psycopg2
 from datetime import datetime
 from filters.scraping_get_profession_Alex_Rus import AlexRusSort
 from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
+from logs.logs import Logs
+logs = Logs()
 
 # from scraping_send_to_bot import PushToDB
 from patterns import pattern_Alex2809
@@ -22,6 +24,8 @@ class DataBaseOperations:
             self.connect_db()
 
     def connect_db(self):
+
+        logs.write_log(f"scraping_db: function: connect_db")
 
         self.con = None
         config.read("./../settings/config.ini")
@@ -52,11 +56,11 @@ class DataBaseOperations:
     #-------------participants-------------------------
     def push_to_bd_participants(self, participant, all_user_dictionary, channel_name, channel_username):
 
+        logs.write_log(f"scraping_db: function: push_to_bd_participants")
+
         if not self.con:
             self.connect_db()
-
         cur = self.con.cursor()
-
         with self.con:
 
             cur.execute("""CREATE TABLE IF NOT EXISTS participant_table (
@@ -72,7 +76,6 @@ class DataBaseOperations:
                         );"""
                                 )
             self.con.commit()
-
 
         with self.con:
 
@@ -110,6 +113,9 @@ class DataBaseOperations:
                     print('This user exist already', i)
     #--------------------------------------------------
     def check_or_create_table(self, cur, table_name):
+
+        logs.write_log(f"scraping_db: function: check_or_create_table")
+
         with self.con:
 
             cur.execute(f"""CREATE TABLE IF NOT EXISTS {table_name} (
@@ -139,6 +145,8 @@ class DataBaseOperations:
             self.con.commit()
 
     def push_to_bd(self, results_dict, profession_list=None, agregator_id=None):
+
+        logs.write_log(f"scraping_db: function: push_to_bd")
 
         response_dict = {}
         if not self.con:
@@ -172,6 +180,9 @@ class DataBaseOperations:
         return response_dict
 
     def push_to_db_write_message(self, cur, pro, results_dict, response_dict, agregator_id):
+
+        logs.write_log(f"scraping_db: function: push_to_db_write_message")
+
         results_dict['title'] = results_dict['title'].replace('\'', '\"').replace('\n\n', '')
         results_dict['body'] = results_dict['body'].replace('\'', '\"').replace('\n\n', '')
         results_dict['company'] = results_dict['company'].replace('\'', '\"').replace('\n\n', '')
@@ -215,6 +226,9 @@ class DataBaseOperations:
         return response_dict
 
     def get_all_from_db(self, table_name, param='', without_sort=False, order=None, field='*', curs=None):
+
+        logs.write_log(f"scraping_db: function: get_all_from_db")
+
         if not self.con:
             self.connect_db()
 
@@ -246,6 +260,9 @@ class DataBaseOperations:
         return response
 
     def write_current_session(self, current_session):
+
+        logs.write_log(f"scraping_db: function: write_current_session")
+
         if not self.con:
             self.connect_db()
         cur = self.con.cursor()
@@ -268,6 +285,9 @@ class DataBaseOperations:
             pass
 
     def delete_data(self, table_name, param):
+
+        logs.write_log(f"scraping_db: function: delete_data")
+
         if not self.con:
             self.connect_db()
 
@@ -279,6 +299,9 @@ class DataBaseOperations:
             cur.execute(query)
 #-----------просто в одну таблицу записать все сообщения без професии, чтобы потом достать, рассортировать и записать в файл ------------------
     def write_to_one_table(self, results_dict):
+
+        logs.write_log(f"scraping_db: function: write_to_one_table")
+
         if not self.con:
             self.connect_db()
         cur = self.con.cursor()
@@ -317,6 +340,7 @@ class DataBaseOperations:
         Get in DB messages and write it to Excel file to check
         :return: nothing
         """
+        logs.write_log(f"scraping_db: function: get_from_bd_for_analyze_python_vs_excel")
 
         profession_alex = []
         profession_rus = []
@@ -392,6 +416,9 @@ class DataBaseOperations:
         :param profession: get dict and collect phrase type of qa/middle/senior/
         :return: this phrase
         """
+
+        logs.write_log(f"scraping_db: function: collect_data_for_send_to_bot")
+
         profession_str = ''
 
         if not profession['block']:
@@ -418,10 +445,16 @@ class DataBaseOperations:
         return profession_str
 
     def clear_text_control(self, text):
+
+        logs.write_log(f"scraping_db: function: clear_text_control")
+
         text = re.sub(r'<[\W\w\d]{1,7}>', '\n', text)
         return text
 
     def find_last_record(self, response, title_search=None, body_search=None):
+
+        logs.write_log(f"scraping_db: function: find_last_record")
+
         result = None
         marker = False
         new_response = []
@@ -441,6 +474,9 @@ class DataBaseOperations:
         return new_response
 
     def write_to_db_companies(self, companies):
+
+        logs.write_log(f"scraping_db: function: write_to_db_companies")
+
         con = self.connect_db()
         cur = con.cursor()
 
@@ -473,6 +509,9 @@ class DataBaseOperations:
                         print(f'to put: {company}')
 
     def rewrite_to_archive(self):
+
+        logs.write_log(f"scraping_db: function: rewrite_to_archive")
+
         for i in ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'analyst',
                                     'fullstack', 'mobile', 'qa', 'hr', 'game', 'ba', 'marketing', 'junior',
                                     'sales_manager']:
@@ -494,6 +533,9 @@ class DataBaseOperations:
                         print('error: ', e)
 
     def add_columns_to_tables(self):
+
+        logs.write_log(f"scraping_db: function: add_columns_to_tables")
+
         if not self.con:
             self.connect_db()
         cur = self.con.cursor()
@@ -508,6 +550,8 @@ class DataBaseOperations:
                 print(f'Added agr_link to {i}')
 
     def output_tables(self):
+
+        logs.write_log(f"scraping_db: function: output_tables")
 
         db_tables = []
 
@@ -533,6 +577,8 @@ class DataBaseOperations:
 
     def delete_table(self, table_name):
 
+        logs.write_log(f"scraping_db: function: delete_table")
+
         if not self.con:
             self.connect_db()
         cur = self.con.cursor()
@@ -543,6 +589,9 @@ class DataBaseOperations:
             print(f'{table_name} was deleted')
 
     def append_columns(self, table_name_list, column):
+
+        logs.write_log(f"scraping_db: function: append_columns")
+
         if not self.con:
             self.connect_db()
         cur = self.con.cursor()
@@ -569,6 +618,9 @@ class DataBaseOperations:
                 print(f'Added columns to table {table}')
 
     def run_free_request(self, request):
+
+        logs.write_log(f"scraping_db: function: run_free_request")
+
         if not self.con:
             self.connect_db()
         cur = self.con.cursor()
@@ -583,6 +635,8 @@ class DataBaseOperations:
             pass
 
     def write_pattern_new(self, table_name, tag, value):
+
+        logs.write_log(f"scraping_db: function: write_pattern_new")
 
         if not self.con:
             self.connect_db()
@@ -608,6 +662,9 @@ class DataBaseOperations:
                     print('error', e)
 
     def write_pattern2(self, table_name, values):
+
+        logs.write_log(f"scraping_db: function: write_pattern2")
+
         """
         :param table_name:
         :param values: dict = {'ma': [tuple], 'mex': [tuple]
@@ -664,6 +721,9 @@ class DataBaseOperations:
         pass
 
     def check_or_create_table_admin(self, cur):
+
+        logs.write_log(f"scraping_db: function: check_or_create_table_admin")
+
         with self.con:
 
             cur.execute(f"""CREATE TABLE IF NOT EXISTS admin_last_session (
@@ -693,6 +753,8 @@ class DataBaseOperations:
             self.con.commit()
 
     def push_to_admin_table(self, results_dict, profession):
+
+        logs.write_log(f"scraping_db: function: push_to_admin_table")
 
         if not self.con:
             self.connect_db()
@@ -735,7 +797,78 @@ class DataBaseOperations:
             print(f'!!!!!!!!!!! Message exists in admin_last_session\n')
 
 
+    def push_followers_statistics(self, channel_statistic_dict:dict):
+
+        logs.write_log(f"scraping_db: function: push_followers_statistics")
+
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+
+        for number in range(0, len(channel_statistic_dict['channel'])):
+            channel = channel_statistic_dict['channel'][number]
+            id_user = channel_statistic_dict['id_user'][number]
+            access_hash = channel_statistic_dict['access_hash'][number]
+            username = channel_statistic_dict['username'][number]
+            first_name = channel_statistic_dict['first_name'][number]
+            last_name = channel_statistic_dict['last_name'][number]
+            join_time = channel_statistic_dict['join_time'][number]
+            is_bot = channel_statistic_dict['is_bot'][number]
+            mutual_contact = channel_statistic_dict['mutual_contact'][number]
+
+            print('join_time = ', join_time, type(join_time))
+            if type(join_time) is str:
+                join_time = join_time.split(' ')
+                date = join_time[0].split('-')
+                time = join_time[1].split(':')
+                join_time = datetime(int(date[2]), int(date[1]), int(date[0]), int(time[0]), int(time[1]), int(time[2]))
+            else:
+                join_time = None
+
+            with self.con:
+                cur.execute(f"""CREATE TABLE IF NOT EXISTS followers_statistics (
+                                            id SERIAL PRIMARY KEY,
+                                            channel VARCHAR(150),
+                                            id_user VARCHAR(30),
+                                            access_hash VARCHAR (100),
+                                            username VARCHAR (100),
+                                            first_name VARCHAR (100),
+                                            last_name VARCHAR (100),
+                                            join_time TIMESTAMP,
+                                            is_bot BOOLEAN,
+                                            mutual_contact BOOLEAN
+                                            );"""
+                            )
+            query_check = f"""SELECT * FROM followers_statistics 
+                            WHERE channel='{channel}' AND id_user='{id_user}'"""
+            with self.con:
+                cur.execute(query_check)
+                r = cur.fetchall()
+            if not r:
+                pass
+                if join_time:
+                    new_participant = f"""INSERT INTO followers_statistics
+                                    (channel, id_user, access_hash, username, first_name,
+                                    last_name, join_time, is_bot, mutual_contact)
+                                    VALUES ('{channel}', '{id_user}', '{access_hash}', '{username}', '{first_name}',
+                                    '{last_name}', '{join_time}', {is_bot}, {mutual_contact});"""
+                else:
+                    new_participant = f"""INSERT INTO followers_statistics
+                                                        (channel, id_user, access_hash, username, first_name,
+                                                        last_name, is_bot, mutual_contact)
+                                                        VALUES ('{channel}', '{id_user}', '{access_hash}', '{username}', '{first_name}',
+                                                        '{last_name}', {is_bot}, {mutual_contact});"""
+
+                with self.con:
+                    cur.execute(new_participant)
+                    print(f'{id_user} in {channel} was writed')
+            else:
+                print(f'{id_user} in {channel} exists already')
+
     def try_and_delete_after(self):
+
+        logs.write_log(f"scraping_db: function: try_and_delete_after")
+
         a = 'Mother"s fucker'
         b = f"Mother's fucker 2"
         if not self.con:
@@ -758,3 +891,52 @@ class DataBaseOperations:
                 print(f'Error ', e)
 
 
+    def add_password_to_user(self, id, password):
+
+        logs.write_log(f"scraping_db: function: add_password_to_user")
+
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+
+        query = f"""UPDATE users SET password='{password}' WHERE id={id}"""
+        try:
+            with self.con:
+                cur.execute(query)
+                print('password added')
+        except Exception as e:
+            print('Something is wrong ', e)
+
+    def write_user_without_password(self, id_user, api_id, api_hash, phone_number):
+        logs.write_log(f"scraping_db: function: write_user_without_password")
+
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+
+        with self.con:
+            cur.execute(f"""CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                id_user INTEGER,
+                api_id INTEGER,
+                api_hash VARCHAR (50),
+                phone_number VARCHAR (25),
+                password VARCHAR (100)
+                );"""
+                        )
+
+        query_does_user_exist = f"""SELECT * FROM users WHERE api_id={api_id}"""
+        with self.con:
+            cur.execute(query_does_user_exist)
+        r= cur.fetchall()
+
+        if not r:
+            query = f"""INSERT INTO users (id_user, api_id, api_hash, phone_number) VALUES ({id_user}, {api_id}, '{api_hash}', '{phone_number}')"""
+            try:
+                with self.con:
+                    cur.execute(query)
+                    print('user been added to db')
+            except Exception as e:
+                print(f"Didn't write the user to db. Reason: {e}")
+        else:
+            print('user exists')
