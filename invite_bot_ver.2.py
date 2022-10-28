@@ -33,10 +33,10 @@ logs = Logs()
 config = configparser.ConfigParser()
 config.read("./settings/config.ini")
 # token = config['Token']['token']
-token = config['Token']['token']
+token = config['Test2Token']['token']
 api_id = config['Ruslan']['api_id']
 api_hash = config['Ruslan']['api_hash']
-username = 'ruslanslepuhin2'
+username = '137336064'
 username_test = 'test_ruslan'
 
 logging.basicConfig(level=logging.INFO)
@@ -53,9 +53,9 @@ con = None
 
 print(f'Bot started at {datetime.now()}')
 
-client = TelegramClient(username, int(api_id), api_hash)
+client = TelegramClient(username_test, int(api_id), api_hash)
 client.connect()
-logs.write_log(f'\n------------------------------')
+logs.write_log(f'\n------------------ restart --------------------')
 
 class InviteBot:
 
@@ -84,8 +84,6 @@ class InviteBot:
             global client, hash_phone
             e=None
 
-            # api_id = int(api_id)
-            # id_user = str(id_user)
             client = TelegramClient(str(id_user), int(self.api_id), self.api_hash)
 
             await client.connect()
@@ -129,8 +127,8 @@ class InviteBot:
             global phone_number, password, con
             self.chat_id = message.chat.id
 
-            logs.write_log('invite_bot_2: bot has started')
-        # -------- make an parse keyboard for admin ---------------
+            logs.write_log(f'\n------------------ start --------------------')
+            # -------- make a parse keyboard for admin ---------------
             parsing_kb = ReplyKeyboardMarkup(resize_keyboard=True)
             parsing_button1 = KeyboardButton('Get news from channels')
             parsing_button2 = KeyboardButton('Subscr.statistics')
@@ -144,6 +142,12 @@ class InviteBot:
 
             await bot_aiogram.send_message(message.chat.id, f'Привет, {message.from_user.first_name}!', reply_markup=parsing_kb)
             await bot_aiogram.send_message(137336064, f'Start user {message.from_user.id}')
+
+        @dp.message_handler(commands=['logs', 'log'])
+        async def get_logs(message: types.Message):
+            path = './logs/logs.txt'
+            await send_file_to_user(message, path)
+
 
         # Возможность отмены, если пользователь передумал заполнять
         @dp.message_handler(state='*', commands=['cancel', 'start'])
@@ -957,13 +961,13 @@ class InviteBot:
             df.to_excel(f'./excel/followers_statistics.xlsx', sheet_name='Sheet1')
             print(f'\nExcel was writting')
 
-            await send_excel(message)
+            await send_file_to_user(message, path='./excel/followers_statistics.xlsx')
 
-        async def send_excel(message):
+        async def send_file_to_user(message, path):
 
-            logs.write_log(f"invite_bot_2: function: send_excel")
+            logs.write_log(f"invite_bot_2: function: send_file_to_user")
 
-            with open('./excel/followers_statistics.xlsx', 'rb') as file:
+            with open(path, 'rb') as file:
                 await bot_aiogram.send_document(message.chat.id, file, caption='Please, take it')
 
         async def get_last_session():
