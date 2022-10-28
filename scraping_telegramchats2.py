@@ -24,8 +24,8 @@ config = configparser.ConfigParser()
 config.read("./settings/config.ini")
 
 #--------------------------- забираем значения из config.ini-------------------------------
-api_id = config['Ruslan']['api_id']
-api_hash = config['Ruslan']['api_hash']
+# api_id = config['Ruslan']['api_id']
+# api_hash = config['Ruslan']['api_hash']
 
 quant = 1  # счетчик вывода количества запушенных в базу сообщений (для контроля в консоли)
 
