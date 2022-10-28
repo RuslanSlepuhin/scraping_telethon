@@ -53,7 +53,7 @@ con = None
 
 print(f'Bot started at {datetime.now()}')
 
-client = TelegramClient(username_test, int(api_id), api_hash)
+client = TelegramClient(username, int(api_id), api_hash)
 client.connect()
 logs.write_log(f'\n------------------------------')
 
