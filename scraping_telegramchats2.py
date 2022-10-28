@@ -740,13 +740,16 @@ class WriteToDbMessages():
         return last_id_agregator
 
     async def main_start(self, list_links, limit_msg, action):
+
         print('main_start')
+        # self.last_id_agregator = 0
         self.last_id_agregator = await self.get_last_id_agregator()+1
+
         if action == 'get_message':
             for url in list_links:
-                await self.dump_all_messages(url, limit_msg)  # creative resolve the problem of a wait seconds
+                await self.dump_all_messages(url, limit_msg)  # resolve the problem of a wait seconds
+
         elif action == 'get_participants':
-            # list_links=['https://t.me/young_june',]
             for url in list_links:
                 await self.dump_all_participants(url)
 
