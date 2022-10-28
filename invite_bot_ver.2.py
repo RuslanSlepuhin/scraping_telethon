@@ -23,16 +23,17 @@ from telethon.tl.functions.channels import GetParticipantRequest, GetParticipant
 from telethon.tl.functions.messages import GetHistoryRequest
 from telethon.tl.types import InputPeerChannel, InputPeerUser, InputUser, PeerUser, InputChannel, MessageService, \
     ChannelParticipantsSearch
-
 from db_operations.scraping_db import DataBaseOperations
 from links import list_links
 from scraping_telegramchats2 import WriteToDbMessages, main
 from sites.parsing_sites_runner import ParseSites
+from logs.logs import Logs
+logs = Logs()
 
 config = configparser.ConfigParser()
 config.read("./settings/config.ini")
 # token = config['Token']['token']
-token = config['Token']['token']
+token = config['Test2Token']['token']
 api_id = config['Ruslan']['api_id']
 api_hash = config['Ruslan']['api_hash']
 username = 'ruslanslepuhin2'
@@ -52,8 +53,9 @@ con = None
 
 print(f'Bot started at {datetime.now()}')
 
-client = TelegramClient(username, int(api_id), api_hash)
-client.start()
+client = TelegramClient(username_test, int(api_id), api_hash)
+client.connect()
+logs.write_log(f'\n------------------------------')
 
 class InviteBot:
 
@@ -68,23 +70,32 @@ class InviteBot:
         self.api_id = config['Ruslan']['api_id']
         self.api_hash = config['Ruslan']['api_hash']
         self.current_session = ''
+        self.current_customer = None
+        self.api_id: int
+        self.api_hash: str
+        self.phone_number: str
+        self.hash_phone: str
+        self.code: str
+        self.password: ''
 
     def main_invitebot(self):
-        async def connect_with_client(message, api_id, api_hash, id_user, phone_number, password):
+        async def connect_with_client(message, id_user):
 
             global client, hash_phone
             e=None
 
-            api_id = int(api_id)
-            id_user = str(id_user)
-            client = TelegramClient(id_user, api_id, api_hash)
+            # api_id = int(api_id)
+            # id_user = str(id_user)
+            client = TelegramClient(str(id_user), int(self.api_id), self.api_hash)
 
             await client.connect()
+            print('Client_is_on_connection')
 
             if not await client.is_user_authorized():
                 try:
-                    phone_code_hash = await client.send_code_request(str(phone_number))
-                    hash_phone = phone_code_hash.phone_code_hash
+                    print('But it is not authorized')
+                    phone_code_hash = await client.send_code_request(str(self.phone_number))
+                    self.hash_phone = phone_code_hash.phone_code_hash
 
                 except Exception as e:
                     await bot_aiogram.send_message(message.chat.id, str(e))
@@ -92,7 +103,7 @@ class InviteBot:
                 if not e:
                     await get_code(message)
             else:
-                await bot_aiogram.send_message(message.chat.id, 'Connect - ok')
+                await bot_aiogram.send_message(message.chat.id, 'Connection is ok')
 
         async def or_connect(message):
             try:
@@ -108,9 +119,9 @@ class InviteBot:
         class Form(StatesGroup):
             api_id = State()
             api_hash = State()
-            password = State()
             phone_number = State()
             code = State()
+            password = State()
 
         @dp.message_handler(commands=['start', 'help'])
         async def send_welcome(message: types.Message):
@@ -118,37 +129,21 @@ class InviteBot:
             global phone_number, password, con
             self.chat_id = message.chat.id
 
+            logs.write_log('invite_bot_2: bot has started')
         # -------- make an parse keyboard for admin ---------------
             parsing_kb = ReplyKeyboardMarkup(resize_keyboard=True)
             parsing_button1 = KeyboardButton('Get news from channels')
-            parsing_button2 = KeyboardButton('Listen to channels')
+            parsing_button2 = KeyboardButton('Subscr.statistics')
             parsing_button3 = KeyboardButton('Digest')
             parsing_button4 = KeyboardButton('Invite people')
-            persing_button5 = KeyboardButton('Subscr.statistics')
+            parsing_button5 = KeyboardButton('Get participants')
 
             parsing_kb.row(parsing_button1, parsing_button2)
             parsing_kb.row(parsing_button3, parsing_button4)
-            parsing_kb.add(persing_button5)
+            parsing_kb.add(parsing_button5)
 
-            # con = db_connect()
             await bot_aiogram.send_message(message.chat.id, f'Привет, {message.from_user.first_name}!', reply_markup=parsing_kb)
             await bot_aiogram.send_message(137336064, f'Start user {message.from_user.id}')
-            pass
-            #
-            # id_customer = message.from_user.id
-            # customer = await check_customer(message, id_customer)
-            #
-            # if customer:
-            #         get_customer_from_db = get_db(id_customer)
-            #         api_id = get_customer_from_db[0][2]
-            #         api_hash = get_customer_from_db[0][3]
-            #         phone_number = get_customer_from_db[0][4]
-            #         try:
-            #             if client.is_connected():
-            #                 await client.disconnect()
-            #         except:
-            #             pass
-            #         await connect_with_client(message, api_id, api_hash, id_customer, phone_number, password)
 
         # Возможность отмены, если пользователь передумал заполнять
         @dp.message_handler(state='*', commands=['cancel', 'start'])
@@ -179,18 +174,7 @@ class InviteBot:
                 data['api_hash'] = message.text
 
             await Form.next()
-            await bot_aiogram.send_message(message.chat.id, "Введите password, если есть двухэтапная верификация (отменить /cancel)\n"
-                                                    "Введите '0', если нет двухэтапной верификации")
-
-        #-------------------------- password ------------------------------
-        # password
-        @dp.message_handler(state=Form.password)
-        async def process_api_hash(message: types.Message, state: FSMContext):
-            async with state.proxy() as data:
-                data['password'] = message.text
-
-            await Form.next()
-            await bot_aiogram.send_message(message.chat.id, "Введите номер телефона (отменить /cancel)")
+            await bot_aiogram.send_message(message.chat.id, "Type your phone number +XXXXXXXXXX (11 numbers with + and country code)\nor cancel for exit")
 
         #-------------------------- phone number ------------------------------
         # phone_number
@@ -199,25 +183,38 @@ class InviteBot:
 
             global phone_number
 
+            logs.write_log(f"invite_bot_2: Form.phone number")
+
             async with state.proxy() as data:
                 data['phone_number'] = message.text
+
+                logs.write_log(f"invite_bot_2: phone number: {data['phone_number']}")
 
                 await bot_aiogram.send_message(
                     message.chat.id,
                     f"Your api_id: {data['api_id']}\nYour api_hash: {data['api_hash']}\nYour phone number: {data['phone_number']}")
 
-                api_id = data['api_id']
-                api_hash = data['api_hash']
-                password = data['password']
-                phone_number = data['phone_number']
+                self.api_id = data['api_id']
+                self.api_hash = data['api_hash']
+                self.phone_number = data['phone_number']
 
-            send_to_db(message.from_user.id, int(api_id), api_hash, phone_number)  # записать в базу
+            DataBaseOperations(None).write_user_without_password(
+                id_user=message.from_user.id,
+                api_id=int(self.api_id),
+                api_hash=self.api_hash,
+                phone_number=self.phone_number
+            )
+            self.password = None
 
-            await connect_with_client(message, api_id=api_id, api_hash=api_hash, id_user=message.from_user.id, phone_number=phone_number, password=password)
+            await connect_with_client(message, id_user=message.from_user.id)
+
 
         #-------------------------- code ------------------------------
         # code
         async def get_code(message):
+
+            logs.write_log(f"invite_bot_2: function get_code")
+
             await Form.code.set()
             await bot_aiogram.send_message(message.chat.id, 'Введите код в формате 12345XXXXX6789, где ХХХХХ - цифры телеграм кода (отмена* /cancel)')
 
@@ -226,30 +223,56 @@ class InviteBot:
 
             global client, hash_phone, phone_number
 
+            logs.write_log(f"invite_bot_2: Form.code")
+
             async with state.proxy() as data:
                 data['code'] = message.text
-                code = data['code'][5:10]
-                try:
-                    password = data['password']
-                except:
-                    password = '0'
+                self.code = data['code'][5:10]
 
-                # if data['phone_number']:
-                #     phone_number = data['phone_number']
+                logs.write_log(f"invite_bot_2: Form.code: {data['code']}")
 
-                phone = phone_number
+                # ask to get password (always)
+                if not self.password:
+                    await Form.password.set()
+                    await bot_aiogram.send_message(message.chat.id,
+                                               "Please type your password 2 step verify if you have\n"
+                                               "Type 0 if you don't\n(type /cancel for exit)")
+                else:
+                    await state.finish()
+                    await client_sign_in(message)
 
-                try:
-                    if password == '0':
-                        await client.sign_in(phone=phone, code=code, phone_code_hash=hash_phone)
-                    else:
-                        await client.sign_in(phone=phone, password=password, code=code, phone_code_hash=hash_phone)
+        # -------------------------- password ------------------------------
+        # password
+        @dp.message_handler(state=Form.password)
+        async def process_api_hash(message: types.Message, state: FSMContext):
+            logs.write_log('invite_bot_2: Form.password')
 
-                    await bot_aiogram.send_message(message.chat.id, 'Connect - ok')
-                except Exception as e:
-                    await bot_aiogram.send_message(message.chat.id, str(e))
+            async with state.proxy() as data:
+                data['password'] = message.text
+            self.password = data['password']
+            logs.write_log(f"invite_bot_2: Form.password: {data['password']}")
+            # DataBaseOperations(None).add_password_to_user(id=self.current_customer[0], password=self.password)
 
-                await state.finish()
+            await state.finish()
+            await client_sign_in(message)
+
+            # await Form.next()
+            # await bot_aiogram.send_message(message.chat.id, "Введите номер телефона (отменить /cancel)")
+
+        async def client_sign_in(message):
+            try:
+
+                if self.password == '0':
+                    await client.sign_in(phone=self.phone_number, code=self.code, phone_code_hash=self.hash_phone)
+                    await bot_aiogram.send_message(message.chat.id, 'Connection is ok')
+
+                else:
+                    await client.sign_in(phone=self.phone_number, code=self.code, password=self.password, phone_code_hash=self.hash_phone)
+                    await bot_aiogram.send_message(message.chat.id, 'Connection is ok')
+
+            except Exception as e:
+                await bot_aiogram.send_message(message.chat.id, str(e))
+
 
         @dp.callback_query_handler()
         async def catch_callback(callback: types.CallbackQuery):
@@ -261,6 +284,8 @@ class InviteBot:
 
             if callback.data == 'show_info_last_records':
                 result_dict = {}
+
+                logs.write_log(f"invite_bot_2: Callback: show_info_last_records")
 
                 if not self.current_session:
                     self.current_session = await get_last_session()
@@ -285,9 +310,15 @@ class InviteBot:
                 pass
 
             if callback.data == 'download_excel':
+
+                logs.write_log(f"invite_bot_2: Callback: download_excel")
+
                 pass
 
             if callback.data == 'send_digest_full':
+
+                logs.write_log(f"invite_bot_2: Callback: send_digest_full")
+
                 # ----------------------- send the messages to tg channels as digest or full --------------------------
                 # if not self.current_session:
                 #     self.current_session = DataBaseOperations(None).get_all_from_db('current_session', without_sort=True)
@@ -299,6 +330,9 @@ class InviteBot:
                     bot_dict={'bot': bot_aiogram, 'chat_id': callback.message.chat.id}).get_last_and_tgpublic_shorts(current_session=self.current_session, shorts=False)  # get from profession's tables and put to tg channels
 
             if callback.data == 'send_digest_shorts':
+
+                logs.write_log(f"invite_bot_2: Callback: send_digest_shorts")
+
                 # ----------------------- send the messages to tg channels as digest or full --------------------------
                 # if not self.current_getting_session:
                 #     self.current_getting_session = DataBaseOperations(None).get_all_from_db('current_session', without_sort=True)
@@ -317,6 +351,9 @@ class InviteBot:
             msg = None
 
             if marker:
+
+                logs.write_log(f"invite_bot_2: content_types: if marker")
+
                 channel = message.text
                 channel_short_name = f"@{channel.split('/')[-1]}"
                 try:
@@ -431,7 +468,20 @@ class InviteBot:
                 #pass
 
             else:
+                if message.text == 'Get participants':
+
+                    logs.write_log(f"invite_bot_2: content_types: Get participants")
+
+                    await bot_aiogram.send_message(
+                        message.chat.id,
+                        'it is parsing subscribers...',
+                        parse_mode='HTML')
+                    await main(client, bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id},
+                               action='get_participants')
+
                 if message.text == 'Get news from channels':
+
+                    logs.write_log(f"invite_bot_2: content_types: Get news from channels")
 
                     if not client.is_connected():  # run client if it was working in invite
                         client.start()
@@ -468,36 +518,49 @@ class InviteBot:
                 #----------------------- Listening channels at last --------------------------------------
 
                 if message.text == 'Invite people':
-                    if client.is_connected():
-                        client.disconnect()
+                    # if client.is_connected():
+                    #     client.disconnect()
+
+                    logs.write_log(f"invite_bot_2: content_types: Invite people")
 
                     id_customer = message.from_user.id
                     customer = await check_customer(message, id_customer)
-                    con = db_connect()
+                    # con = db_connect()
                     if customer:
-                        get_customer_from_db = get_db(id_customer)
-                        api_id = get_customer_from_db[0][2]
-                        api_hash = get_customer_from_db[0][3]
-                        phone_number = get_customer_from_db[0][4]
+                        # get_customer_from_db = get_db(id_customer)
+                        get_customer_from_db = DataBaseOperations(None).get_all_from_db(table_name='users', param=f"WHERE id_user={id_customer}", without_sort=True)
+                        self.current_customer = get_customer_from_db[0]
+
+                        self.api_id = self.current_customer[2]
+                        self.api_hash = self.current_customer[3]
+                        self.phone_number = self.current_customer[4]
+                        self.password = self.current_customer[5]
                         try:
                             if client.is_connected():
                                 await client.disconnect()
                         except:
                             pass
-                        await connect_with_client(message, api_id, api_hash, id_customer, phone_number, password)
+                        await connect_with_client(message, id_customer)
 
 
                     # await bot.delete_message(message.chat.id, message.message_id)
                     # response = requests.get(url='https://tg-channel-parse.herokuapp.com/scrape')
                     # await bot.send_message(message.chat.id, response.status_code)
                 if message.text == 'Listen to channels':
+
+                    logs.write_log(f"invite_bot_2: content_types: Listen to channels")
+
                     # await bot.delete_message(message.chat.id, message.message_id)
                     # await bot.send_message(message.chat.id, "Bot is listening TG channels and it will send notifications here")
                     # ListenChats()
                     # await client.run_until_disconnected()
+                    await get_subscribers_statistic(message)
                     pass
 
                 if message.text == 'Digest':
+
+                    logs.write_log(f"invite_bot_2: content_types: Digest")
+
                     self.markup = InlineKeyboardMarkup(row_width=1)
                     but_show = InlineKeyboardButton('Показать сводку по собранным сообщениям', callback_data='show_info_last_records')
                     # but_download_excel = InlineKeyboardButton('Выгрузить excel для внесения правок', callback_data='download_excel')
@@ -518,6 +581,9 @@ class InviteBot:
                     pass
 
                 if message.text == 'Subscr.statistics':
+
+                    logs.write_log(f"invite_bot_2: content_types: Subscr.statistics")
+
                     await get_subscribers_statistic(message)
                     # await send_excel(message)
                 else:
@@ -525,6 +591,9 @@ class InviteBot:
                     # await bot.send_message(message.chat.id, 'Отправьте файл')
 
         async def get_separate_time(time_in):
+
+            logs.write_log(f"invite_bot_2: function: get_separate_time")
+
             start_time = {}
             start_time['year'] = time_in.strftime('%Y')
             start_time['month'] = time_in.strftime('%m')
@@ -539,6 +608,7 @@ class InviteBot:
 
             global all_participant, marker, file_name
 
+            logs.write_log(f"invite_bot_2: function: content_type['document']")
 
             if client.is_connected():
 
@@ -590,6 +660,9 @@ class InviteBot:
                 await bot_aiogram.send_message(message.chat.id, 'Для авторизации нажмите /start')
 
         async def check_customer(message, id_customer):
+
+            logs.write_log(f"invite_bot_2: unction: check_customer")
+
             files = os.listdir('./')
             sessions = filter(lambda x: x.endswith('.session'), files)
 
@@ -604,6 +677,8 @@ class InviteBot:
 
         def send_to_db(id_user, api_id, api_hash, phone_number):
 
+            logs.write_log(f"invite_bot_2: function: send_to_db")
+
             global con
 
             if not con:
@@ -616,7 +691,8 @@ class InviteBot:
                     id_user INTEGER,
                     api_id INTEGER,
                     api_hash VARCHAR (50),
-                    phone_number VARCHAR (25)
+                    phone_number VARCHAR (25),
+                    password VARCHAR (100)
                     );"""
                             )
                 con.commit()
@@ -638,6 +714,8 @@ class InviteBot:
 
             global con
 
+            logs.write_log(f"invite_bot_2: function: get_db")
+
             if not con:
                 con = db_connect()
 
@@ -653,6 +731,8 @@ class InviteBot:
         def db_connect():
 
             con = None
+
+            logs.write_log(f"invite_bot_2: function: db_connect")
 
             database = config['DB5new']['database']
             user = config['DB5new']['user']
@@ -679,6 +759,7 @@ class InviteBot:
             """
             Clear the history in choose channel
             """
+            logs.write_log(f"invite_bot_2: function: clear_invite_history")
 
             history = await client(GetHistoryRequest(
                 peer=channel,
@@ -700,6 +781,9 @@ class InviteBot:
             await asyncio.sleep(10)
 
         async def get_time_start():
+
+            logs.write_log(f"invite_bot_2: function: get_time_start")
+
             time_start = None
             if self.start_time_scraping_channels:
                 if self.start_time_scraping_channels <= self.start_time_listen_channels:
@@ -714,6 +798,8 @@ class InviteBot:
 
         # @client.on(events.NewMessage(chats=(list_links)))
         # async def normal_handler(event):
+        # await logs.write_log(f"invite_bot_2: class: ListenChats")
+
         #     print('I,m listening chats ....')
         #     one_message = event.message.to_dict()
         #     print(one_message)
@@ -724,6 +810,9 @@ class InviteBot:
         #     client.run_until_disconnected
 
         async def get_subscribers_statistic(message):
+
+            logs.write_log(f"invite_bot_2: function: get_subscribers_statistic")
+
             id_user_list = []
             access_hash_list = []
             username_list = []
@@ -734,6 +823,8 @@ class InviteBot:
             mutual_contact_list = []
             is_admin_list = []
             channel_list = []
+
+            msg = await bot_aiogram.send_message(message.chat.id, f'Followers statistics')
 
             for channel in ['backend', 'designer', 'frontend', 'devops', 'pm', 'analyst', 'mobile',
                             'qa', 'hr', 'game', 'ba', 'marketing', 'junior', 'sales_manager', 'no_sort',
@@ -766,6 +857,7 @@ class InviteBot:
                 users = {}
                 users['users'] = [i for i in participants.users]
                 users['date'] = [i for i in participants.participants]
+
 
                 for i in range(0, len(users['users'])):
                     id_user = users['users'][i].id
@@ -806,7 +898,7 @@ class InviteBot:
                     print('mutual_contact = ', mutual_contact)
                     print('is_admin = ', is_admin)
 
-                    channel_list.append(channel)
+                    channel_list.append(channel_name)
                     id_user_list.append(id_user)
                     access_hash_list.append(access_hash)
                     username_list.append(username)
@@ -819,10 +911,33 @@ class InviteBot:
                     mutual_contact_list.append(mutual_contact)
                     is_admin_list.append(is_admin)
 
-                await bot_aiogram.send_message(message.chat.id, f'There are {i} subscribers in {channel_name}\nPlease wait 15-27 sec.')
+
+
+                msg = await bot_aiogram.edit_message_text(f'{msg.text}\nThere are <b>{i}</b> subscribers in <b>{channel_name}</b>...\n', msg.chat.id, msg.message_id, parse_mode='html')
 
                 print(f'\nsleep 15 sec.')
-                time.sleep(random.randrange(15, 27))
+                time.sleep(random.randrange(10, 16))
+
+            # compose dict for push to DB
+            channel_statistic_dict = {
+                'channel': channel_list,
+                'id_user': id_user_list,
+                'access_hash': access_hash_list,
+                'username': username_list,
+                'first_name': first_name_list,
+                'last_name': last_name_list,
+                'join_time': join_time_list,
+                'is_bot': is_bot_list,
+                'mutual_contact': mutual_contact_list,
+            }
+
+            # push to DB
+            msg = await bot_aiogram.edit_message_text(
+                f'{msg.text}\n\nAll getting statistics is writting to bd, please wait ... ', msg.chat.id,
+                msg.message_id, parse_mode='html')
+
+            db = DataBaseOperations(None)
+            db.push_followers_statistics(channel_statistic_dict)
 
             df = pd.DataFrame(
                 {
@@ -845,10 +960,16 @@ class InviteBot:
             await send_excel(message)
 
         async def send_excel(message):
+
+            logs.write_log(f"invite_bot_2: function: send_excel")
+
             with open('./excel/followers_statistics.xlsx', 'rb') as file:
-                await bot_aiogram.send_document(message.chat.id, file, caption='Take the statistics')
+                await bot_aiogram.send_document(message.chat.id, file, caption='Please, take it')
 
         async def get_last_session():
+
+            logs.write_log(f"invite_bot_2: function: get_last_session")
+
             current_session = DataBaseOperations(None).get_all_from_db(
                 table_name='current_session',
                 param='ORDER BY id DESC LIMIT 1',

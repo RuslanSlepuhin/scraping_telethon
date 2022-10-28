@@ -207,14 +207,6 @@ def send_fulls(time_start=None):
 #     print('contacts = ', response[i][17])
 #     print('session = ', response[i][18])
 
-# response = DataBaseOperations(None).get_all_from_db('admin_last_session', param=f"WHERE session='{20221026160331}'")
-# for i in response:
-#     print(f'{i[4]}')
-# send_fulls()
-# delete_tables(['followers_statistics'])
-# response = DataBaseOperations(None).get_all_from_db('followers_statistics', without_sort=True)
-# for i in response:
-#     print(i[1], i[2])
-# response = DataBaseOperations(None).get_all_from_db('current_session', without_sort=True)
-# for i in response:
-#     print(f'{i}\n')
+response = DataBaseOperations(None).get_all_from_db('users', without_sort=True)
+for i in response:
+    print(i)

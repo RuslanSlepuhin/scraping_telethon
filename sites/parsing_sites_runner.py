@@ -6,6 +6,8 @@ from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
 from db_operations.scraping_db import DataBaseOperations
 from scraping_telegramchats2 import WriteToDbMessages
 import configparser
+from logs.logs import Logs
+logs = Logs()
 
 config = configparser.ConfigParser()
 config.read("./settings/config.ini")
@@ -20,6 +22,8 @@ class ParseSites:
 
 
     async def call_sites(self):
+
+        logs.write_log(f"scraping_telethon2: function: call_sites")
 
         bot_dict = {'bot': self.bot, 'chat_id': self.chat_id}
 
@@ -36,6 +40,9 @@ class ParseSites:
         print(' -----------------------FINAL -------------------------------')
 
     async def compose_message_for_sending(self, response_dict, do_write_companies=False):
+
+        logs.write_log(f"scraping_telethon2: function: compose_message_for_sending")
+
         messages_list = []
 
         # ---------------------- write or not companies to db --------------------------
