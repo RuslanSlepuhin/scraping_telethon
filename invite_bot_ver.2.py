@@ -487,8 +487,8 @@ class InviteBot:
 
                     logs.write_log(f"invite_bot_2: content_types: Get news from channels")
 
-                    if not client.is_connected():  # run client if it was working in invite
-                        client.start()
+                    # if not client.is_connected():  # run client if it was working in invite
+                    #     client.start()
 
 # ----------------- make the current session and write it in DB ----------------------
                     self.current_session = datetime.now().strftime("%Y%m%d%H%M%S")
