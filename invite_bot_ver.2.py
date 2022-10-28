@@ -33,7 +33,7 @@ logs = Logs()
 config = configparser.ConfigParser()
 config.read("./settings/config.ini")
 # token = config['Token']['token']
-token = config['Test2Token']['token']
+token = config['Token']['token']
 api_id = config['Ruslan']['api_id']
 api_hash = config['Ruslan']['api_hash']
 username = '137336064'
