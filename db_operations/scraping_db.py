@@ -735,6 +735,71 @@ class DataBaseOperations:
             print(f'!!!!!!!!!!! Message exists in admin_last_session\n')
 
 
+    def push_followers_statistics(self, channel_statistic_dict:dict):
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+
+        for number in range(0, len(channel_statistic_dict['channel'])):
+            channel = channel_statistic_dict['channel'][number]
+            id_user = channel_statistic_dict['id_user'][number]
+            access_hash = channel_statistic_dict['access_hash'][number]
+            username = channel_statistic_dict['username'][number]
+            first_name = channel_statistic_dict['first_name'][number]
+            last_name = channel_statistic_dict['last_name'][number]
+            join_time = channel_statistic_dict['join_time'][number]
+            is_bot = channel_statistic_dict['is_bot'][number]
+            mutual_contact = channel_statistic_dict['mutual_contact'][number]
+
+            print('join_time = ', join_time, type(join_time))
+            if type(join_time) is str:
+                join_time = join_time.split(' ')
+                date = join_time[0].split('-')
+                time = join_time[1].split(':')
+                join_time = datetime(int(date[2]), int(date[1]), int(date[0]), int(time[0]), int(time[1]), int(time[2]))
+            else:
+                join_time = None
+
+            with self.con:
+                cur.execute(f"""CREATE TABLE IF NOT EXISTS followers_statistics (
+                                            id SERIAL PRIMARY KEY,
+                                            channel VARCHAR(150),
+                                            id_user VARCHAR(30),
+                                            access_hash VARCHAR (100),
+                                            username VARCHAR (100),
+                                            first_name VARCHAR (100),
+                                            last_name VARCHAR (100),
+                                            join_time TIMESTAMP,
+                                            is_bot BOOLEAN,
+                                            mutual_contact BOOLEAN
+                                            );"""
+                            )
+            query_check = f"""SELECT * FROM followers_statistics 
+                            WHERE channel='{channel}' AND id_user='{id_user}'"""
+            with self.con:
+                cur.execute(query_check)
+                r = cur.fetchall()
+            if not r:
+                pass
+                if join_time:
+                    new_participant = f"""INSERT INTO followers_statistics
+                                    (channel, id_user, access_hash, username, first_name,
+                                    last_name, join_time, is_bot, mutual_contact)
+                                    VALUES ('{channel}', '{id_user}', '{access_hash}', '{username}', '{first_name}',
+                                    '{last_name}', '{join_time}', {is_bot}, {mutual_contact});"""
+                else:
+                    new_participant = f"""INSERT INTO followers_statistics
+                                                        (channel, id_user, access_hash, username, first_name,
+                                                        last_name, is_bot, mutual_contact)
+                                                        VALUES ('{channel}', '{id_user}', '{access_hash}', '{username}', '{first_name}',
+                                                        '{last_name}', {is_bot}, {mutual_contact});"""
+
+                with self.con:
+                    cur.execute(new_participant)
+                    print(f'{id_user} in {channel} was writed')
+            else:
+                print(f'{id_user} in {channel} exists already')
+
     def try_and_delete_after(self):
         a = 'Mother"s fucker'
         b = f"Mother's fucker 2"

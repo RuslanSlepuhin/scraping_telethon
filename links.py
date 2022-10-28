@@ -83,7 +83,7 @@ list_links = [
     'https://t.me/jobforphp',
     'https://t.me/ux_ui_belarus',
     'https://t.me/theyseeku',
-    'https://t.me/young&junior',
+    # 'https://t.me/young&junior',
     'https://t.me/job_react',
     'https://t.me/job_javadevs',
     'https://t.me/job_python',

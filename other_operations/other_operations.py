@@ -27,7 +27,7 @@ def show_all_tables():
 
 def delete_tables(tables_delete=None):
     if not tables_delete:
-        tables_delete = ['pattern_product']
+        tables_delete = ['followers_statistics',]
 
     for i in tables_delete:
         DataBaseOperations(None).delete_table(i)
@@ -211,7 +211,10 @@ def send_fulls(time_start=None):
 # for i in response:
 #     print(f'{i[4]}')
 # send_fulls()
-delete_since()
+# delete_tables(['followers_statistics'])
+# response = DataBaseOperations(None).get_all_from_db('followers_statistics', without_sort=True)
+# for i in response:
+#     print(i[1], i[2])
 # response = DataBaseOperations(None).get_all_from_db('current_session', without_sort=True)
 # for i in response:
 #     print(f'{i}\n')

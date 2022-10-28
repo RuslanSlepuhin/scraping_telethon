@@ -280,8 +280,12 @@ class WriteToDbMessages():
                 all_participants.extend(participants.users)
                 offset_user += len(participants.users)
 
+                print('len(all_participants = ', len(all_participants))
+                print('pause 2-5 sec')
+                time.sleep(random.randrange(1, 3))
+
             all_users_details = []  # список словарей с интересующими параметрами участников канала
-            channel_name = f'@{channel.username} | {channel.title}'
+            # channel_name = f'@{channel.username} | {channel.title}'
             for participant in all_participants:
 
                 print(f'\n{participant.id}\n{participant.access_hash}')
@@ -295,12 +299,12 @@ class WriteToDbMessages():
                                           'last_name': last_name,
                                           'user': participant.username,
                                           'phone': participant.phone,
-                                          'is_bot': participant.bot_aiogram})
+                                          'is_bot': participant.bot})
 
             print('Numbers of followers = ', len(all_users_details))
 
             #--------------запись в файл------------
-            file_name = channel.username
+            file_name = channel.split('/')[-1]
 
             for i in all_users_details:
                 print(i)
@@ -314,7 +318,7 @@ class WriteToDbMessages():
 
             df = pd.DataFrame(
                 {
-                'from channel': channel_name,
+                'from channel': channel,
                 'id_participant': j1,
                 'access_hash': j2,
                 'username': j3,
@@ -721,15 +725,19 @@ class WriteToDbMessages():
     async def main_start(self, list_links, limit_msg, action):
         print('main_start')
         self.last_id_agregator = await self.get_last_id_agregator()+1
-        pass
-        for url in list_links:
-            await self.dump_all_messages(url, limit_msg)  # creative resolve the problem of a wait seconds
+        if action == 'get_message':
+            for url in list_links:
+                await self.dump_all_messages(url, limit_msg)  # creative resolve the problem of a wait seconds
+        elif action == 'get_participants':
+            # list_links=['https://t.me/young_june',]
+            for url in list_links:
+                await self.dump_all_participants(url)
 
     async def start(self, limit_msg, action):
         print('start')
         await self.main_start(list_links, limit_msg, action)
 
-async def main(client, bot_dict):
+async def main(client, bot_dict, action='get_message'):
     get_messages = WriteToDbMessages(client, bot_dict)
-    await get_messages.start(limit_msg=10, action='get_message')  #get_participants get_message
+    await get_messages.start(limit_msg=10, action=action)  #get_participants get_message
 
