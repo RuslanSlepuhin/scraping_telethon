@@ -24,8 +24,8 @@ config = configparser.ConfigParser()
 config.read("./settings/config.ini")
 
 #--------------------------- забираем значения из config.ini-------------------------------
-api_id = config['Ruslan']['api_id']
-api_hash = config['Ruslan']['api_hash']
+# api_id = config['Ruslan']['api_id']
+# api_hash = config['Ruslan']['api_hash']
 
 quant = 1  # счетчик вывода количества запушенных в базу сообщений (для контроля в консоли)
 
@@ -240,18 +240,6 @@ class WriteToDbMessages():
 
     def __init__(self, client, bot_dict):
 
-        #if client is empty
-        if not client:
-            client = TelegramClient('ruslanslepuhin2', int(api_id), api_hash)
-            self.client = client
-            self.client.start()
-        else:
-            self.client = client
-            if not self.client.is_connected():
-                self.client.start()
-                print('client needed to connect')
-            else:
-                print('client is on connection')
         self.client = client
         self.bot_dict = bot_dict
         self.last_id_agregator = 0
