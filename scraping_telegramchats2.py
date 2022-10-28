@@ -742,8 +742,8 @@ class WriteToDbMessages():
     async def main_start(self, list_links, limit_msg, action):
 
         print('main_start')
-        self.last_id_agregator = 0
-        # self.last_id_agregator = await self.get_last_id_agregator()+1
+        # self.last_id_agregator = 0
+        self.last_id_agregator = await self.get_last_id_agregator()+1
 
         if action == 'get_message':
             for url in list_links:
