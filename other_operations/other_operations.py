@@ -1,7 +1,7 @@
 
 from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
 from db_operations.scraping_db import DataBaseOperations
-from scraping_telegramchats2 import WriteToDbMessages
+# from scraping_telegramchats2 import WriteToDbMessages
 
 def delete_since():
     """
@@ -139,7 +139,6 @@ def get_double_records():
 
             counter += 1
 
-
 def send_fulls(time_start=None):
 
     current_session = DataBaseOperations(None).get_all_from_db(
@@ -185,7 +184,9 @@ def send_fulls(time_start=None):
         pass
         response_from_db = DataBaseOperations(None).push_to_bd(results_dict, profession_list, agregator_id=145)
 
-
+def change_column(list_table_name):
+    db=DataBaseOperations(None)
+    db.change_type_column(list_table_name=list_table_name)
 # response = DataBaseOperations(None).get_all_from_db('qa', param="WHERE vacancy <> ''")
 # for i in range(len(response)-1, len(response)):
 #     print('chat_name = ', response[i][1])
@@ -207,6 +208,7 @@ def send_fulls(time_start=None):
 #     print('contacts = ', response[i][17])
 #     print('session = ', response[i][18])
 
-response = DataBaseOperations(None).get_all_from_db('users', without_sort=True)
-for i in response:
-    print(i)
+t = ['marketing', 'ba', 'game', 'product', 'mobile', 'admin_last_session',
+                                      'pm', 'sales_manager', 'analyst', 'frontend',
+                                      'designer', 'devops', 'hr', 'backend', 'qa', 'junior']
+change_column(t)
