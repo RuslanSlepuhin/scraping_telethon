@@ -940,3 +940,20 @@ class DataBaseOperations:
                 print(f"Didn't write the user to db. Reason: {e}")
         else:
             print('user exists')
+
+    def change_type_column(self, list_table_name):
+
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+
+        for table_name in list_table_name:
+            query_for_change_type = f"""ALTER TABLE {table_name} ALTER COLUMN title VARCHAR(4096)"""
+            with self.con:
+                try:
+                    cur.execute(query_for_change_type)
+                    print(f'changed title in {table_name}')
+                except Exception as e:
+                    priint(f"title in {table_name} didn't change for reason {e}")
+
+
