@@ -34,7 +34,7 @@ config = configparser.ConfigParser()
 config.read("./settings/config.ini")
 api_id = config['Ruslan']['api_id']
 api_hash = config['Ruslan']['api_hash']
-username = '137336064a'
+username = '137336064'
 username_test = 'test_ruslan'
 token = config['Token']['token']
 token_test = config['Test2Token']['token']
