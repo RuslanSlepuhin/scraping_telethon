@@ -34,7 +34,7 @@ config = configparser.ConfigParser()
 config.read("./settings/config.ini")
 api_id = config['Ruslan']['api_id']
 api_hash = config['Ruslan']['api_hash']
-username = '137336064'
+username = '137336064a'
 username_test = 'test_ruslan'
 token = config['Token']['token']
 token_test = config['Test2Token']['token']
@@ -54,7 +54,7 @@ con = None
 print(f'Bot started at {datetime.now()}')
 
 client = TelegramClient(username, int(api_id), api_hash)
-client.connect()
+client.start()
 logs.write_log(f'\n------------------ restart --------------------')
 
 class InviteBot:
