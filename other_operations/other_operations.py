@@ -3,13 +3,21 @@ from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
 from db_operations.scraping_db import DataBaseOperations
 # from scraping_telegramchats2 import WriteToDbMessages
 
-def delete_since():
+def delete_since(tables_list=None, ids_list=None, param=None):
     """
     delete records since time in params in tables in list[]
     """
-    for i in ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'analyst', 'mobile', 'qa', 'hr', 'game',
-              'ba', 'marketing', 'junior', 'sales_manager', 'no_sort', 'admin_last_session']:
-        DataBaseOperations(None).delete_data(table_name=i, param="WHERE created_at > '2022-10-25 06:00:00'")
+
+    if not tables_list:
+        tables_list = ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'analyst', 'mobile', 'qa', 'hr', 'game',
+              'ba', 'marketing', 'junior', 'sales_manager', 'no_sort', 'admin_last_session']
+    for i in tables_list:
+        if not ids_list:
+            DataBaseOperations(None).delete_data(table_name=i, param=param)
+        else:
+            for id in ids_list:
+                DataBaseOperations(None).delete_data(table_name=i, param=f"WHERE id={id}")
+                print(f'Was deleted id={id} from {i}')
 
 
 def write_pattern_to_db():
@@ -208,7 +216,19 @@ def change_column(list_table_name):
 #     print('contacts = ', response[i][17])
 #     print('session = ', response[i][18])
 
-t = ['marketing', 'ba', 'game', 'product', 'mobile', 'admin_last_session',
+t = ['marketing', 'ba', 'game', 'product', 'mobile',
                                       'pm', 'sales_manager', 'analyst', 'frontend',
                                       'designer', 'devops', 'hr', 'backend', 'qa', 'junior']
-change_column(t)
+# change_column(t)
+# param=''
+# param="WHERE session='20221029141533'"
+# n = 0
+# for i in t:
+#     response = DataBaseOperations(None).get_all_from_db(i, param=param)
+#     for i in response:
+#         print(i)
+#         n += 1
+#     print(len(response))
+# print('So ', n)
+# ids = [1430, 1431, 1420, 1424, 1426, 1423, 1427, 1428, 1422, 1421, 1429, 1425]
+delete_since(tables_list=t, param="WHERE session='20221029141533'")
