@@ -283,6 +283,46 @@ class InviteBot:
             short_digest = ''
             response = []
 
+            if callback.data == 'choose_one_channel':  # compose keyboard for each profession
+                self.markup = InlineKeyboardMarkup(row_width=4)
+                butt_ = InlineKeyboardButton('Показать сводку по собранным сообщениям',
+                                                callback_data='show_info_last_records')
+
+                button_marketing = InlineKeyboardButton('marketing', callback_data='//marketing')
+                button_ba = InlineKeyboardButton('ba', callback_data='//ba')
+                button_game = InlineKeyboardButton('game', callback_data='//game')
+                button_product = InlineKeyboardButton('product', callback_data='//product')
+                button_mobile = InlineKeyboardButton('mobile', callback_data='//mobile')
+                button_pm = InlineKeyboardButton('pm', callback_data='//m')
+                button_sales_manager = InlineKeyboardButton('sales_manager', callback_data='//sales_manager')
+                button_designer = InlineKeyboardButton('designer', callback_data='//designer')
+                button_devops = InlineKeyboardButton('devops', callback_data='//devops')
+                button_hr = InlineKeyboardButton('hr', callback_data='//hr')
+                button_backend = InlineKeyboardButton('backend', callback_data='//backend')
+                button_frontend = InlineKeyboardButton('frontend', callback_data='//frontend')
+                button_qa = InlineKeyboardButton('qa', callback_data='//qa')
+                button_junior = InlineKeyboardButton('junior', callback_data='//junior')
+
+                self.markup.row(button_marketing, button_ba, button_game, button_product)
+                self.markup.row(button_mobile, button_pm, button_sales_manager, button_designer)
+                self.markup.row(button_devops, button_hr, button_backend, button_frontend)
+                self.markup.row(button_qa, button_junior)
+
+                await bot_aiogram.send_message(callback.message.chat.id, 'Choose the channel', reply_markup=self.markup)
+                pass
+
+            if callback.data[2:] in self.valid_profession_list:
+                logs.write_log(f"invite_bot_2: Callback: one_of_profession {callback.data}")
+                if not self.current_session:
+                    self.current_session = await get_last_session()
+                await WriteToDbMessages(
+                    client,
+                    bot_dict={'bot': bot_aiogram,
+                              'chat_id': callback.message.chat.id}).get_last_and_tgpublic_shorts(
+                    current_session=self.current_session,
+                    shorts=False, fulls_all=True, one_profession=callback.data)  # get from profession's tables and put to tg channels
+                pass
+
             if callback.data == 'show_info_last_records':
                 msg = await bot_aiogram.send_message(callback.message.chat.id, 'Please wait a few seconds ...')
 
@@ -304,9 +344,15 @@ class InviteBot:
                     result_dict['last_session'][value] = 0
 
                 for message in messages:
-                    for value in self.valid_profession_list:
-                        if value in message[4].split(','):
-                            result_dict['last_session'][value] += 1
+                    professions = message[4].split(',')
+                    for pro in professions:
+                        pro = pro.strip()
+                        if pro in self.valid_profession_list:
+                            result_dict['last_session'][pro] += 1
+
+                #     for value in self.valid_profession_list:
+                #         if value in message[4].split(','):
+                #             result_dict['last_session'][value] += 1
 
                 # --------- compose data from all unapproved sessions --------------
                 messages = DataBaseOperations(None).get_all_from_db('admin_last_session')
@@ -314,18 +360,25 @@ class InviteBot:
                 for value in self.valid_profession_list:
                     result_dict['all'][value] = 0
 
-                n = 0
                 for message in messages:
-                    if message[4]:
-                        print(n, message[0], message[2][0:30], message[4])
-                        n += 1
-                        for value in self.valid_profession_list:
-                            try:
-                                if value in message[4].split(','):
-                                    result_dict['all'][value] += 1
-                            except Exception as e:
-                                print('message[4] = ', message[4], 'id = ', message[0], 'title = ', message[2])
-                                pass
+                    professions = message[4].split(',')
+                    for pro in professions:
+                        pro = pro.strip()
+                        if pro in self.valid_profession_list:
+                            result_dict['all'][pro] += 1
+
+                # n = 0
+                # for message in messages:
+                #     if message[4]:
+                #         print(n, message[0], message[2][0:30], message[4])
+                #         n += 1
+                #         for value in self.valid_profession_list:
+                #             try:
+                #                 if value in message[4].split(','):
+                #                     result_dict['all'][value] += 1
+                #             except Exception as e:
+                #                 print('message[4] = ', message[4], 'id = ', message[0], 'title = ', message[2])
+                #                 pass
 
                 # ------------ compose message to output ------------------
 
@@ -608,13 +661,16 @@ class InviteBot:
                     logs.write_log(f"invite_bot_2: content_types: Digest")
 
                     self.markup = InlineKeyboardMarkup(row_width=1)
-                    but_show = InlineKeyboardButton('Показать сводку по собранным сообщениям', callback_data='show_info_last_records')
-                    # but_download_excel = InlineKeyboardButton('Выгрузить excel для внесения правок', callback_data='download_excel')
-                    but_send_digest_full = InlineKeyboardButton('Разлить по каналам fulls посл сессию', callback_data='send_digest_full')
-                    but_send_digest_full_all = InlineKeyboardButton('Разлить по каналам fulls всё', callback_data='send_digest_full_all')
-                    # but_send_digest_shorts = InlineKeyboardButton('Разлить по каналам shorts', callback_data='send_digest_shorts')
-                    self.markup.add(but_show, but_send_digest_full, but_send_digest_full_all)
-                    # self.markup.add(but_download_excel, but_send_digest_shorts)
+                    but_show = InlineKeyboardButton('Показать сводку',
+                                                    callback_data='show_info_last_records')
+                    but_send_digest_full = InlineKeyboardButton('Разлить fulls посл сессию',
+                                                                callback_data='send_digest_full')
+                    but_send_digest_full_all = InlineKeyboardButton('Разлить fulls всё',
+                                                                    callback_data='send_digest_full_all')
+                    but_separate_channel = InlineKeyboardButton('Залить в 1 канал',
+                                                                callback_data='choose_one_channel')
+                    self.markup.row(but_show, but_send_digest_full)
+                    self.markup.row(but_send_digest_full_all, but_separate_channel)
 
                     time_start = await get_time_start()
                     await bot_aiogram.send_message(

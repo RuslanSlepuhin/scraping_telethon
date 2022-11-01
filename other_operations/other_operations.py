@@ -219,16 +219,13 @@ def change_column(list_table_name):
 t = ['marketing', 'ba', 'game', 'product', 'mobile',
                                       'pm', 'sales_manager', 'analyst', 'frontend',
                                       'designer', 'devops', 'hr', 'backend', 'qa', 'junior']
-# change_column(t)
-# param=''
-# param="WHERE session='20221029141533'"
-# n = 0
-# for i in t:
-#     response = DataBaseOperations(None).get_all_from_db(i, param=param)
-#     for i in response:
-#         print(i)
-#         n += 1
-#     print(len(response))
-# print('So ', n)
-# ids = [1430, 1431, 1420, 1424, 1426, 1423, 1427, 1428, 1422, 1421, 1429, 1425]
-delete_since(tables_list=t, param="WHERE session='20221029141533'")
+# request = DataBaseOperations(None).get_all_from_db('admin_last_session', param="WHERE id=5107", without_sort=True)
+#
+# for i in request:
+#     print(i)
+
+request = DataBaseOperations(None).get_all_from_db('admin_last_session', param="WHERE profession='backend'", without_sort=True)
+for i in request:
+    print(i)
+
+# DataBaseOperations(None).add_columns_to_tables()
