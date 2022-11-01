@@ -242,7 +242,7 @@ class DataBaseOperations:
         else:
             query = f"""SELECT {field} FROM {table_name} {param} """
 
-        # print('query = ', query)
+        print('query = ', query)
 
         with self.con:
             cur.execute(query)
@@ -540,11 +540,12 @@ class DataBaseOperations:
             self.connect_db()
         cur = self.con.cursor()
 
-        for i in ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'analyst',
-                                    'fullstack', 'mobile', 'qa', 'hr', 'game', 'ba', 'marketing', 'junior',
-                                    'sales_manager', 'middle', 'senior']:
+        # for i in ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'analyst',
+        #                             'fullstack', 'mobile', 'qa', 'hr', 'game', 'ba', 'marketing', 'junior',
+        #                             'sales_manager', 'middle', 'senior']:
+        for i in ['admin_last_session',]:
 
-            query = f"""ALTER TABLE {i} ADD COLUMN agregator_link VARCHAR(200)"""
+            query = f"""ALTER TABLE {i} ADD COLUMN sended_to_agregator VARCHAR(30)"""
             with self.con:
                 cur.execute(query)
                 print(f'Added agr_link to {i}')
@@ -746,6 +747,7 @@ class DataBaseOperations:
                             created_at TIMESTAMP,
                             agregator_link VARCHAR(200),
                             session VARCHAR(15),
+                            sended_to_agregator VARCHAR(30),
                             FOREIGN KEY (session) REFERENCES current_session(session)
                             );"""
                         )
@@ -753,6 +755,8 @@ class DataBaseOperations:
             self.con.commit()
 
     def push_to_admin_table(self, results_dict, profession):
+
+        check_does_it_exist = []
 
         logs.write_log(f"scraping_db: function: push_to_admin_table")
 
@@ -762,20 +766,32 @@ class DataBaseOperations:
         self.check_or_create_table_admin(cur)
         pro = ''
 
-        for i in profession['profession']:
-            pro += f'{i}, '
-        results_dict['profession'] = pro[0:-2]
         results_dict['title'] = results_dict['title'].replace('\'', '\"')
         results_dict['body'] = results_dict['body'].replace('\'', '\"')
         results_dict['company'] = results_dict['company'].replace('\'', '\"')
 
-        # check message for exists
+        for i in profession['profession']:
+            pro += f'{i}, '
+
+            #m---- get response from each prof tables and let True if exists and False if don't ---------
+            response = self.get_all_from_db(
+                table_name=i,
+                param=f"WHERE title='{results_dict['title']}' AND body='{results_dict['body']}'"
+            )
+            if response:
+                check_does_it_exist.append(True)
+            else:
+                check_does_it_exist.append(False)
+
+        results_dict['profession'] = pro[0:-2]
+
+        # check message for exists in admin table
         query_check = f"SELECT * FROM admin_last_session WHERE title='{results_dict['title']}' AND body = '{results_dict['body']}'"
         with self.con:
             cur.execute(query_check)
             r = cur.fetchall()
 
-        if not r:
+        if not r and False in check_does_it_exist:
 
             new_post = f"""INSERT INTO admin_last_session (
                         chat_name, title, body, profession, vacancy, vacancy_url, company, english, relocation, job_type, 
@@ -954,6 +970,6 @@ class DataBaseOperations:
                     cur.execute(query_for_change_type)
                     print(f'changed title in {table_name}')
                 except Exception as e:
-                    priint(f"title in {table_name} didn't change for reason {e}")
+                    print(f"title in {table_name} didn't change for reason {e}")
 
 
