@@ -391,7 +391,7 @@ class WriteToDbMessages():
         # 1) choose all records with one_profession
         response_messages = DataBaseOperations(None).get_all_from_db('admin_last_session', param=param)
         await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], f"There are {len(response_messages)} vacancies")
-        self.message = await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], f'process {self.percent}%')
+        self.message = await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], f'progress {self.percent}%')
         n = 0
         for message in response_messages:
             n += 1
@@ -523,7 +523,7 @@ class WriteToDbMessages():
         if check > self.percent:
             quantity = check // 5
             self.percent = check
-            self.message = await self.bot_dict['bot'].edit_message_text(f"process {'|'* quantity} {self.percent}%", self.bot_dict['chat_id'], self.message.message_id)
+            self.message = await self.bot_dict['bot'].edit_message_text(f"progress {'|'* quantity} {self.percent}%", self.bot_dict['chat_id'], self.message.message_id)
 
 
 
