@@ -525,9 +525,6 @@ class WriteToDbMessages():
             self.percent = check
             self.message = await self.bot_dict['bot'].edit_message_text(f"progress {'|'* quantity} {self.percent}%", self.bot_dict['chat_id'], self.message.message_id)
 
-
-
-
     async def clear_not_valid_professions(self, profession):
 
         logs.write_log(f"scraping_telethon2: function: clear_not_valid_professions")

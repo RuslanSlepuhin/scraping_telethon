@@ -19,10 +19,10 @@ from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMar
 from telethon import events
 from telethon.sync import TelegramClient
 from telethon.tl import functions
-from telethon.tl.functions.channels import GetParticipantRequest, GetParticipantsRequest
+from telethon.tl.functions.channels import GetParticipantRequest, GetParticipantsRequest, DeleteMessagesRequest
 from telethon.tl.functions.messages import GetHistoryRequest
 from telethon.tl.types import InputPeerChannel, InputPeerUser, InputUser, PeerUser, InputChannel, MessageService, \
-    ChannelParticipantsSearch
+    ChannelParticipantsSearch, PeerChannel
 from db_operations.scraping_db import DataBaseOperations
 from links import list_links
 from scraping_telegramchats2 import WriteToDbMessages, main
@@ -77,6 +77,7 @@ class InviteBot:
         self.hash_phone: str
         self.code: str
         self.password: ''
+        self.peerchannel = False
 
     def main_invitebot(self):
         async def connect_with_client(message, id_user):
@@ -121,7 +122,7 @@ class InviteBot:
             code = State()
             password = State()
 
-        @dp.message_handler(commands=['start', 'help'])
+        @dp.message_handler(commands=['start'])
         async def send_welcome(message: types.Message):
 
             global phone_number, password, con
@@ -143,10 +144,26 @@ class InviteBot:
             await bot_aiogram.send_message(message.chat.id, f'Привет, {message.from_user.first_name}!', reply_markup=parsing_kb)
             await bot_aiogram.send_message(137336064, f'Start user {message.from_user.id}')
 
+        @dp.message_handler(commands=['help'])
+        async def get_logs(message: types.Message):
+            await bot_aiogram.send_message(message.chat.id, '/log or /logs - get custom logs (useful for developer\n'
+                                                            '/refresh_pattern - to get the modify pattern from DB\n'
+                                                            '/peerchannel - useful for a developer to get id channel')
+
         @dp.message_handler(commands=['logs', 'log'])
         async def get_logs(message: types.Message):
             path = './logs/logs.txt'
             await send_file_to_user(message, path)
+
+        @dp.message_handler(commands=['peerchannel'])
+        async def get_logs(message: types.Message):
+            await bot_aiogram.send_message(message.chat.id, 'Type the channel link and get channel data')
+            self.peerchannel = True
+
+        @dp.message_handler(commands=['refresh_pattern'])
+        async def get_logs(message: types.Message):
+            path = './patterns/pattern_test.py'
+            await refresh_pattern(path)
 
 
         # Возможность отмены, если пользователь передумал заполнять
@@ -283,30 +300,96 @@ class InviteBot:
             short_digest = ''
             response = []
 
+            if callback.data == 'go_by_admin':
+                # make the keyboard with all professions
+                self.markup = await compose_inline_keyboard(prefix='admin')
+                await bot_aiogram.send_message(callback.message.chat.id, 'choose the channel for vacancy checking', reply_markup=self.markup)
+
+            if callback.data[0:5] == 'admin':
+                # to get last message_id
+                last_admin_channel_id = await get_last_admin_channel_id(callback.message)
+                print(last_admin_channel_id)
+
+                profession = callback.data[5:]
+                response = DataBaseOperations(None).get_all_from_db(table_name='admin_last_session', param=f"WHERE profession LIKE '{profession}'")
+                if response:
+
+                    for i in response:
+                        print(i)
+
+                    for vacancy in response:
+                        composed_message_dict = await compose_message(message=vacancy, one_profession=profession)
+                        composed_message_dict['id_admin_channel'] = last_admin_channel_id + 1
+                        composed_message_dict['it_was_sending_to_agregator'] = vacancy[19]
+
+                        await bot_aiogram.send_message(config['My_channels']['admin_channel'], composed_message_dict['composed_message'], parse_mode='html')
+                        last_admin_channel_id += 1
+                        await asyncio.sleep(random.randrange(1, 3))
+                        # write to temporary DB (admin_temporary) id_admin_message and id in db admin_last_session
+                        DataBaseOperations(None).push_to_admin_temporary(composed_message_dict)
+
+                        # to say the customer about finish
+                    markup = InlineKeyboardMarkup()
+                    button = InlineKeyboardButton(f'PUSH to {profession.title()}', callback_data=f'PUSH to {profession}')
+                    markup.add(button)
+                    await bot_aiogram.send_message(callback.message.chat.id, f'{profession.title()} in the Admin channel\n'
+                                                                             f'When you will ready, will press button PUSH',
+                                                   reply_markup=markup)
+
+                    pass
+                else:
+                    await bot_aiogram.send_message(callback.message.chat.id, f'There are have not any vacancies in {profession}\n'
+                                                                             f'Please choose others', reply_markup=self.markup)
+
+            if callback.data[:4] == 'PUSH':
+                profession = callback.data[8:]
+                history_messages = await get_admin_history_messages(callback.message)
+
+                for vacancy in history_messages:
+                    print('push vacancy')
+                    response = DataBaseOperations(None).get_all_from_db('admin_temporary', param=f"WHERE id_admin_channel='{vacancy['id']}'", without_sort=True)
+                    # aaa = response[0][3]
+                    # if response[0][3] == 'None':
+                    print('push vacancy in agregator')
+                    await bot_aiogram.send_message(int(config['My_channels']['agregator_channel']), vacancy['message'])
+
+                        # DataBaseOperations(None).run_free_request(request=f"""UPDATE admin_last_session SET sended_to_agregator='{id_last_agregator}' WHERE id_admin_channel={vacancy['id']}"""")
+                        # UPDATE sended_to_agregator in admin_temporary
+                    print('push vacancy in channel')
+                    await bot_aiogram.send_message(int(config['My_channels'][f'{profession}_channel']), vacancy['message'])
+
+                    print('delete vacancy')
+                    await client.delete_messages(int(config['My_channels']['admin_channel']), vacancy['id'])
+
+                DataBaseOperations(None).drop_profession_in_admin_db(profession)
+                # get db_id and drop profession at admin_last_session
+
+
+                pass
+
             if callback.data == 'choose_one_channel':  # compose keyboard for each profession
-                self.markup = InlineKeyboardMarkup(row_width=4)
-                butt_ = InlineKeyboardButton('Показать сводку по собранным сообщениям',
-                                                callback_data='show_info_last_records')
 
-                button_marketing = InlineKeyboardButton('marketing', callback_data='//marketing')
-                button_ba = InlineKeyboardButton('ba', callback_data='//ba')
-                button_game = InlineKeyboardButton('game', callback_data='//game')
-                button_product = InlineKeyboardButton('product', callback_data='//product')
-                button_mobile = InlineKeyboardButton('mobile', callback_data='//mobile')
-                button_pm = InlineKeyboardButton('pm', callback_data='//m')
-                button_sales_manager = InlineKeyboardButton('sales_manager', callback_data='//sales_manager')
-                button_designer = InlineKeyboardButton('designer', callback_data='//designer')
-                button_devops = InlineKeyboardButton('devops', callback_data='//devops')
-                button_hr = InlineKeyboardButton('hr', callback_data='//hr')
-                button_backend = InlineKeyboardButton('backend', callback_data='//backend')
-                button_frontend = InlineKeyboardButton('frontend', callback_data='//frontend')
-                button_qa = InlineKeyboardButton('qa', callback_data='//qa')
-                button_junior = InlineKeyboardButton('junior', callback_data='//junior')
-
-                self.markup.row(button_marketing, button_ba, button_game, button_product)
-                self.markup.row(button_mobile, button_pm, button_sales_manager, button_designer)
-                self.markup.row(button_devops, button_hr, button_backend, button_frontend)
-                self.markup.row(button_qa, button_junior)
+                self.markup = await compose_inline_keyboard(prefix='//')
+                # self.markup = InlineKeyboardMarkup(row_width=4)
+                # button_marketing = InlineKeyboardButton('marketing', callback_data='//marketing')
+                # button_ba = InlineKeyboardButton('ba', callback_data='//ba')
+                # button_game = InlineKeyboardButton('game', callback_data='//game')
+                # button_product = InlineKeyboardButton('product', callback_data='//product')
+                # button_mobile = InlineKeyboardButton('mobile', callback_data='//mobile')
+                # button_pm = InlineKeyboardButton('pm', callback_data='//m')
+                # button_sales_manager = InlineKeyboardButton('sales_manager', callback_data='//sales_manager')
+                # button_designer = InlineKeyboardButton('designer', callback_data='//designer')
+                # button_devops = InlineKeyboardButton('devops', callback_data='//devops')
+                # button_hr = InlineKeyboardButton('hr', callback_data='//hr')
+                # button_backend = InlineKeyboardButton('backend', callback_data='//backend')
+                # button_frontend = InlineKeyboardButton('frontend', callback_data='//frontend')
+                # button_qa = InlineKeyboardButton('qa', callback_data='//qa')
+                # button_junior = InlineKeyboardButton('junior', callback_data='//junior')
+                #
+                # self.markup.row(button_marketing, button_ba, button_game, button_product)
+                # self.markup.row(button_mobile, button_pm, button_sales_manager, button_designer)
+                # self.markup.row(button_devops, button_hr, button_backend, button_frontend)
+                # self.markup.row(button_qa, button_junior)
 
                 await bot_aiogram.send_message(callback.message.chat.id, 'Choose the channel', reply_markup=self.markup)
                 pass
@@ -403,6 +486,7 @@ class InviteBot:
                 logs.write_log(f"invite_bot_2: Callback: download_excel")
 
                 pass
+
             if callback.data == 'send_digest_full_all':
                 logs.write_log(f"invite_bot_2: Callback: send_digest_full_aalll")
                 if not self.current_session:
@@ -448,6 +532,10 @@ class InviteBot:
             channel_to_send = None
             user_to_send = []
             msg = None
+            if self.peerchannel:
+                data = await client.get_entity(message.text)
+                await bot_aiogram.send_message(message.chat.id, data)
+                self.peerchannel = False
 
             if marker:
 
@@ -669,8 +757,11 @@ class InviteBot:
                                                                     callback_data='send_digest_full_all')
                     but_separate_channel = InlineKeyboardButton('Залить в 1 канал',
                                                                 callback_data='choose_one_channel')
+                    but_do_by_admin = InlineKeyboardButton('Go by admin',
+                                                                callback_data='go_by_admin')
                     self.markup.row(but_show, but_send_digest_full)
                     self.markup.row(but_send_digest_full_all, but_separate_channel)
+                    self.markup.add(but_do_by_admin)
 
                     time_start = await get_time_start()
                     await bot_aiogram.send_message(
@@ -1083,6 +1174,184 @@ class InviteBot:
             for value in current_session:
                 last_session = value[0]
             return last_session
+
+        async def refresh_pattern(path):
+            pattern = "pattern = " + "{\n"
+            response = DataBaseOperations(None).get_all_from_db('pattern', without_sort=True)
+            for i in response:
+                print(i)
+                pattern += f'{i}\n'
+            with open(path, mode='w', encoding='utf-8') as f:
+                f.write(pattern)
+            pass
+
+        async def compose_inline_keyboard(prefix=None):
+            markup = InlineKeyboardMarkup(row_width=4)
+            button_marketing = InlineKeyboardButton('marketing', callback_data=f'{prefix}marketing')
+            button_ba = InlineKeyboardButton('ba', callback_data=f'{prefix}ba')
+            button_game = InlineKeyboardButton('game', callback_data=f'{prefix}game')
+            button_product = InlineKeyboardButton('product', callback_data=f'{prefix}product')
+            button_mobile = InlineKeyboardButton('mobile', callback_data=f'{prefix}/mobile')
+            button_pm = InlineKeyboardButton('pm', callback_data=f'{prefix}pm')
+            button_sales_manager = InlineKeyboardButton('sales_manager', callback_data=f'{prefix}sales_manager')
+            button_designer = InlineKeyboardButton('designer', callback_data=f'{prefix}designer')
+            button_devops = InlineKeyboardButton('devops', callback_data=f'{prefix}devops')
+            button_hr = InlineKeyboardButton('hr', callback_data=f'{prefix}hr')
+            button_backend = InlineKeyboardButton('backend', callback_data=f'{prefix}backend')
+            button_frontend = InlineKeyboardButton('frontend', callback_data=f'{prefix}frontend')
+            button_qa = InlineKeyboardButton('qa', callback_data=f'{prefix}qa')
+            button_junior = InlineKeyboardButton('junior', callback_data=f'{prefix}junior')
+            markup.row(button_marketing, button_ba, button_game, button_product)
+            markup.row(button_mobile, button_pm, button_sales_manager, button_designer)
+            markup.row(button_devops, button_hr, button_backend, button_frontend)
+            markup.row(button_qa, button_junior)
+            return markup
+
+        async def compose_message(message, one_profession):
+            profession_list = {}
+            results_dict = {}
+            profession_amount = []
+            if message[4]:
+                profession_list['profession'] = []
+                print(message[4])
+                if ',' in message[4]:
+                    pro = message[4].split(',')
+                else:
+                    pro = [message[4]]
+
+                for i in pro:
+                    profession_list['profession'].append(i.strip())
+
+                if one_profession:
+                    professions_amount = profession_list['profession']  # count how much of professions
+                    profession_list['profession'] = [one_profession, ]  # rewrite list if one_profession
+
+                results_dict['chat_name'] = message[1]
+                results_dict['title'] = message[2]
+                results_dict['body'] = message[3]
+                results_dict['profession'] = message[4]
+                results_dict['vacancy'] = message[5]
+                results_dict['vacancy_url'] = message[6]
+                results_dict['company'] = message[7]
+                results_dict['english'] = message[8]
+                results_dict['relocation'] = message[9]
+                results_dict['job_type'] = message[10]
+                results_dict['city'] = message[11]
+                results_dict['salary'] = message[12]
+                results_dict['experience'] = message[13]
+                results_dict['contacts'] = message[14]
+                results_dict['time_of_public'] = message[15]
+                results_dict['created_at'] = message[16]
+                results_dict['agregator_link'] = message[17]
+                results_dict['session'] = message[18]
+                sended_to_agregator = message[19]
+
+                # compose message_to_send
+                message_to_send = ''
+                if results_dict['vacancy']:
+                    message_to_send += f"<b>Вакансия:</b> {results_dict['vacancy']}\n"
+                if results_dict['company']:
+                    message_to_send += f"<b>Компания:</b> {results_dict['company']}\n"
+                if results_dict['english']:
+                    message_to_send += f"<b>Английский:</b> {results_dict['english']}\n"
+                if results_dict['relocation']:
+                    message_to_send += f"<b>Релокация:</b> {results_dict['relocation']}\n"
+                if results_dict['job_type']:
+                    message_to_send += f"<b>Тип работы:</b> {results_dict['job_type']}\n"
+                if results_dict['city']:
+                    message_to_send += f"<b>Город/страна:</b> {results_dict['city']}\n"
+                if results_dict['salary']:
+                    message_to_send += f"<b>Зарплата:</b> {results_dict['salary']}\n"
+                if results_dict['experience']:
+                    message_to_send += f"<b>Опыт работы:</b> {results_dict['experience']}\n"
+                if results_dict['contacts']:
+                    message_to_send += f"<b>Контакты:</b> {results_dict['contacts']}\n"
+                elif results_dict['vacancy_url']:
+                    message_to_send += f"<b>Ссылка на вакансию:</b> {results_dict['vacancy_url']}\n\n"
+
+                message_to_send += f"{results_dict['title']}\n"
+                message_to_send += results_dict['body']
+
+                if len(message_to_send) > 4096:
+                    message_to_send = message_to_send[0:4092] + '...'
+
+                return {'composed_message': message_to_send, 'db_id': message[0]}
+
+        async def get_last_admin_channel_id(message):
+            await bot_aiogram.send_message(config['My_channels']['admin_channel'], 'test')
+            await asyncio.sleep(1)
+            logs.write_log(f"scraping_telethon2: function: get_last_id_agregator")
+
+            peer = await client.get_entity(int(config['My_channels']['admin_channel']))
+            history_argegator = await client(GetHistoryRequest(
+                peer=peer,
+                offset_id=0,
+                offset_date=None, add_offset=0,
+                limit=1, max_id=0, min_id=0,
+                hash=0))
+            last_admin_channel_id = history_argegator.messages[0].id
+            print('last_admin_channel_id = ', last_admin_channel_id)
+            await asyncio.sleep(1)
+
+            # delete this test message
+            # channel = InputPeerChannel(peer.id, peer.access_hash)
+            channel = PeerChannel(peer.id)
+            await client.delete_messages(channel, last_admin_channel_id)
+
+            return last_admin_channel_id
+
+        async def get_admin_history_messages(message):
+            logs.write_log(f"scraping_telethon2: function: get_admin_history_messages")
+
+            print('get_admin_history_messages')
+            offset_msg = 0  # номер записи, с которой начинается считывание
+            # limit_msg = 1   # максимальное число записей, передаваемых за один раз
+            limit_msg = 100
+            all_messages = []  # список всех сообщений
+            total_messages = 0
+            total_count_limit = limit_msg  # значение 0 = все сообщения
+            history = None
+
+            peer = await client.get_entity(int(config['My_channels']['admin_channel']))
+            await asyncio.sleep(2)
+            channel = PeerChannel(peer.id)
+            # while True:
+            try:
+                history = await client(GetHistoryRequest(
+                    peer=channel,
+                    offset_id=offset_msg,
+                    offset_date=None, add_offset=0,
+                    limit=limit_msg, max_id=0, min_id=0,
+                    hash=0))
+            except Exception as e:
+                await bot_aiogram.send_message(
+                    message.chat.id,
+                    f"Getting history:\n{str(e)}: {channel}\npause 25-30 seconds...",
+                    parse_mode="HTML",
+                    disable_web_page_preview=True)
+                time.sleep(2)
+
+            # if not history.messages:
+            if not history:
+                print(f'Not history for channel {channel}')
+                await bot_aiogram.send_message(message.chat.id, f'Not history for channel {channel}')
+                # break
+            messages = history.messages
+            for message in messages:
+                if not message.message:  # если сообщение пустое, например "Александр теперь в группе"
+                    pass
+                else:
+                    all_messages.append(message.to_dict())
+
+            return all_messages
+            # offset_msg = messages[len(messages) - 1].id
+            # total_messages = len(all_messages)
+            # if total_count_limit != 0 and total_messages >= total_count_limit:
+            #     break
+            #
+            # await self.process_messages(channel, all_messages)
+            # print('pause 25-35 sec.')
+            # time.sleep(random.randrange(15, 20))
 
         executor.start_polling(dp, skip_updates=True)
 
