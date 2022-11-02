@@ -352,14 +352,16 @@ class InviteBot:
                     # if response[0][3] == 'None':
                     print('push vacancy in agregator')
                     await bot_aiogram.send_message(int(config['My_channels']['agregator_channel']), vacancy['message'])
-
+                    await asyncio.sleep(random.randrange(1, 3))
                         # DataBaseOperations(None).run_free_request(request=f"""UPDATE admin_last_session SET sended_to_agregator='{id_last_agregator}' WHERE id_admin_channel={vacancy['id']}"""")
                         # UPDATE sended_to_agregator in admin_temporary
                     print('push vacancy in channel')
                     await bot_aiogram.send_message(int(config['My_channels'][f'{profession}_channel']), vacancy['message'])
+                    await asyncio.sleep(random.randrange(1, 3))
 
                     print('delete vacancy')
                     await client.delete_messages(int(config['My_channels']['admin_channel']), vacancy['id'])
+                    await asyncio.sleep(random.randrange(1, 3))
 
                 DataBaseOperations(None).drop_profession_in_admin_db(profession)
                 # get db_id and drop profession at admin_last_session
