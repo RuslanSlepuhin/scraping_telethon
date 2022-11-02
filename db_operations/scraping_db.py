@@ -635,7 +635,7 @@ class DataBaseOperations:
                 print(e)
             pass
 
-    def write_pattern_new(self, table_name, tag, value):
+    def write_pattern_new(self, key, ma, mex, value, table_name='pattern'):
 
         logs.write_log(f"scraping_db: function: write_pattern_new")
 
@@ -644,23 +644,28 @@ class DataBaseOperations:
         cur = self.con.cursor()
         query = f"""CREATE TABLE IF NOT EXISTS {table_name} (
                     id SERIAL PRIMARY KEY,
-                    tag VARCHAR(70),
-                    value VARCHAR(100)
+                    key VARCHAR(100),
+                    ma BOOLEAN,
+                    mex BOOLEAN,
+                    value VARCHAR(250)
                     );"""
         with self.con:
             cur.execute(query)
 
-        query = f"""SELECT * FROM {table_name} WHERE tag='{tag}' AND value='{value}'"""
+        query = f"""SELECT * FROM {table_name} WHERE key='{key}' AND value='{value}' AND ma={ma} AND mex={mex}"""
         with self.con:
             cur.execute(query)
+
         if not cur.fetchall():
-            query = f"""INSERT INTO {table_name} (tag, value) VALUES ('{tag}', '{value}')"""
+            query = f"""INSERT INTO {table_name} (key, ma, mex, value) VALUES ('{key}', {ma}, {mex}, '{value}')"""
             with self.con:
                 try:
                     cur.execute(query)
-                    print(f'add to {table_name} tag {tag} value {value}')
+                    print(f'add to {table_name} key {key} ma {ma} mex {mex} value {value}')
                 except Exception as e:
                     print('error', e)
+        else:
+            print(f'exists key {key} ma {ma} mex {mex} value {value}')
 
     def write_pattern2(self, table_name, values):
 

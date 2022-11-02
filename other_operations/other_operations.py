@@ -23,12 +23,19 @@ def delete_since(tables_list=None, ids_list=None, param=None):
 def write_pattern_to_db():
     from patterns.pattern_Alex2809 import pattern
 
-    for tag in pattern:
-        for ma_or_mex in pattern[tag]:
-            for value in pattern[tag][ma_or_mex]:
-                DataBaseOperations(None).write_pattern_new(table_name=ma_or_mex, tag=tag, value=value)
+    for key in pattern:
+        for ma_or_mex in pattern[key]:
+            if ma_or_mex == 'ma':
+                ma = True
+                mex = False
+            else:
+                ma = False
+                mex = True
 
-        pass
+            for value in pattern[key][ma_or_mex]:
+                DataBaseOperations(None).write_pattern_new(key=key, ma=ma, mex=mex, value=value)
+                pass
+            pass
 
 def show_all_tables():
     DataBaseOperations(None).output_tables()
@@ -216,16 +223,11 @@ def change_column(list_table_name):
 #     print('contacts = ', response[i][17])
 #     print('session = ', response[i][18])
 
-t = ['marketing', 'ba', 'game', 'product', 'mobile',
-                                      'pm', 'sales_manager', 'analyst', 'frontend',
-                                      'designer', 'devops', 'hr', 'backend', 'qa', 'junior']
-# request = DataBaseOperations(None).get_all_from_db('admin_last_session', param="WHERE id=5107", without_sort=True)
-#
-# for i in request:
-#     print(i)
+# t = ['marketing', 'ba', 'game', 'product', 'mobile',
+#                                       'pm', 'sales_manager', 'analyst', 'frontend',
+#                                       'designer', 'devops', 'hr', 'backend', 'qa', 'junior']
 
-request = DataBaseOperations(None).get_all_from_db('admin_last_session', param="WHERE profession='backend'", without_sort=True)
-for i in request:
+# write_pattern_to_db()
+response = DataBaseOperations(None).get_all_from_db(table_name='pattern', without_sort=True)
+for i in response:
     print(i)
-
-# DataBaseOperations(None).add_columns_to_tables()
