@@ -19,10 +19,10 @@ from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMar
 from telethon import events
 from telethon.sync import TelegramClient
 from telethon.tl import functions
-from telethon.tl.functions.channels import GetParticipantRequest, GetParticipantsRequest
+from telethon.tl.functions.channels import GetParticipantRequest, GetParticipantsRequest, DeleteMessagesRequest
 from telethon.tl.functions.messages import GetHistoryRequest
 from telethon.tl.types import InputPeerChannel, InputPeerUser, InputUser, PeerUser, InputChannel, MessageService, \
-    ChannelParticipantsSearch
+    ChannelParticipantsSearch, PeerChannel
 from db_operations.scraping_db import DataBaseOperations
 from links import list_links
 from scraping_telegramchats2 import WriteToDbMessages, main
@@ -306,29 +306,66 @@ class InviteBot:
                 await bot_aiogram.send_message(callback.message.chat.id, 'choose the channel for vacancy checking', reply_markup=self.markup)
 
             if callback.data[0:5] == 'admin':
+                # to get last message_id
+                last_admin_channel_id = await get_last_admin_channel_id(callback.message)
+                print(last_admin_channel_id)
+
                 profession = callback.data[5:]
-                response = DataBaseOperations(None).get_all_from_db(table_name='admin_last_session', param=f"WHERE profession LIKE '%{profession}%'")
+                response = DataBaseOperations(None).get_all_from_db(table_name='admin_last_session', param=f"WHERE profession LIKE '{profession}'")
+                if response:
 
-                for vacancy in response:
+                    for i in response:
+                        print(i)
 
-                    # to get last message_id
-                    last_admin_channel_id = await get_last_admin_channel_id(callback.message)
+                    for vacancy in response:
+                        composed_message_dict = await compose_message(message=vacancy, one_profession=profession)
+                        composed_message_dict['id_admin_channel'] = last_admin_channel_id + 1
+                        composed_message_dict['it_was_sending_to_agregator'] = vacancy[19]
 
-                    # to
-                    composed_message_dict = await compose_message(message=vacancy, one_profession=profession)
-                    # print(composed_message_dict['composed_message'])
-                    # markup = InlineKeyboardMarkup()
-                    # button_push = InlineKeyboardButton(f'Push to {profession}', callback_data=f"push_{composed_message_dict['db_id']}")
-                    # button_delete = InlineKeyboardButton(f'Delete', callback_data=f"delete_{composed_message_dict['db_id']}")
-                    # markup.row(button_push, button_delete)
-                    # await bot_aiogram.send_message(config['My_channels']['admin_channel'], composed_message_dict['composed_message'], parse_mode='html', reply_markup=markup)
-                    # composed_message_dict['message_id'] = callback.message.message_id
+                        await bot_aiogram.send_message(config['My_channels']['admin_channel'], composed_message_dict['composed_message'], parse_mode='html')
+                        last_admin_channel_id += 1
+                        await asyncio.sleep(random.randrange(1, 3))
+                        # write to temporary DB (admin_temporary) id_admin_message and id in db admin_last_session
+                        DataBaseOperations(None).push_to_admin_temporary(composed_message_dict)
 
-                    await bot_aiogram.send_message(config['My_channels']['admin_channel'], composed_message_dict['composed_message'], parse_mode='html')
-
-
+                        # to say the customer about finish
+                    markup = InlineKeyboardMarkup()
+                    button = InlineKeyboardButton(f'PUSH to {profession.title()}', callback_data=f'PUSH to {profession}')
+                    markup.add(button)
+                    await bot_aiogram.send_message(callback.message.chat.id, f'{profession.title()} in the Admin channel\n'
+                                                                             f'When you will ready, will press button PUSH',
+                                                   reply_markup=markup)
 
                     pass
+                else:
+                    await bot_aiogram.send_message(callback.message.chat.id, f'There are have not any vacancies in {profession}\n'
+                                                                             f'Please choose others', reply_markup=self.markup)
+
+            if callback.data[:4] == 'PUSH':
+                profession = callback.data[8:]
+                history_messages = await get_admin_history_messages(callback.message)
+
+                for vacancy in history_messages:
+                    print('push vacancy')
+                    response = DataBaseOperations(None).get_all_from_db('admin_temporary', param=f"WHERE id_admin_channel='{vacancy['id']}'", without_sort=True)
+                    # aaa = response[0][3]
+                    # if response[0][3] == 'None':
+                    print('push vacancy in agregator')
+                    await bot_aiogram.send_message(int(config['My_channels']['agregator_channel']), vacancy['message'])
+
+                        # DataBaseOperations(None).run_free_request(request=f"""UPDATE admin_last_session SET sended_to_agregator='{id_last_agregator}' WHERE id_admin_channel={vacancy['id']}"""")
+                        # UPDATE sended_to_agregator in admin_temporary
+                    print('push vacancy in channel')
+                    await bot_aiogram.send_message(int(config['My_channels'][f'{profession}_channel']), vacancy['message'])
+
+                    print('delete vacancy')
+                    await client.delete_messages(int(config['My_channels']['admin_channel']), vacancy['id'])
+
+                DataBaseOperations(None).drop_profession_in_admin_db(profession)
+                # get db_id and drop profession at admin_last_session
+
+
+                pass
 
             if callback.data == 'choose_one_channel':  # compose keyboard for each profession
 
@@ -449,6 +486,7 @@ class InviteBot:
                 logs.write_log(f"invite_bot_2: Callback: download_excel")
 
                 pass
+
             if callback.data == 'send_digest_full_all':
                 logs.write_log(f"invite_bot_2: Callback: send_digest_full_aalll")
                 if not self.current_session:
@@ -1240,21 +1278,80 @@ class InviteBot:
                 return {'composed_message': message_to_send, 'db_id': message[0]}
 
         async def get_last_admin_channel_id(message):
-            await bot_aiogram.send_message(message.chat.id, 'test')
-
+            await bot_aiogram.send_message(config['My_channels']['admin_channel'], 'test')
+            await asyncio.sleep(1)
             logs.write_log(f"scraping_telethon2: function: get_last_id_agregator")
 
+            peer = await client.get_entity(int(config['My_channels']['admin_channel']))
             history_argegator = await client(GetHistoryRequest(
-                peer=config['My_channels']['admin_channel'],
+                peer=peer,
                 offset_id=0,
                 offset_date=None, add_offset=0,
                 limit=1, max_id=0, min_id=0,
                 hash=0))
             last_admin_channel_id = history_argegator.messages[0].id
-            print('last id in agregator = ', )
+            print('last_admin_channel_id = ', last_admin_channel_id)
+            await asyncio.sleep(1)
 
             # delete this test message
+            # channel = InputPeerChannel(peer.id, peer.access_hash)
+            channel = PeerChannel(peer.id)
+            await client.delete_messages(channel, last_admin_channel_id)
+
             return last_admin_channel_id
+
+        async def get_admin_history_messages(message):
+            logs.write_log(f"scraping_telethon2: function: get_admin_history_messages")
+
+            print('get_admin_history_messages')
+            offset_msg = 0  # номер записи, с которой начинается считывание
+            # limit_msg = 1   # максимальное число записей, передаваемых за один раз
+            limit_msg = 100
+            all_messages = []  # список всех сообщений
+            total_messages = 0
+            total_count_limit = limit_msg  # значение 0 = все сообщения
+            history = None
+
+            peer = await client.get_entity(int(config['My_channels']['admin_channel']))
+            await asyncio.sleep(2)
+            channel = PeerChannel(peer.id)
+            # while True:
+            try:
+                history = await client(GetHistoryRequest(
+                    peer=channel,
+                    offset_id=offset_msg,
+                    offset_date=None, add_offset=0,
+                    limit=limit_msg, max_id=0, min_id=0,
+                    hash=0))
+            except Exception as e:
+                await bot_aiogram.send_message(
+                    message.chat.id,
+                    f"Getting history:\n{str(e)}: {channel}\npause 25-30 seconds...",
+                    parse_mode="HTML",
+                    disable_web_page_preview=True)
+                time.sleep(2)
+
+            # if not history.messages:
+            if not history:
+                print(f'Not history for channel {channel}')
+                await bot_aiogram.send_message(message.chat.id, f'Not history for channel {channel}')
+                # break
+            messages = history.messages
+            for message in messages:
+                if not message.message:  # если сообщение пустое, например "Александр теперь в группе"
+                    pass
+                else:
+                    all_messages.append(message.to_dict())
+
+            return all_messages
+            # offset_msg = messages[len(messages) - 1].id
+            # total_messages = len(all_messages)
+            # if total_count_limit != 0 and total_messages >= total_count_limit:
+            #     break
+            #
+            # await self.process_messages(channel, all_messages)
+            # print('pause 25-35 sec.')
+            # time.sleep(random.randrange(15, 20))
 
         executor.start_polling(dp, skip_updates=True)
 

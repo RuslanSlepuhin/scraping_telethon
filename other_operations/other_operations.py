@@ -19,7 +19,6 @@ def delete_since(tables_list=None, ids_list=None, param=None):
                 DataBaseOperations(None).delete_data(table_name=i, param=f"WHERE id={id}")
                 print(f'Was deleted id={id} from {i}')
 
-
 def write_pattern_to_db():
     from patterns.pattern_Alex2809 import pattern
 
@@ -41,8 +40,8 @@ def show_all_tables():
     DataBaseOperations(None).output_tables()
 
 def delete_tables(tables_delete=None):
-    if not tables_delete:
-        tables_delete = ['followers_statistics',]
+    # if not tables_delete:
+    #     tables_delete = ['followers_statistics',]
 
     for i in tables_delete:
         DataBaseOperations(None).delete_table(i)
@@ -54,9 +53,11 @@ def show_all():
         print(i)
 
 def append_columns():
-    DataBaseOperations(None).append_columns(
-        ['marketing', 'ba', 'game', 'product', 'mobile', 'pm', 'sales_manager', 'analyst', 'frontend', 'designer',
-         'devops', 'hr', 'backend', 'qa', 'junior'], column='session VARCHAR(15)')
+    DataBaseOperations(None).append_columns(['admin_temporary',], column='sended_to_agregator VARCHAR(30)')
+
+    # DataBaseOperations(None).append_columns(
+    #     ['marketing', 'ba', 'game', 'product', 'mobile', 'pm', 'sales_manager', 'analyst', 'frontend', 'designer',
+    #      'devops', 'hr', 'backend', 'qa', 'junior'], column='session VARCHAR(15)')
         # "current_session VARCHAR(15)\nFOREIGN KEY(current_session) \nPREFERENCES current_session(session) ON DELETE CASCADE")
     pass
 
@@ -202,6 +203,7 @@ def send_fulls(time_start=None):
 def change_column(list_table_name):
     db=DataBaseOperations(None)
     db.change_type_column(list_table_name=list_table_name)
+
 # response = DataBaseOperations(None).get_all_from_db('qa', param="WHERE vacancy <> ''")
 # for i in range(len(response)-1, len(response)):
 #     print('chat_name = ', response[i][1])
@@ -228,6 +230,8 @@ def change_column(list_table_name):
 #                                       'designer', 'devops', 'hr', 'backend', 'qa', 'junior']
 
 # write_pattern_to_db()
-response = DataBaseOperations(None).get_all_from_db(table_name='pattern', without_sort=True)
-for i in response:
-    print(i)
+delete_tables(tables_delete=['admin_temporary',])
+# response = DataBaseOperations(None).get_all_from_db(table_name='admin_temporary', without_sort=True)
+# for i in response:
+#     print(i)
+# append_columns()

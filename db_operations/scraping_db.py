@@ -817,7 +817,6 @@ class DataBaseOperations:
         else:
             print(f'!!!!!!!!!!! Message exists in admin_last_session\n')
 
-
     def push_followers_statistics(self, channel_statistic_dict:dict):
 
         logs.write_log(f"scraping_db: function: push_followers_statistics")
@@ -911,7 +910,6 @@ class DataBaseOperations:
             except Exception as e:
                 print(f'Error ', e)
 
-
     def add_password_to_user(self, id, password):
 
         logs.write_log(f"scraping_db: function: add_password_to_user")
@@ -977,4 +975,92 @@ class DataBaseOperations:
                 except Exception as e:
                     print(f"title in {table_name} didn't change for reason {e}")
 
+    def check_admin_temporary(self, cur):
+        with self.con:
 
+            cur.execute(f"""CREATE TABLE IF NOT EXISTS admin_temporary (
+                            id SERIAL PRIMARY KEY,
+                            id_admin_channel VARCHAR(20),
+                            id_admin_last_session_table VARCHAR(20),
+                            sended_to_agregator VARCHAR(30)
+                            );"""
+                        )
+
+    def push_to_admin_temporary(self, composed_message_dict):
+
+        logs.write_log(f"scraping_db: function: push_to_admin_temporary")
+
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+        self.check_admin_temporary(cur)
+
+        id_admin_channel = composed_message_dict['id_admin_channel']
+        id_admin_last_session_table = composed_message_dict['db_id']
+        it_was_sending_to_agregator = composed_message_dict['it_was_sending_to_agregator']
+
+        query_check = f"""SELECT * FROM admin_temporary 
+                WHERE id_admin_channel='{id_admin_channel}' 
+                AND id_admin_last_session_table = '{id_admin_last_session_table}'"""
+
+        with self.con:
+            cur.execute(query_check)
+
+        if not cur.fetchall():
+
+            query = f"""INSERT INTO admin_temporary (id_admin_channel, id_admin_last_session_table, sended_to_agregator)
+                        VALUES ('{id_admin_channel}', '{id_admin_last_session_table}', '{it_was_sending_to_agregator}')"""
+
+            with self.con:
+                try:
+                    cur.execute(query)
+                    print(f'Writed to admin_temporary {id_admin_channel}-{id_admin_last_session_table}-{it_was_sending_to_agregator}')
+                except Exception as e:
+                    print('Error in admin_temporary ', e)
+
+        else:
+            print('Record exists in admin_temporary')
+
+        pass
+
+    def drop_profession_in_admin_db(self, drop_profession):
+        current_id_agregator = ''
+        query2 = ''
+        response_admin_temporary = self.get_all_from_db('admin_temporary', without_sort=True)
+        for item in response_admin_temporary:
+            new_profession = ''
+            id_db = item[2]
+            query = f"""SELECT profession FROM admin_last_session WHERE id={id_db}"""
+            if not self.con:
+                self.connect_db()
+            cur = self.con.cursor()
+            with self.con:
+                cur.execute(query)
+            r = cur.fetchall()
+            if r:
+                professions = r[0][0].split(',')
+                print(professions, len(professions))
+
+                if len(professions)>1:
+                    for i in professions:
+                        i = i.strip()
+                        if i != drop_profession:
+                            new_profession += f'{i}, '
+                    new_profession = new_profession[:-2]
+                    query = f"""UPDATE admin_last_session SET profession='{new_profession}' WHERE id={id_db}"""
+                    query2 = f"""UPDATE admin_last_session SET sended_to_agregator='{current_id_agregator}' WHERE id={id_db}"""
+                else:
+                    query = f"""DELETE FROM admin_last_session WHERE id={id_db}"""
+
+                with self.con:
+                    try:
+                        cur.execute(query)
+                        print('got it')
+                        if query2:
+                            cur.execute(query)
+                            print('got it 2')
+                    except Exception as e:
+                        print('Not changing profession ', e)
+
+        self.delete_table('admin_temporary')
+        pass
