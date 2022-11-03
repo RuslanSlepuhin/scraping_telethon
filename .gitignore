@@ -11,8 +11,10 @@ db.sqlite3
 venv/
 .git/
 .idea/
+settings/config_keys.ini
 
 *.session-journal
+participants/*.xlsx
 
 #migrations
 migrations/

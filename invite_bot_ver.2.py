@@ -32,11 +32,18 @@ logs = Logs()
 
 config = configparser.ConfigParser()
 config.read("./settings/config.ini")
-# api_hash = config['Telegram']['api_hash']
-# username = config['Telegram']['username']
-# username_test = 'test_ruslan'
-# token = config['Token']['token']
-# token_test = config['Test2Token']['token']
+
+api_id = os.getenv('api_id')
+api_hash = os.getenv('api_hash')
+username = os.getenv('username')
+token = os.getenv('token')
+
+# config_keys = configparser.ConfigParser()
+# config_keys.read("./settings/config_keys.ini")
+# api_id = config_keys['Telegram']['api_id']
+# api_hash = config_keys['Telegram']['api_hash']
+# username = config_keys['Telegram']['username']
+# token = config_keys['Token']['token']
 
 logging.basicConfig(level=logging.INFO)
 bot_aiogram = Bot(token=token)
