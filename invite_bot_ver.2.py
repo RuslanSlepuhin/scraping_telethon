@@ -73,8 +73,10 @@ class InviteBot:
                                       'pm', 'sales_manager', 'analyst', 'frontend',
                                       'designer', 'devops', 'hr', 'backend', 'qa', 'junior']
         self.markup = None
-        self.api_id = config['Ruslan']['api_id']
-        self.api_hash = config['Ruslan']['api_hash']
+        # self.api_id = config['Ruslan']['api_id']
+        # self.api_hash = config['Ruslan']['api_hash']
+        self.api_id = api_id
+        self.api_hash = api_hash
         self.current_session = ''
         self.current_customer = None
         self.api_id: int
