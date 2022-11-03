@@ -150,13 +150,14 @@ class InviteBot:
             parsing_kb.add(parsing_button5)
 
             await bot_aiogram.send_message(message.chat.id, f'Привет, {message.from_user.first_name}!', reply_markup=parsing_kb)
-            await bot_aiogram.send_message(137336064, f'Start user {message.from_user.id}')
+            await bot_aiogram.send_message(1763672666, f'User {message.from_user.id} has started')
 
         @dp.message_handler(commands=['help'])
         async def get_logs(message: types.Message):
             await bot_aiogram.send_message(message.chat.id, '/log or /logs - get custom logs (useful for developer\n'
                                                             '/refresh_pattern - to get the modify pattern from DB\n'
-                                                            '/peerchannel - useful for a developer to get id channel')
+                                                            '/peerchannel - useful for a developer to get id channel\n'
+                                                            '/getdata - get channel data')
 
         @dp.message_handler(commands=['logs', 'log'])
         async def get_logs(message: types.Message):
@@ -173,6 +174,9 @@ class InviteBot:
             path = './patterns/pattern_test.py'
             await refresh_pattern(path)
 
+        @dp.message_handler(commands=['/getdata'])
+        async def get_logs(message: types.Message):
+            pass
 
         # Возможность отмены, если пользователь передумал заполнять
         @dp.message_handler(state='*', commands=['cancel', 'start'])
@@ -1288,25 +1292,39 @@ class InviteBot:
                 return {'composed_message': message_to_send, 'db_id': message[0]}
 
         async def get_last_admin_channel_id(message):
-            await bot_aiogram.send_message(config['My_channels']['admin_channel'], 'test')
+            last_admin_channel_id = None
+
+            await bot_aiogram.send_message(config['My_channels']['admin_id'], 'test')
+
             await asyncio.sleep(1)
             logs.write_log(f"scraping_telethon2: function: get_last_id_agregator")
+            try:
+                # peer = PeerChannel(-1001897438132)
+                peer = await client.get_input_entity(config['My_channels']['admin_channel'])
+                # peer = await client.get_entity(int(config['My_channels']['admin_channel']))
+            except Exception as e:
+                # peer = PeerChannel(int(config['My_channels']['admin_channel']))
+                await bot_aiogram.send_message(message.chat.id, f'get_entity error: {e}')
+                peer = PeerChannel(-1001897438132)
 
-            peer = await client.get_entity(int(config['My_channels']['admin_channel']))
-            history_argegator = await client(GetHistoryRequest(
-                peer=peer,
-                offset_id=0,
-                offset_date=None, add_offset=0,
-                limit=1, max_id=0, min_id=0,
-                hash=0))
-            last_admin_channel_id = history_argegator.messages[0].id
-            print('last_admin_channel_id = ', last_admin_channel_id)
-            await asyncio.sleep(1)
 
-            # delete this test message
-            # channel = InputPeerChannel(peer.id, peer.access_hash)
-            channel = PeerChannel(peer.id)
-            await client.delete_messages(channel, last_admin_channel_id)
+            try:
+                history_argegator = await client(GetHistoryRequest(
+                    peer=peer,
+                    offset_id=0,
+                    offset_date=None, add_offset=0,
+                    limit=1, max_id=0, min_id=0,
+                    hash=0))
+                last_admin_channel_id = history_argegator.messages[0].id
+                print('last_admin_channel_id = ', last_admin_channel_id)
+                await asyncio.sleep(1)
+
+                # delete this test message
+                # channel = InputPeerChannel(peer.id, peer.access_hash)
+                channel = PeerChannel(peer.channel_id)
+                await client.delete_messages(channel, last_admin_channel_id)
+            except Exception as e:
+                await bot_aiogram.send_message(message.chat.id, f'for admin channel: {e}')
 
             return last_admin_channel_id
 
@@ -1362,6 +1380,14 @@ class InviteBot:
             # await self.process_messages(channel, all_messages)
             # print('pause 25-35 sec.')
             # time.sleep(random.randrange(15, 20))
+
+        async def get_data(message, url_channel=None, id_channel=None):
+            if url_channel:
+                input_data=url_channel
+            elif id_channel:
+                input_data=id_channel
+            data = await client.get_entity(input_data)
+            await bot_aiogram(message.chat.id, str(data))
 
         executor.start_polling(dp, skip_updates=True)
 
