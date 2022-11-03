@@ -323,7 +323,7 @@ class InviteBot:
                 print(last_admin_channel_id)
 
                 profession = callback.data[5:]
-                response = DataBaseOperations(None).get_all_from_db(table_name='admin_last_session', param=f"WHERE profession LIKE '{profession}'")
+                response = DataBaseOperations(None).get_all_from_db(table_name='admin_last_session', param=f"WHERE profession LIKE '%{profession}'", without_sort=True)
                 if response:
 
                     for i in response:
@@ -1294,13 +1294,13 @@ class InviteBot:
         async def get_last_admin_channel_id(message):
             last_admin_channel_id = None
 
-            await bot_aiogram.send_message(config['My_channels']['admin_id'], 'test')
+            await bot_aiogram.send_message(config['My_channels']['admin_channel'], 'test')
 
             await asyncio.sleep(1)
             logs.write_log(f"scraping_telethon2: function: get_last_id_agregator")
             try:
                 # peer = PeerChannel(-1001897438132)
-                peer = await client.get_input_entity(config['My_channels']['admin_channel'])
+                peer = await client.get_input_entity(config['My_channels']['admin_channel_url'])
                 # peer = await client.get_entity(int(config['My_channels']['admin_channel']))
             except Exception as e:
                 # peer = PeerChannel(int(config['My_channels']['admin_channel']))
