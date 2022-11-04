@@ -569,7 +569,7 @@ class WriteToDbMessages():
 
         print('main_start')
         # self.last_id_agregator = 0
-        self.last_id_agregator = await self.get_last_id_agregator()+1
+        # self.last_id_agregator = await self.get_last_id_agregator()+1
 
         if action == 'get_message':
             for url in list_links:
