@@ -342,6 +342,7 @@ class InviteBot:
                     length = len(response)
                     n = 0
                     self.message = await bot_aiogram.send_message(callback.message.chat.id, f'progress {self.percent}%')
+                    await asyncio.sleep(1)
                     for i in response:
                         print(i)
 
@@ -354,7 +355,7 @@ class InviteBot:
                             await bot_aiogram.send_message(config['My_channels']['admin_channel'], composed_message_dict['composed_message'], parse_mode='html')
                             last_admin_channel_id += 1
                             DataBaseOperations(None).push_to_admin_temporary(composed_message_dict)
-                            await asyncio.sleep(random.randrange(1, 3))
+                            await asyncio.sleep(random.randrange(2, 3))
                         except Exception as e:
                             await bot_aiogram.send_message(callback.message.chat.id, f"It hasn't been pushed to admin_channel : {e}")
                         # write to temporary DB (admin_temporary) id_admin_message and id in db admin_last_session
@@ -369,15 +370,17 @@ class InviteBot:
                     await bot_aiogram.send_message(callback.message.chat.id, f'{profession.title()} in the Admin channel\n'
                                                                              f'When you will ready, will press button PUSH',
                                                    reply_markup=markup)
-
-                    pass
+                    await asyncio.sleep(1)
                 else:
                     await bot_aiogram.send_message(callback.message.chat.id, f'There are have not any vacancies in {profession}\n'
                                                                              f'Please choose others', reply_markup=self.markup)
+                    await asyncio.sleep(1)
 
             if callback.data[:4] == 'PUSH':
                 self.percent = 0
                 self.message = await bot_aiogram.send_message(callback.message.chat.id, f'progress {self.percent}%')
+                await asyncio.sleep(1)
+
                 # Need to get id last message from agregator. To push 'test', get id and delete 'push' from
                 # push 'test'
                 id_agregator_channel = int(config['My_channels']['agregator_channel'])
@@ -487,14 +490,14 @@ class InviteBot:
 
                             if False in response_dict.values():
                                 await bot_aiogram.send_message(int(config['My_channels'][f'{profession}_channel']), vacancy['message'])
-                                await asyncio.sleep(random.randrange(1, 3))
+                                await asyncio.sleep(random.randrange(2, 3))
                             else:
                                 print('It has been got True from db')
 
                         # ---------------- deleting the vacancy from admin_channel ----------------
                             print('\ndelete vacancy\n')
                             await client.delete_messages(int(config['My_channels']['admin_channel']), vacancy['id'])
-                            await asyncio.sleep(random.randrange(1, 3))
+                            await asyncio.sleep(random.randrange(2, 3))
 
                         # ----------------- deleting this vacancy's data from admin_temporary -----------------
                         DataBaseOperations(None).delete_data(
