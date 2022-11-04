@@ -325,6 +325,7 @@ class InviteBot:
                     DataBaseOperations(None).delete_table('admin_temporary')
                 except Exception as e:
                     await bot_aiogram.send_message(callback.message.chat.id, 'The attempt to delete admin_temporary is wrong\n', str(e))
+                    await asyncio.sleep(random.randrange(2, 3))
 
                 all_messages = await get_admin_history_messages(callback.message)
                 for i in all_messages:
@@ -342,7 +343,7 @@ class InviteBot:
                     length = len(response)
                     n = 0
                     self.message = await bot_aiogram.send_message(callback.message.chat.id, f'progress {self.percent}%')
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(random.randrange(2, 3))
                     for i in response:
                         print(i)
 
@@ -358,6 +359,7 @@ class InviteBot:
                             await asyncio.sleep(random.randrange(2, 3))
                         except Exception as e:
                             await bot_aiogram.send_message(callback.message.chat.id, f"It hasn't been pushed to admin_channel : {e}")
+                            await asyncio.sleep(random.randrange(2, 3))
                         # write to temporary DB (admin_temporary) id_admin_message and id in db admin_last_session
 
                         n += 1
@@ -370,21 +372,23 @@ class InviteBot:
                     await bot_aiogram.send_message(callback.message.chat.id, f'{profession.title()} in the Admin channel\n'
                                                                              f'When you will ready, will press button PUSH',
                                                    reply_markup=markup)
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(random.randrange(2, 3))
                 else:
                     await bot_aiogram.send_message(callback.message.chat.id, f'There are have not any vacancies in {profession}\n'
                                                                              f'Please choose others', reply_markup=self.markup)
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(random.randrange(2, 3))
 
             if callback.data[:4] == 'PUSH':
                 self.percent = 0
                 self.message = await bot_aiogram.send_message(callback.message.chat.id, f'progress {self.percent}%')
-                await asyncio.sleep(1)
+                await asyncio.sleep(random.randrange(1, 2))
 
                 # Need to get id last message from agregator. To push 'test', get id and delete 'push' from
                 # push 'test'
                 id_agregator_channel = int(config['My_channels']['agregator_channel'])
                 await bot_aiogram.send_message(int(config['My_channels']['agregator_channel']), 'test')
+                await asyncio.sleep(random.randrange(1, 2))
+
                 wtdb = WriteToDbMessages(
                     client=client,
                     bot_dict=None
@@ -420,6 +424,7 @@ class InviteBot:
                             print('\npush vacancy in agregator\n')
                             print(f"\n{vacancy['message'][0:40]}")
                             await bot_aiogram.send_message(int(config['My_channels']['agregator_channel']), vacancy['message'])
+                            await asyncio.sleep(random.randrange(2, 3))
                             last_id_message_agregator += 1
 
                         # 3. Check one or more profession in this vacancy
@@ -507,6 +512,7 @@ class InviteBot:
                     n += 1
                     await show_progress(callback.message, n, length)
 
+
                 # There are messages, which user deleted in admin. Their profession must be correct (delete current profession)
                 response_admin_temporary = DataBaseOperations(None).get_all_from_db(
                     table_name='admin_temporary',
@@ -517,8 +523,9 @@ class InviteBot:
                 self.percent = 0
                 if response_admin_temporary:
                     await bot_aiogram.send_message(callback.message.chat.id, 'It clears the temporary database')
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(random.randrange(2, 3))
                     self.message = await bot_aiogram.send_message(callback.message.chat.id, f'progress {self.percent}%')
+                    await asyncio.sleep(random.randrange(2, 3))
 
                 for i in response_admin_temporary:
                     id_admin_last_session_table = i[2]
@@ -1615,6 +1622,7 @@ class InviteBot:
                 self.percent = check
                 self.message = await bot_aiogram.edit_message_text(
                     f"progress {'|' * quantity} {self.percent}%", self.message.chat.id, self.message.message_id)
+            await asyncio.sleep(random.randrange(1, 2))
 
         executor.start_polling(dp, skip_updates=True)
 
