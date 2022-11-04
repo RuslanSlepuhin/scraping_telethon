@@ -296,7 +296,12 @@ class DataBaseOperations:
         query = f"""DELETE FROM {table_name} {param}"""
         print('query: ', query)
         with self.con:
-            cur.execute(query)
+            try:
+                cur.execute(query)
+                print(f'got it, delete data from {table_name}')
+            except Exception as e:
+                print(f'didnt delete the data from {table_name}: {e}')
+
 #-----------просто в одну таблицу записать все сообщения без професии, чтобы потом достать, рассортировать и записать в файл ------------------
     def write_to_one_table(self, results_dict):
 
