@@ -1255,7 +1255,7 @@ class InviteBot:
                 msg = await bot_aiogram.edit_message_text(f'{msg.text}\nThere are <b>{i}</b> subscribers in <b>{channel_name}</b>...\n', msg.chat.id, msg.message_id, parse_mode='html')
 
                 print(f'\nsleep 15 sec.')
-                time.sleep(random.randrange(10, 16))
+                time.sleep(random.randrange(3, 6))
 
             # compose dict for push to DB
             channel_statistic_dict = {
