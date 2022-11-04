@@ -37,7 +37,7 @@ api_id = os.getenv('api_id')
 api_hash = os.getenv('api_hash')
 username = os.getenv('username')
 token = os.getenv('token')
-
+#
 # config_keys = configparser.ConfigParser()
 # config_keys.read("./settings/config_keys.ini")
 # api_id = config_keys['Telegram']['api_id']
@@ -1168,7 +1168,7 @@ class InviteBot:
             for channel in ['backend', 'designer', 'frontend', 'devops', 'pm', 'analyst', 'mobile',
                             'qa', 'hr', 'game', 'ba', 'marketing', 'junior', 'sales_manager', 'no_sort',
                             'agregator']:
-
+                marker = False
                 channel_name = channel
                 channel = config['My_channels'][f'{channel}_channel']
 
@@ -1181,81 +1181,85 @@ class InviteBot:
                 # channel = channel[4:]
                 try:
                     channel = await client.get_input_entity(int(channel))
+                    marker = True
                 except:
                     try:
                         channel = channel[4:]
                         channel = await client.get_input_entity(int(channel))
+                        marker = True
                     except Exception as e:
-                        await bot_aiogram.send_message(message.chat.id, 'Have the error ', str(e))
+                        await bot_aiogram.send_message(message.chat.id, f'The error with channel {channel}: {str(e)}')
+                        time.sleep(random.randrange(3, 6))
 
-                participants = await client(GetParticipantsRequest(
-                    channel, filter_user, offset_user, limit_user, hash=0))
+                if marker:
+                    participants = await client(GetParticipantsRequest(
+                        channel, filter_user, offset_user, limit_user, hash=0))
 
-                # for participant in participants.users:
-                #     print(participant)
-                users = {}
-                users['users'] = [i for i in participants.users]
-                users['date'] = [i for i in participants.participants]
-
-
-                for i in range(0, len(users['users'])):
-                    id_user = users['users'][i].id
-                    access_hash = users['users'][i].access_hash
-                    username = users['users'][i].username
-                    first_name = users['users'][i].first_name
-                    last_name = users['users'][i].last_name
-                    try:
-                        join_time = users['date'][i].date
-                    except Exception as e:
-                        join_time = None
-
-                    try:
-                        is_bot = users['users'][i].bot
-                    except Exception:
-                        is_bot = None
-
-                    try:
-                        mutual_contact = users['users'][i].mutual_contact
-                    except Exception:
-                        mutual_contact = None
-
-                    is_admin = False
-                    try:
-                        if users['date'][i].admin_rigths:
-                            is_admin = True
-                    except Exception:
-                        pass
-
-                    print(f"\n{i}")
-                    print('id = ', id_user)
-                    print('access_hash = ', access_hash)
-                    print('username = ', username)
-                    print('first_name = ', first_name)
-                    print('last_name = ', last_name)
-                    print('join_time = ', join_time)
-                    print('is_bot = ', is_bot)
-                    print('mutual_contact = ', mutual_contact)
-                    print('is_admin = ', is_admin)
-
-                    channel_list.append(channel_name)
-                    id_user_list.append(id_user)
-                    access_hash_list.append(access_hash)
-                    username_list.append(username)
-                    first_name_list.append(first_name)
-                    last_name_list.append(last_name)
-                    if join_time:
-                        join_time = join_time.strftime('%d-%m-%Y %H:%M:%S')
-                    join_time_list.append(join_time)
-                    is_bot_list.append(is_bot)
-                    mutual_contact_list.append(mutual_contact)
-                    is_admin_list.append(is_admin)
+                    # for participant in participants.users:
+                    #     print(participant)
+                    users = {}
+                    users['users'] = [i for i in participants.users]
+                    users['date'] = [i for i in participants.participants]
 
 
+                    for i in range(0, len(users['users'])):
+                        id_user = users['users'][i].id
+                        access_hash = users['users'][i].access_hash
+                        username = users['users'][i].username
+                        first_name = users['users'][i].first_name
+                        last_name = users['users'][i].last_name
+                        try:
+                            join_time = users['date'][i].date
+                        except Exception as e:
+                            join_time = None
 
-                msg = await bot_aiogram.edit_message_text(f'{msg.text}\nThere are <b>{i}</b> subscribers in <b>{channel_name}</b>...\n', msg.chat.id, msg.message_id, parse_mode='html')
+                        try:
+                            is_bot = users['users'][i].bot
+                        except Exception:
+                            is_bot = None
 
-                print(f'\nsleep 15 sec.')
-                time.sleep(random.randrange(3, 6))
+                        try:
+                            mutual_contact = users['users'][i].mutual_contact
+                        except Exception:
+                            mutual_contact = None
+
+                        is_admin = False
+                        try:
+                            if users['date'][i].admin_rigths:
+                                is_admin = True
+                        except Exception:
+                            pass
+
+                        print(f"\n{i}")
+                        print('id = ', id_user)
+                        print('access_hash = ', access_hash)
+                        print('username = ', username)
+                        print('first_name = ', first_name)
+                        print('last_name = ', last_name)
+                        print('join_time = ', join_time)
+                        print('is_bot = ', is_bot)
+                        print('mutual_contact = ', mutual_contact)
+                        print('is_admin = ', is_admin)
+
+                        channel_list.append(channel_name)
+                        id_user_list.append(id_user)
+                        access_hash_list.append(access_hash)
+                        username_list.append(username)
+                        first_name_list.append(first_name)
+                        last_name_list.append(last_name)
+                        if join_time:
+                            join_time = join_time.strftime('%d-%m-%Y %H:%M:%S')
+                        join_time_list.append(join_time)
+                        is_bot_list.append(is_bot)
+                        mutual_contact_list.append(mutual_contact)
+                        is_admin_list.append(is_admin)
+
+
+
+                    msg = await bot_aiogram.edit_message_text(f'{msg.text}\nThere are <b>{i}</b> subscribers in <b>{channel_name}</b>...\n', msg.chat.id, msg.message_id, parse_mode='html')
+
+                    print(f'\nsleep...')
+                    time.sleep(random.randrange(3, 6))
 
             # compose dict for push to DB
             channel_statistic_dict = {
