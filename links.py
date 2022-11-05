@@ -2,7 +2,7 @@ list_links = [
     # 'https://t.me/agregator_fake',
     # 'https://t.me/channeloner',
     'https://t.me/fordev',
-    'https://t.me/relocaty_jobs',  # +
+    'https://t.me/relocaty_jobs']  # +
     # 'https://t.me/qa_jobs',  # +
     # 'https://t.me/scala_jobs_feed',
     # 'https://t.me/joinchat/AAAAAEzV8yADoj9hGdvThQ', # подписаться
