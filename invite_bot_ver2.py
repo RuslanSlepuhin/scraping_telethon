@@ -324,8 +324,9 @@ class InviteBot:
                 try:
                     DataBaseOperations(None).delete_table('admin_temporary')
                 except Exception as e:
-                    await bot_aiogram.send_message(callback.message.chat.id, 'The attempt to delete admin_temporary is wrong\n', str(e))
-                    await asyncio.sleep(random.randrange(2, 3))
+                    pass
+                    # await bot_aiogram.send_message(callback.message.chat.id, f'The attempt to delete admin_temporary is wrong\n{str(e)}')
+                    # await asyncio.sleep(random.randrange(2, 3))
 
                 all_messages = await get_admin_history_messages(callback.message)
                 for i in all_messages:
@@ -842,9 +843,9 @@ class InviteBot:
                     await asyncio.sleep(2)
 
         # ---------------------- parsing the sites. List of them will grow ------------------------
-        #             await bot_aiogram.send_message(message.chat.id, 'Парсятся сайты...')
-        #             psites = ParseSites(client=client, bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id})
-        #             await psites.call_sites()  # paes
+                    await bot_aiogram.send_message(message.chat.id, 'Парсятся сайты...')
+                    psites = ParseSites(client=client, bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id})
+                    await psites.call_sites()
                     await bot_aiogram.send_message(message.chat.id, '...прошло успешно, записано в базу. Можно выгрузить кнопкой <b>Digest</b>', parse_mode='html')
 
 

@@ -239,18 +239,18 @@ def change_column(list_table_name):
 # param="WHERE profession LIKE '%ba' OR profession LIKE '%ba,%'"
 # param="WHERE profession LIKE '%backend' OR profession LIKE '%backend,%'"
 # param="WHERE id=4894"
-# param=""
+param=""
 #
 # # param=''
 # # delete_tables(['admin_temporary'])
-# response = DataBaseOperations(None).get_all_from_db(table_name='admin_temporary', param=param, without_sort=True)
-# for i in response:
-#     # print('title = ', i[2])
-#     # print('prof = ', i[4])
-#     # print('id_a = ', i[19])
-#     print(i)
-# print(len(response))
+response = DataBaseOperations(None).get_all_from_db(table_name='admin_temporary', param=param, without_sort=True)
+for i in response:
+    # print('title = ', i[2])
+    # print('prof = ', i[4])
+    # print('id_a = ', i[19])
+    print(i)
+print(len(response))
 
-delete_since(param="WHERE DATE(created_at) > '2022-11-04 09:00:00'")
+# delete_since(param="WHERE DATE(created_at) > '2022-11-04 09:00:00'")
 
 # append_columns()
