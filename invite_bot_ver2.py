@@ -842,9 +842,9 @@ class InviteBot:
                     await asyncio.sleep(2)
 
         # ---------------------- parsing the sites. List of them will grow ------------------------
-                    await bot_aiogram.send_message(message.chat.id, 'Парсятся сайты...')
-                    psites = ParseSites(client=client, bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id})
-                    await psites.call_sites()  # paes
+        #             await bot_aiogram.send_message(message.chat.id, 'Парсятся сайты...')
+        #             psites = ParseSites(client=client, bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id})
+        #             await psites.call_sites()  # paes
                     await bot_aiogram.send_message(message.chat.id, '...прошло успешно, записано в базу. Можно выгрузить кнопкой <b>Digest</b>', parse_mode='html')
 
 
