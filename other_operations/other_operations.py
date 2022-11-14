@@ -1,13 +1,17 @@
+import re
 
 from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
 from db_operations.scraping_db import DataBaseOperations
 # from scraping_telegramchats2 import WriteToDbMessages
+import pandas as pd
 
 def delete_since(tables_list=None, ids_list=None, param=None):
     """
     delete records since time in params in tables in list[]
     """
-
+    """
+    DATE(created_at) > '2022-09-24'
+    """
     if not tables_list:
         tables_list = ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'analyst', 'mobile', 'qa', 'hr', 'game',
               'ba', 'marketing', 'junior', 'sales_manager', 'no_sort', 'admin_last_session']
@@ -204,53 +208,119 @@ def change_column(list_table_name):
     db=DataBaseOperations(None)
     db.change_type_column(list_table_name=list_table_name)
 
-# response = DataBaseOperations(None).get_all_from_db('qa', param="WHERE vacancy <> ''")
-# for i in range(len(response)-1, len(response)):
-#     print('chat_name = ', response[i][1])
-#     print('title = ', response[i][2][0:40])
-#     print('body = ', response[i][3][0:40])
-#     print('profession = ', response[i][4])
-#     print('time_of_public = ', response[i][5])
-#     print('created_at = ', response[i][6])
-#     print('agregator_link = ', response[i][7])
-#     print('vacancy = ', response[i][8])
-#     print('vacancy_url = ', response[i][9])
-#     print('company = ', response[i][10])
-#     print('english = ', response[i][11])
-#     print('relocation = ', response[i][12])
-#     print('job_type = ', response[i][13])
-#     print('city = ', response[i][14])
-#     print('salary = ', response[i][15])
-#     print('experience = ', response[i][16])
-#     print('contacts = ', response[i][17])
-#     print('session = ', response[i][18])
+def check_english():
+    with open('../file.txt', 'r') as f:
+        text = f.read()
 
-# t = ['marketing', 'ba', 'game', 'product', 'mobile',
-#                                       'pm', 'sales_manager', 'analyst', 'frontend',
-#                                       'designer', 'devops', 'hr', 'backend', 'qa', 'junior']
+    from patterns.pattern_Alex2809 import english_pattern
 
-# write_pattern_to_db()
-# delete_tables(tables_delete=['admin_temporary',])
+    for i in text:
+        match = re.findall(english_pattern, i)
+        if match:
+            print('match = ', match)
+        else:
+            print('no match')
 
-# DataBaseOperations(None).run_free_request(
-#     request="UPDATE admin_last_session SET sended_to_agregator='None'"
-# )
-#
-# param="WHERE profession LIKE '%ba' OR profession LIKE '%ba,%'"
-# param="WHERE profession LIKE '%backend' OR profession LIKE '%backend,%'"
-# param="WHERE id=4894"
-param=""
-#
-# # param=''
-# # delete_tables(['admin_temporary'])
-response = DataBaseOperations(None).get_all_from_db(table_name='admin_temporary', param=param, without_sort=True)
+def check_company():
+    profession = 'backend'
+    response = DataBaseOperations(None).get_all_from_db('admin_last_session', without_sort=True)
+    for i in response:
+        # for j in i:
+        #     print('field = ', j)
+        """
+        id SERIAL PRIMARY KEY,
+        chat_name VARCHAR(150),
+        title VARCHAR(1000),
+        body VARCHAR (6000),
+        profession VARCHAR (30),
+        vacancy VARCHAR (700),
+        vacancy_url VARCHAR (150),
+        company VARCHAR (200),
+        english VARCHAR (100),
+        relocation VARCHAR (100),
+        job_type VARCHAR (700),
+        city VARCHAR (150),
+        salary VARCHAR (300),
+        experience VARCHAR (700),
+        contacts VARCHAR (500),
+        time_of_public TIMESTAMP,
+        created_at TIMESTAMP,
+        agregator_link VARCHAR(200),
+        session VARCHAR(15),
+        sended_to_agregator VARCHAR(30),
+        """
+        title = i[2]
+        body = i[3]
+        vacancy = i[5]
+        company = i[7]
+        english = i[8]
+        relocation = i[9]
+        job_type = i[10]
+        city = i[11]
+        sended_to_agregator = i[19]
+
+        prof = AlexSort2809().sort_by_profession_by_Alex(title, body)
+        params = prof['params']
+
+        print("\n it's instance -------------------------------------------------\n")
+
+        message_for_send = ''
+        if vacancy:
+            message_for_send += f"Вакансия1: {vacancy}\n"
+
+        if company:
+            message_for_send += f"Компания1: {company}\n"
+        elif params['company_hiring']:
+            message_for_send += f"Компания2: {params['company_hiring']}\n"
+
+        if city:
+            message_for_send += f"Город/страна1: {company}\n"
+
+        if english:
+            message_for_send += f"English1: {english}\n"
+        elif params['english']:
+            message_for_send += f"English2: {params['english']}\n"
+
+        if job_type:
+            message_for_send += f"Тип работы1: {job_type}\n"
+        elif params['jobs_type']:
+            message_for_send += f"Тип работы2: {params['jobs_type']}\n"
+
+        if relocation:
+            message_for_send += f"Релокация1: {relocation}\n"
+        elif params['relocation']:
+            message_for_send += f"Релокация2: {params['relocation']}\n"
+        if sended_to_agregator and sended_to_agregator != "None":
+            message_for_send += f"https://t.me/it_jobs_agregator/{sended_to_agregator}"
+
+
+        print(message_for_send)
+
+        with open("../excel/shorts", "a", encoding='utf-8') as file:
+            file.write(f"{message_for_send}\n--------------------------------\n")
+
+        pass
+
+def get_companies():
+    response = DataBaseOperations(None).get_all_from_db('companies', without_sort=True)
+    for i in response:
+        print(i)
+
+def nbsp():
+    with open("./../logs/logs_errors.txt", "r", encoding='utf-8') as file:
+        text = file.read()
+        print(text, '\n\n\n')
+        match = re.findall(r'\xa0', text)
+        print('match', match)
+        text = text.replace('\xa0', ' ')
+        print(text)
+
+# delete_since(param="""WHERE DATE(created_at) > '2022-11-13 00:00:00'""")
+
+response = DataBaseOperations(None).get_all_from_db(
+    table_name='admin_last_session',
+    param=None
+)
 for i in response:
-    # print('title = ', i[2])
-    # print('prof = ', i[4])
-    # print('id_a = ', i[19])
-    print(i)
+    print(i[16])
 print(len(response))
-
-# delete_since(param="WHERE DATE(created_at) > '2022-11-04 09:00:00'")
-
-# append_columns()

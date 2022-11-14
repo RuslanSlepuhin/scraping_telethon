@@ -16,6 +16,7 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.utils.markdown import hlink
 from telethon import events
 from telethon.sync import TelegramClient
 from telethon.tl import functions
@@ -24,6 +25,7 @@ from telethon.tl.functions.messages import GetHistoryRequest
 from telethon.tl.types import InputPeerChannel, InputPeerUser, InputUser, PeerUser, InputChannel, MessageService, \
     ChannelParticipantsSearch, PeerChannel
 from db_operations.scraping_db import DataBaseOperations
+from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
 from links import list_links
 from scraping_telegramchats2 import WriteToDbMessages, main
 from sites.parsing_sites_runner import ParseSites
@@ -33,17 +35,17 @@ logs = Logs()
 config = configparser.ConfigParser()
 config.read("./settings/config.ini")
 
-api_id = os.getenv('api_id')
-api_hash = os.getenv('api_hash')
-username = os.getenv('username')
-token = os.getenv('token')
-#
-# config_keys = configparser.ConfigParser()
-# config_keys.read("./settings/config_keys.ini")
-# api_id = config_keys['Telegram']['api_id']
-# api_hash = config_keys['Telegram']['api_hash']
-# username = config_keys['Telegram']['username']
-# token = config_keys['Token']['token']
+# api_id = os.getenv('api_id')
+# api_hash = os.getenv('api_hash')
+# username = os.getenv('username')
+# token = os.getenv('token')
+
+config_keys = configparser.ConfigParser()
+config_keys.read("./settings/config_keys.ini")
+api_id = config_keys['Telegram']['api_id']
+api_hash = config_keys['Telegram']['api_hash']
+username = config_keys['Telegram']['username']
+token = config_keys['Token']['token']
 
 logging.basicConfig(level=logging.INFO)
 bot_aiogram = Bot(token=token)
@@ -88,6 +90,8 @@ class InviteBot:
         self.peerchannel = False
         self.percent = None
         self.message = None
+        self.last_id_message_agregator = None
+        self.message_for_send = ''
 
     def main_invitebot(self):
         async def connect_with_client(message, id_user):
@@ -308,6 +312,21 @@ class InviteBot:
             except Exception as e:
                 await bot_aiogram.send_message(message.chat.id, str(e))
 
+        async def get_id_agregator():
+            # Need to get id last message from agregator. To push 'test', get id and delete 'push' from
+            # push 'test'
+            id_agregator_channel = int(config['My_channels']['agregator_channel'])
+            await bot_aiogram.send_message(int(config['My_channels']['agregator_channel']), 'test')
+            # await asyncio.sleep(random.randrange(1, 2))
+
+            wtdb = WriteToDbMessages(
+                client=client,
+                bot_dict=None
+            )
+            last_id_message_agregator = await wtdb.get_last_id_agregator()
+            await client.delete_messages(id_agregator_channel, last_id_message_agregator)
+
+            return last_id_message_agregator
 
         @dp.callback_query_handler()
         async def catch_callback(callback: types.CallbackQuery):
@@ -321,6 +340,18 @@ class InviteBot:
 
             if callback.data[0:5] == 'admin':
 
+                a='581'
+                message_attempt = "Дайджест\n\n"
+                message_attempt += hlink(title="Подробнее", url="https://t.me/agrerator_channel_fake/251")
+                message_attempt += '\n'
+                message_attempt += 'Еще немного текста\n'
+                message_attempt += hlink(title="Подробнее", url=f"{config['My_channels']['agregator_link']}/{a}")
+                print(message_attempt)
+                await write_to_logs_error(f'Rigth:\n{message_attempt}')
+                await bot_aiogram.send_message(callback.message.chat.id, message_attempt, parse_mode='html', disable_web_page_preview=True)
+
+                pass
+
                 try:
                     DataBaseOperations(None).delete_table('admin_temporary')
                 except Exception as e:
@@ -328,15 +359,16 @@ class InviteBot:
                     # await bot_aiogram.send_message(callback.message.chat.id, f'The attempt to delete admin_temporary is wrong\n{str(e)}')
                     # await asyncio.sleep(random.randrange(2, 3))
 
+                # delete messages for channel will be clean to take new messages
                 all_messages = await get_admin_history_messages(callback.message)
                 for i in all_messages:
                     await client.delete_messages(PeerChannel(int(config['My_channels']['admin_channel'])), i['id'])
 
                 # to get last message_id
                 last_admin_channel_id = await get_last_admin_channel_id(callback.message)
-                print(last_admin_channel_id)
 
-                profession = callback.data[5:]
+
+                profession = callback.data.split('/')[1]
                 param = f"WHERE profession LIKE '%{profession}' OR profession LIKE '%{profession},%'"
                 response = DataBaseOperations(None).get_all_from_db(table_name='admin_last_session', param=param, without_sort=True)
                 if response:
@@ -348,18 +380,29 @@ class InviteBot:
                     for i in response:
                         print(i)
 
+                    # composed_message_dict = {}
                     for vacancy in response:
                         composed_message_dict = await compose_message(message=vacancy, one_profession=profession)
+                        composed_message_dict['id_admin_channel'] = ''
                         composed_message_dict['id_admin_channel'] = last_admin_channel_id + 1
+                        composed_message_dict['it_was_sending_to_agregator'] = ''
                         composed_message_dict['it_was_sending_to_agregator'] = vacancy[19]
 
+                    # it needs the checking. It can be in DB. Do it after is better. At the moment writing ti admin las session. Does not matter to write it if it exists in DB
+
                         try:
-                            await bot_aiogram.send_message(config['My_channels']['admin_channel'], composed_message_dict['composed_message'], parse_mode='html')
+                            # await bot_aiogram.send_message(config['My_channels']['admin_channel'], composed_message_dict['composed_message'], parse_mode='html')
+                            text = f"{vacancy[2]}{vacancy[3]}"
+                            if len(text) > 4096:
+                                text = text[:4093] + '...'
+                            await bot_aiogram.send_message(config['My_channels']['admin_channel'], text, parse_mode='html')
                             last_admin_channel_id += 1
                             DataBaseOperations(None).push_to_admin_temporary(composed_message_dict)
                             await asyncio.sleep(random.randrange(2, 3))
                         except Exception as e:
                             await bot_aiogram.send_message(callback.message.chat.id, f"It hasn't been pushed to admin_channel : {e}")
+                            await write_to_logs_error(
+                                f"It hasn't been pushed to admin_channel\n{e}\n------------\n{vacancy[2]+vacancy[3]}\n-------------\n\n")
                             await asyncio.sleep(random.randrange(2, 3))
                         # write to temporary DB (admin_temporary) id_admin_message and id in db admin_last_session
 
@@ -368,10 +411,12 @@ class InviteBot:
 
                         # to say the customer about finish
                     markup = InlineKeyboardMarkup()
-                    button = InlineKeyboardButton(f'PUSH to {profession.title()}', callback_data=f'PUSH to {profession}')
-                    markup.add(button)
+                    push_full = InlineKeyboardButton(f'PUSH full to {profession.title()}', callback_data=f'PUSH full to {profession}')
+                    button_shorts = InlineKeyboardButton(f'PUSH shorts to {profession.title()}', callback_data=f'PUSH shorts to {profession}')
+
+                    markup.row(push_full, button_shorts)
                     await bot_aiogram.send_message(callback.message.chat.id, f'{profession.title()} in the Admin channel\n'
-                                                                             f'When you will ready, will press button PUSH',
+                                                                             f'When you will ready, press button PUSH',
                                                    reply_markup=markup)
                     await asyncio.sleep(random.randrange(2, 3))
                 else:
@@ -379,177 +424,175 @@ class InviteBot:
                                                                              f'Please choose others', reply_markup=self.markup)
                     await asyncio.sleep(random.randrange(2, 3))
 
-            if callback.data[:4] == 'PUSH':
+
+            if 'PUSH' in callback.data:
+
                 self.percent = 0
                 self.message = await bot_aiogram.send_message(callback.message.chat.id, f'progress {self.percent}%')
                 await asyncio.sleep(random.randrange(1, 2))
 
-                # Need to get id last message from agregator. To push 'test', get id and delete 'push' from
-                # push 'test'
-                id_agregator_channel = int(config['My_channels']['agregator_channel'])
-                await bot_aiogram.send_message(int(config['My_channels']['agregator_channel']), 'test')
-                await asyncio.sleep(random.randrange(1, 2))
 
-                wtdb = WriteToDbMessages(
-                    client=client,
-                    bot_dict=None
-                )
-                last_id_message_agregator = await wtdb.get_last_id_agregator()
-                await client.delete_messages(id_agregator_channel, last_id_message_agregator)
+                self.last_id_message_agregator = await get_id_agregator()
 
-                profession = callback.data[8:]
+                profession = callback.data.split(' ')[-1]
                 history_messages = await get_admin_history_messages(callback.message)
 
+                # self.message_for_send = f'<b>Дайджест вакансий для {profession} за {datetime.now().strftime("%d.%m.%Y")}:</b>\n\n'
+                message_for_send = f'<b>Дайджест вакансий для {profession} за {datetime.now().strftime("%d.%m.%Y")}:</b>\n\n'
                 length = len(history_messages)
                 n=0
                 for vacancy in history_messages:
                     print('\npush vacancy\n')
 
-            # ---------------- all operation with sending to argegator ----------------
-                    #NOTES
-                    # admin_temporary (
-                    # id SERIAL PRIMARY KEY,
-                    # id_admin_channel VARCHAR(20),
-                    # id_admin_last_session_table VARCHAR(20),
-                    # sended_to_agregator VARCHAR(30) )
-
-
-                    # I need to do 3 steps here:
-                    # 1. Make sure that this vacancy hasn't been pushed to agregator yet
-                    # 2. If it hasn't been, push it to
                     response = DataBaseOperations(None).get_all_from_db('admin_temporary',
                                                                         param=f"WHERE id_admin_channel='{vacancy['id']}'",
                                                                         without_sort=True)
                     if response:
-                        if response[0][3] == 'None' or not response[0][3]:
-                            print('\npush vacancy in agregator\n')
-                            print(f"\n{vacancy['message'][0:40]}")
-                            await bot_aiogram.send_message(int(config['My_channels']['agregator_channel']), vacancy['message'])
-                            await asyncio.sleep(random.randrange(2, 3))
-                            last_id_message_agregator += 1
 
-                        # 3. Check one or more profession in this vacancy
+
                         id_admin_last_session_table = int(response[0][2])
-                        response = DataBaseOperations(None).get_all_from_db('admin_last_session',
-                                                                            param=f"WHERE id={id_admin_last_session_table}",
-                                                                            without_sort=True)
-                        if response:
-                            print('id = ', response[0][0])
-                            print('title = ', response[0][2])
-                            print('pro = ', response[0][4])
-                            print('id agreg = ', response[0][19])
+                        vacancy_from_admin = DataBaseOperations(None).get_all_from_db('admin_last_session',
+                                                                                      param=f"WHERE id={id_admin_last_session_table}",
+                                                                                      without_sort=True)
+                        # if vacancy has sent in agregator already, it doesn't push again. And remove profess from profs or drop vacancy if there is profession alone
+                        await push_vacancies_from_admin(
+                            message=callback.message,
+                            vacancy=vacancy,
+                            vacancy_from_admin=vacancy_from_admin,
+                            response=response,
+                            profession=profession,
+                            id_admin_last_session_table=id_admin_last_session_table
+                        )
+                        # # sending to agregator channel
+                        # if response[0][3] == 'None' or not response[0][3]: # response[0][3] indicates message was sended to agregator already
+                        #     print('\npush vacancy in agregator\n')
+                        #     print(f"\n{vacancy['message'][0:40]}")
+                        #
+                        #     # sending the raw message without fields vacancy city etc
+                        #     await bot_aiogram.send_message(int(config['My_channels']['agregator_channel']), vacancy['message'])
+                        #     await asyncio.sleep(random.randrange(2, 3))
+                        #     self.last_id_message_agregator += 1
+                        #
+                        # #     # 3. writing id agregator in vacancy in admin last session because it has been sent to agregator
+                        #     response = DataBaseOperations(None).get_all_from_db('admin_last_session',
+                        #                                                     param=f"WHERE id={id_admin_last_session_table}",
+                        #                                                     without_sort=True)
+                        #     if response:
+                        #         prof_list = response[0][4].split(', ')
+                        #
+                        #         # 4. if one that delete vacancy from admin_last_session
+                        #         await update_vacancy_admin_last_session(
+                        #             profession=profession,
+                        #             prof_list=prof_list,
+                        #             id_admin_last_session_table=id_admin_last_session_table,
+                        #             last_id_message_agregator=self.last_id_message_agregator,
+                        #             update_id_agregator=True)
+                        #     else:
+                        #         await bot_aiogram.send_message(callback.message.chat.id, f"<b>For the developer</b>: Hey, bot didn't find this vacancy in admin_last_session", parse_mode='html')
+                        # --------------------------------- end -------------------------------------
 
-                            prof_list = response[0][4].split(', ')
+                        # await sending_to_prof_channel(vacancy, profession)
+                        # ---------------- sending to prof channel ----------------
+                        pass
 
-                            # 4. if one that delete vacancy from admin_last_session
-                            await delete_from_admin_last(
+                        if "full" in callback.data:
+                        # ---------- the unique operation block for fulls = pushing to prof channel full message ----------
+                            print('push vacancy in channel\n')
+                            print(f"\n{vacancy['message'][0:40]}")
+                            # response_dict = await compose_for_push_to_db(response, profession)
+                            # if False in response_dict.values():
+                            await bot_aiogram.send_message(int(config['My_channels'][f'{profession}_channel']), vacancy['message'])
+                            await asyncio.sleep(random.randrange(2, 3))
+                            # else:
+                            #     print('It has been got True from db')
+                        # ------------------- end of  pushing to prof channel full message -----------------
+                        elif "shorts" in callback.data:
+                            vacancy_from_admin = DataBaseOperations(None).get_all_from_db('admin_last_session',
+                                                                                          param=f"WHERE id={id_admin_last_session_table}",
+                                                                                          without_sort=True)
+                            composed_message_dict={}
+                            composed_message_dict = await compose_message(vacancy_from_admin[0], profession)
+                            message_for_send += f"{composed_message_dict['composed_message']}\n"
+                            prof_list = vacancy_from_admin[0][4].split(',')
+                            await update_vacancy_admin_last_session(
                                 profession=profession,
                                 prof_list=prof_list,
                                 id_admin_last_session_table=id_admin_last_session_table,
-                                last_id_message_agregator=last_id_message_agregator,
-                                update_id_agregator=True)
+                                update_profession=True,
+                                update_id_agregator=False
+                            )
 
-                            # if len_prof_list < 2:
-                            #     DataBaseOperations(None).delete_data(
-                            #         table_name='admin_last_session',
-                            #         param=f"WHERE id={id_admin_last_session_table}"
-                            #     )
-                            # # 5. if more that delete current profession from column profession
-                            # else:
-                            #     new_profession = ''
-                            #     for i in prof_list:
-                            #         if i != profession:
-                            #             new_profession += f'{i}, '
-                            #     new_profession = new_profession[:-2]
-                            #     DataBaseOperations(None).run_free_request(
-                            #         request=f"UPDATE admin_last_session SET profession='{new_profession}' WHERE id={id_admin_last_session_table}"
-                            #     )
-                            #
-                            # # check the changes
-                            #     response_check = DataBaseOperations(None).get_all_from_db(
-                            #         table_name='admin_last_session',
-                            #         param=f"WHERE id={id_admin_last_session_table}",
-                            #         without_sort=True
-                            #     )
-                            #     print('changed profession = ', response_check[0][4])
-                            #
-                            # # 6 Mark vacancy like sended to agregator (write to column sended_to_agregator id_agregator)
-                            #     DataBaseOperations(None).run_free_request(
-                            #         request=f"UPDATE admin_last_session SET sended_to_agregator='{last_id_message_agregator}' WHERE id={id_admin_last_session_table}"
-                            #     )
-                            #
-                            #     # check the changes
-                            #     response_check = DataBaseOperations(None).get_all_from_db(
-                            #         table_name='admin_last_session',
-                            #         param=f"WHERE id={id_admin_last_session_table}",
-                            #         without_sort=True
-                            #     )
-                            #     print('changed id agreg = ', response_check[0][19])
-                            #
-                            # await asyncio.sleep(random.randrange(1, 3))
-                        # ---------------- sending to prof channel ----------------
-                            print('push vacancy in channel\n')
-                            print(f"\n{vacancy['message'][0:40]}")
-
-                            # pushing to profession db
-                            response_dict = await compose_for_push_to_db(response, profession)
-
-                            if False in response_dict.values():
-                                await bot_aiogram.send_message(int(config['My_channels'][f'{profession}_channel']), vacancy['message'])
-                                await asyncio.sleep(random.randrange(2, 3))
-                            else:
-                                print('It has been got True from db')
-
-                        # ---------------- deleting the vacancy from admin_channel ----------------
-                            print('\ndelete vacancy\n')
-                            await client.delete_messages(int(config['My_channels']['admin_channel']), vacancy['id'])
-                            await asyncio.sleep(random.randrange(2, 3))
-
-                        # ----------------- deleting this vacancy's data from admin_temporary -----------------
-                        DataBaseOperations(None).delete_data(
-                            table_name='admin_temporary',
-                            param=f"WHERE id_admin_last_session_table='{id_admin_last_session_table}'"
-                        )
+                        await delete_used_vacancy_from_tg_db(vacancy, id_admin_last_session_table)
+                    # # ------------------- cleaning the areas for the used vacancy  -------------------
+                    #     print('\ndelete vacancy\n')
+                    #     await client.delete_messages(int(config['My_channels']['admin_channel']), vacancy['id'])
+                    #     await asyncio.sleep(random.randrange(2, 3))
+                    #
+                    #     # ----------------- deleting this vacancy's data from admin_temporary -----------------
+                    #     DataBaseOperations(None).delete_data(
+                    #         table_name='admin_temporary',
+                    #         param=f"WHERE id_admin_last_session_table='{id_admin_last_session_table}'"
+                    #     )
+                    # #------------------- end -------------------------
                     n += 1
                     await show_progress(callback.message, n, length)
 
+                if "shorts" in callback.data:
+                    vacancies_list = await cut_message_for_send(message_for_send)
+                    for short in vacancies_list:
+                        try:
+                            await write_to_logs_error(f"Results:\n{short}\n")
+                            await bot_aiogram.send_message(int(config['My_channels'][f'{profession}_channel']), short, parse_mode='html', disable_web_page_preview=True)
+                        except Exception as e:
+                            await bot_aiogram.send_message(callback.message.chat.id, str(e))
+                            pass
 
-                # There are messages, which user deleted in admin. Their profession must be correct (delete current profession)
-                response_admin_temporary = DataBaseOperations(None).get_all_from_db(
-                    table_name='admin_temporary',
-                    without_sort=True
-                )
-                length = len(response_admin_temporary)
-                n = 0
-                self.percent = 0
-                if response_admin_temporary:
-                    await bot_aiogram.send_message(callback.message.chat.id, 'It clears the temporary database')
-                    await asyncio.sleep(random.randrange(2, 3))
-                    self.message = await bot_aiogram.send_message(callback.message.chat.id, f'progress {self.percent}%')
-                    await asyncio.sleep(random.randrange(2, 3))
-
-                for i in response_admin_temporary:
-                    id_admin_last_session_table = i[2]
-                    response_admin_last_session = DataBaseOperations(None).get_all_from_db(
-                        table_name='admin_last_session',
-                        param=f"WHERE id='{id_admin_last_session_table}'",
-                        without_sort=True
-                    )
-                    prof_list = response_admin_last_session[0][4].split(', ')
-                    try:
-                        await delete_from_admin_last(profession, prof_list, id_admin_last_session_table,
-                                                               last_id_message_agregator, update_id_agregator=False)
-                    except Exception as e:
-                        print('error with deleting from admin temporary ', e)
-
-                    n =+ 1
-                    await show_progress(callback.message, n, length)
-
+                await delete_and_change_waste_vacancy(callback.message, last_id_message_agregator=self.last_id_message_agregator, profession=profession)
+                # # There are messages, which user deleted in admin. Their profession must be correct (delete current profession)
+                # response_admin_temporary = DataBaseOperations(None).get_all_from_db(
+                #     table_name='admin_temporary',
+                #     without_sort=True
+                # )
+                # length = len(response_admin_temporary)
+                # n = 0
+                # self.percent = 0
+                #
+                # if response_admin_temporary:
+                #     await bot_aiogram.send_message(callback.message.chat.id, 'It clears the temporary database')
+                #     await asyncio.sleep(random.randrange(2, 3))
+                #     self.message = await bot_aiogram.send_message(callback.message.chat.id, f'progress {self.percent}%')
+                #     await asyncio.sleep(random.randrange(2, 3))
+                #
+                # # theese vacancy we need to make profession changes
+                # for i in response_admin_temporary:
+                #     id_admin_last_session_table = i[2]
+                #     response_admin_last_session = DataBaseOperations(None).get_all_from_db(
+                #         table_name='admin_last_session',
+                #         param=f"WHERE id='{id_admin_last_session_table}'",
+                #         without_sort=True
+                #     )
+                #     prof_list = response_admin_last_session[0][4].split(', ')
+                #     try:
+                #         await update_vacancy_admin_last_session(profession, prof_list, id_admin_last_session_table,
+                #                                                last_id_message_agregator, update_id_agregator=False)
+                #     except Exception as e:
+                #         print('error with deleting from admin temporary ', e)
+                # # -------------------end ----------------------------
+                #
+                #     n =+ 1
+                #     await show_progress(callback.message, n, length)
+                #
                 # deleting (clearing) temporary table admin_temporary when all messages have been send
+                # DataBaseOperations(None).delete_table(
+                #     table_name='admin_temporary'
+                # )
+                # await bot_aiogram.send_message(callback.message.chat.id, 'Done!')
+                # ---------- drop the used temporary DB table when all operatons are complete ------------------
                 DataBaseOperations(None).delete_table(
                     table_name='admin_temporary'
                 )
                 await bot_aiogram.send_message(callback.message.chat.id, 'Done!')
+
 
             if callback.data == 'choose_one_channel':  # compose keyboard for each profession
 
@@ -570,6 +613,9 @@ class InviteBot:
                 pass
 
             if callback.data == 'show_info_last_records':
+                """
+                Show the parsing statistics
+                """
                 msg = await bot_aiogram.send_message(callback.message.chat.id, 'Please wait a few seconds ...')
 
                 result_dict = {}
@@ -617,20 +663,13 @@ class InviteBot:
 
                 message_to_send += f"<b>Total: {sum(result_dict['last_session'].values())}/{sum(result_dict['all'].values())}</b>"
 
-                pass
-
-
-                    # for profession in result_dict[key]:
-                    #     message_to_send += f'{profession}: {result_dict[profession]}\n'
-
                 await bot_aiogram.send_message(callback.message.chat.id, message_to_send, parse_mode='html', reply_markup=self.markup)
 
                 pass
 
             if callback.data == 'download_excel':
-
+                "function doesn't work"
                 logs.write_log(f"invite_bot_2: Callback: download_excel")
-
                 pass
 
             if callback.data == 'send_digest_full_all':
@@ -1338,30 +1377,31 @@ class InviteBot:
 
         async def compose_inline_keyboard(prefix=None):
             markup = InlineKeyboardMarkup(row_width=4)
-            button_marketing = InlineKeyboardButton('marketing', callback_data=f'{prefix}marketing')
-            button_ba = InlineKeyboardButton('ba', callback_data=f'{prefix}ba')
-            button_game = InlineKeyboardButton('game', callback_data=f'{prefix}game')
-            button_product = InlineKeyboardButton('product', callback_data=f'{prefix}product')
+            button_marketing = InlineKeyboardButton('marketing', callback_data=f'{prefix}/marketing')
+            button_ba = InlineKeyboardButton('ba', callback_data=f'{prefix}/ba')
+            button_game = InlineKeyboardButton('game', callback_data=f'{prefix}/game')
+            button_product = InlineKeyboardButton('product', callback_data=f'{prefix}/product')
             button_mobile = InlineKeyboardButton('mobile', callback_data=f'{prefix}/mobile')
-            button_pm = InlineKeyboardButton('pm', callback_data=f'{prefix}pm')
-            button_sales_manager = InlineKeyboardButton('sales_manager', callback_data=f'{prefix}sales_manager')
-            button_designer = InlineKeyboardButton('designer', callback_data=f'{prefix}designer')
-            button_devops = InlineKeyboardButton('devops', callback_data=f'{prefix}devops')
-            button_hr = InlineKeyboardButton('hr', callback_data=f'{prefix}hr')
-            button_backend = InlineKeyboardButton('backend', callback_data=f'{prefix}backend')
-            button_frontend = InlineKeyboardButton('frontend', callback_data=f'{prefix}frontend')
-            button_qa = InlineKeyboardButton('qa', callback_data=f'{prefix}qa')
-            button_junior = InlineKeyboardButton('junior', callback_data=f'{prefix}junior')
+            button_pm = InlineKeyboardButton('pm', callback_data=f'{prefix}/pm')
+            button_sales_manager = InlineKeyboardButton('sales_manager', callback_data=f'{prefix}/sales_manager')
+            button_designer = InlineKeyboardButton('designer', callback_data=f'{prefix}/designer')
+            button_devops = InlineKeyboardButton('devops', callback_data=f'{prefix}/devops')
+            button_hr = InlineKeyboardButton('hr', callback_data=f'{prefix}/hr')
+            button_backend = InlineKeyboardButton('backend', callback_data=f'{prefix}/backend')
+            button_frontend = InlineKeyboardButton('frontend', callback_data=f'{prefix}/frontend')
+            button_qa = InlineKeyboardButton('qa', callback_data=f'{prefix}/qa')
+            button_junior = InlineKeyboardButton('junior', callback_data=f'{prefix}/junior')
             markup.row(button_marketing, button_ba, button_game, button_product)
             markup.row(button_mobile, button_pm, button_sales_manager, button_designer)
             markup.row(button_devops, button_hr, button_backend, button_frontend)
             markup.row(button_qa, button_junior)
             return markup
 
-        async def compose_message(message, one_profession):
+        async def compose_message(message, one_profession, full=False):
             profession_list = {}
             results_dict = {}
             profession_amount = []
+
             if message[4]:
                 profession_list['profession'] = []
                 print(message[4])
@@ -1397,36 +1437,73 @@ class InviteBot:
                 results_dict['session'] = message[18]
                 sended_to_agregator = message[19]
 
+                title = message[2]
+                body = message[3]
+                params = AlexSort2809().sort_by_profession_by_Alex(title, body)['params']
+
                 # compose message_to_send
-                message_to_send = ''
+                message_for_send = f'Вакансия {one_profession.title()}\n'
                 if results_dict['vacancy']:
-                    message_to_send += f"<b>Вакансия:</b> {results_dict['vacancy']}\n"
+                    message_for_send += f"Вакансия: {results_dict['vacancy']}\n"
+
                 if results_dict['company']:
-                    message_to_send += f"<b>Компания:</b> {results_dict['company']}\n"
-                if results_dict['english']:
-                    message_to_send += f"<b>Английский:</b> {results_dict['english']}\n"
-                if results_dict['relocation']:
-                    message_to_send += f"<b>Релокация:</b> {results_dict['relocation']}\n"
-                if results_dict['job_type']:
-                    message_to_send += f"<b>Тип работы:</b> {results_dict['job_type']}\n"
+                    message_for_send += f"Компания: {results_dict['company']}\n"
+                elif params['company_hiring']:
+                    message_for_send += f"Компания: {params['company_hiring']}\n"
+
                 if results_dict['city']:
-                    message_to_send += f"<b>Город/страна:</b> {results_dict['city']}\n"
-                if results_dict['salary']:
-                    message_to_send += f"<b>Зарплата:</b> {results_dict['salary']}\n"
-                if results_dict['experience']:
-                    message_to_send += f"<b>Опыт работы:</b> {results_dict['experience']}\n"
-                if results_dict['contacts']:
-                    message_to_send += f"<b>Контакты:</b> {results_dict['contacts']}\n"
-                elif results_dict['vacancy_url']:
-                    message_to_send += f"<b>Ссылка на вакансию:</b> {results_dict['vacancy_url']}\n\n"
+                    message_for_send += f"Город/страна: {results_dict['city']}\n"
 
-                message_to_send += f"{results_dict['title']}\n"
-                message_to_send += results_dict['body']
+                if results_dict['english']:
+                    message_for_send += f"English: {results_dict['english']}\n"
+                elif params['english']:
+                    message_for_send += f"English: {params['english']}\n"
 
-                if len(message_to_send) > 4096:
-                    message_to_send = message_to_send[0:4092] + '...'
+                if results_dict['job_type']:
+                    message_for_send += f"Формат работы: {results_dict['job_type']}\n"
+                elif params['jobs_type']:
+                    message_for_send += f"Формат работы: {params['jobs_type']}\n"
 
-                return {'composed_message': message_to_send, 'db_id': message[0]}
+                if results_dict['relocation']:
+                    message_for_send += f"Релокация: {results_dict['relocation']}\n"
+                elif params['relocation']:
+                    message_for_send += f"Релокация: {params['relocation']}\n"
+
+                if sended_to_agregator and sended_to_agregator != "None":
+                    # message_for_send += f"{config['My_channels']['agregator_link']}/{sended_to_agregator}\n"
+                    message_for_send += f"<a href=\"{config['My_channels']['agregator_link']}/{sended_to_agregator}\">Подробнее</a>"
+                    # message_for_send += hlink(title="Подробнее", url=f"{config['My_channels']['agregator_link']}/{sended_to_agregator}")
+                    message_for_send += '\n'
+
+                if not message_for_send:
+                    message_for_send = 'The vacancy not found\n\n'
+                    await write_to_logs_error(f'The vacancy not found\n{title}{body}')
+
+                if full:
+                    if results_dict['salary']:
+                        message_for_send += f"<b>Зарплата:</b> {results_dict['salary']}\n"
+
+                    if results_dict['experience']:
+                        message_for_send += f"<b>Опыт работы:</b> {results_dict['experience']}\n"
+
+                    if results_dict['contacts']:
+                        message_for_send += f"<b>Контакты:</b> {results_dict['contacts']}\n"
+                    elif results_dict['vacancy_url']:
+                        message_for_send += f"<b>Ссылка на вакансию:</b> {results_dict['vacancy_url']}\n\n"
+
+                    message_for_send += f"{results_dict['title']}\n"
+                    message_for_send += results_dict['body']
+
+                    message_for_send = re.sub(r'\<[A-Za-z\/=\"\-\>\s\._\<]{1,}\>', " ", message_for_send)
+
+                # else:
+                #     message_for_send += f"https://t.me/it_jobs_agregator/{sended_to_agregator}\n"
+
+                # message_for_send = message_for_send.replace('\xa0', '')
+                if len(message_for_send) > 4096:
+                    message_for_send = message_for_send[0:4092] + '...'
+
+                return {'composed_message': message_for_send, 'db_id': message[0]}
 
         async def get_last_admin_channel_id(message):
             last_admin_channel_id = None
@@ -1526,22 +1603,46 @@ class InviteBot:
             data = await client.get_entity(input_data)
             await bot_aiogram(message.chat.id, str(data))
 
-        async def delete_from_admin_last(profession, prof_list, id_admin_last_session_table, last_id_message_agregator, update_id_agregator=False):
-            len_prof_list = len(prof_list)
-            if len_prof_list < 2:
-                DataBaseOperations(None).delete_data(
-                    table_name='admin_last_session',
-                    param=f"WHERE id={id_admin_last_session_table}"
-                )
-            # 5. if more that delete current profession from column profession
-            else:
-                new_profession = ''
-                for i in prof_list:
-                    if i != profession:
-                        new_profession += f'{i}, '
-                new_profession = new_profession[:-2]
+
+        async def update_vacancy_admin_last_session(
+                profession=None,
+                prof_list=None,
+                id_admin_last_session_table=None,
+                update_profession=False,
+                update_id_agregator=False
+        ):
+
+            if update_profession:
+                len_prof_list = len(prof_list)
+                if len_prof_list < 2:
+                    DataBaseOperations(None).delete_data(
+                        table_name='admin_last_session',
+                        param=f"WHERE id={id_admin_last_session_table}"
+                    )
+                # 5. if more that delete current profession from column profession
+                else:
+                    new_profession = ''
+                    for i in prof_list:
+                        i = i.strip()
+                        if i != profession:
+                            new_profession += f'{i}, '
+                    new_profession = new_profession[:-2].strip()
+                    DataBaseOperations(None).run_free_request(
+                        request=f"UPDATE admin_last_session SET profession='{new_profession}' WHERE id={id_admin_last_session_table}"
+                    )
+
+                # # check the changes
+                # response_check = DataBaseOperations(None).get_all_from_db(
+                #     table_name='admin_last_session',
+                #     param=f"WHERE id={id_admin_last_session_table}",
+                #     without_sort=True
+                # )
+                # print('changed profession = ', response_check[0][4])
+
+            if update_id_agregator:
+                # 6 Mark vacancy like sended to agregator (write to column sended_to_agregator id_agregator)
                 DataBaseOperations(None).run_free_request(
-                    request=f"UPDATE admin_last_session SET profession='{new_profession}' WHERE id={id_admin_last_session_table}"
+                    request=f"UPDATE admin_last_session SET sended_to_agregator='{self.last_id_message_agregator}' WHERE id={id_admin_last_session_table}"
                 )
 
                 # check the changes
@@ -1550,21 +1651,7 @@ class InviteBot:
                     param=f"WHERE id={id_admin_last_session_table}",
                     without_sort=True
                 )
-                print('changed profession = ', response_check[0][4])
-
-                if update_id_agregator:
-                    # 6 Mark vacancy like sended to agregator (write to column sended_to_agregator id_agregator)
-                    DataBaseOperations(None).run_free_request(
-                        request=f"UPDATE admin_last_session SET sended_to_agregator='{last_id_message_agregator}' WHERE id={id_admin_last_session_table}"
-                    )
-
-                    # check the changes
-                    response_check = DataBaseOperations(None).get_all_from_db(
-                        table_name='admin_last_session',
-                        param=f"WHERE id={id_admin_last_session_table}",
-                        without_sort=True
-                    )
-                    print('changed id agreg = ', response_check[0][19])
+                print('changed id agreg = ', response_check[0][19])
 
             await asyncio.sleep(random.randrange(1, 3))
 
@@ -1619,6 +1706,118 @@ class InviteBot:
             )
             return response_from_db
 
+        async def delete_and_change_waste_vacancy(message, last_id_message_agregator, profession):
+            # There are messages, which user deleted in admin. Their profession must be correct (delete current profession)
+            response_admin_temporary = DataBaseOperations(None).get_all_from_db(
+                table_name='admin_temporary',
+                without_sort=True
+            )
+            length = len(response_admin_temporary)
+            n = 0
+            self.percent = 0
+
+            if response_admin_temporary:
+                await bot_aiogram.send_message(message.chat.id, 'It clears the temporary database')
+                await asyncio.sleep(random.randrange(2, 3))
+                self.message = await bot_aiogram.send_message(message.chat.id, f'progress {self.percent}%')
+                await asyncio.sleep(random.randrange(2, 3))
+
+            # theese vacancy we need to make profession changes
+            for i in response_admin_temporary:
+                id_admin_last_session_table = i[2]
+                response_admin_last_session = DataBaseOperations(None).get_all_from_db(
+                    table_name='admin_last_session',
+                    param=f"WHERE id='{id_admin_last_session_table}'",
+                    without_sort=True
+                )
+                prof_list = response_admin_last_session[0][4].split(', ')
+                try:
+                    await update_vacancy_admin_last_session(
+                        profession,
+                        prof_list,
+                        id_admin_last_session_table,
+                        update_profession=True,
+                        update_id_agregator=False
+                    )
+                except Exception as e:
+                    print('error with deleting from admin temporary ', e)
+                n = + 1
+                await show_progress(message, n, length)
+                # -------------------end ----------------------------
+
+        async def push_vacancies_from_admin(
+                message,
+                vacancy,
+                vacancy_from_admin,
+                response,
+                profession,
+                id_admin_last_session_table
+        ):
+
+            """
+            :param message: message from class bot_aiorgam
+            :param vacancy: one vacancy from vacancies list from TG adminka history. Will send to agregator channel
+            :param vacancy_from_admin: the same vacancy, but from db admin last session
+            :param response: the technical data. [0][3] show agregator id
+            :param profession: solo profession
+            :param id_admin_last_session_table: last message id from agregator
+            :return:
+            """
+
+            # sending to agregator channel
+            if response[0][3] == 'None' or not response[0][3]:  # response[0][3] indicates message was sended to agregator already
+                print('\npush vacancy in agregator\n')
+                print(f"\n{vacancy['message'][0:40]}")
+
+                # sending the raw message without fields vacancy city etc
+                await bot_aiogram.send_message(int(config['My_channels']['agregator_channel']), vacancy['message'])
+                await asyncio.sleep(random.randrange(2, 3))
+                self.last_id_message_agregator += 1
+
+                # 3. writing id agregator in vacancy in admin last session because it has been sent to agregator
+
+                if vacancy_from_admin:
+                    prof_list = vacancy_from_admin[0][4].split(', ')
+
+                    # 4. if one that delete vacancy from admin_last_session
+                    await update_vacancy_admin_last_session(
+                        id_admin_last_session_table=id_admin_last_session_table,
+                        update_id_agregator=True)
+                else:
+                    await bot_aiogram.send_message(message.chat.id,
+                                                   f"<b>For the developer</b>: Hey, bot didn't find this vacancy in admin_last_session",
+                                                   parse_mode='html')
+
+
+        async def delete_used_vacancy_from_tg_db(vacancy, id_admin_last_session_table):
+            # ------------------- cleaning the areas for the used vacancy  -------------------
+            print('\ndelete vacancy\n')
+            await client.delete_messages(int(config['My_channels']['admin_channel']), vacancy['id'])
+            await asyncio.sleep(random.randrange(2, 3))
+
+            # ----------------- deleting this vacancy's data from admin_temporary -----------------
+            DataBaseOperations(None).delete_data(
+                table_name='admin_temporary',
+                param=f"WHERE id_admin_last_session_table='{id_admin_last_session_table}'"
+            )
+
+        # ------------------- end -------------------------
+
+        async def cut_message_for_send(message_for_send):
+            vacancies_list = []
+            if len(message_for_send)>4096:
+                message_limit = ''
+                messages = message_for_send.split('\n\n')
+                for i in messages:
+                    if len(message_limit + i) < 4096:
+                        message_limit += i
+                    else:
+                        vacancies_list.append(message_limit)
+                        message_limit = i
+                vacancies_list.append(message_limit)
+            else:
+                vacancies_list = [message_for_send]
+            return vacancies_list
 
         async def show_progress(message, n, len):
             check = n * 100 // len
@@ -1629,8 +1828,10 @@ class InviteBot:
                     f"progress {'|' * quantity} {self.percent}%", self.message.chat.id, self.message.message_id)
             await asyncio.sleep(random.randrange(1, 2))
 
+        async def write_to_logs_error(text):
+            with open("./logs/logs_errors.txt", "a", encoding='utf-8') as file:
+                file.write(text)
+
         executor.start_polling(dp, skip_updates=True)
-
-
 
 InviteBot().main_invitebot()

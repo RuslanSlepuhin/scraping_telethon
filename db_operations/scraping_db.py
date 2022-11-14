@@ -4,8 +4,8 @@ import re
 import pandas as pd
 import psycopg2
 from datetime import datetime
-from filters.scraping_get_profession_Alex_Rus import AlexRusSort
-from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
+# from filters.scraping_get_profession_Alex_Rus import AlexRusSort
+# from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
 from logs.logs import Logs
 logs = Logs()
 
@@ -183,9 +183,9 @@ class DataBaseOperations:
 
         logs.write_log(f"scraping_db: function: push_to_db_write_message")
 
-        results_dict['title'] = results_dict['title'].replace('\'', '\"').replace('\n\n', '')
-        results_dict['body'] = results_dict['body'].replace('\'', '\"').replace('\n\n', '')
-        results_dict['company'] = results_dict['company'].replace('\'', '\"').replace('\n\n', '')
+        results_dict['title'] = self.clear_title_or_body(results_dict['title'])
+        results_dict['body'] = self.clear_title_or_body(results_dict['body'])
+        results_dict['company'] = self.clear_title_or_body(results_dict['company'])
 
         query = f"""SELECT * FROM {pro} WHERE title='{results_dict['title']}' AND body='{results_dict['body']}'"""
         with self.con:
@@ -225,6 +225,10 @@ class DataBaseOperations:
 
         return response_dict
 
+    def clear_title_or_body(self, text):
+        text = text.replace('\'', '\"').replace('\n\n', '').replace('\xa0', ' ')
+        return text
+
     def get_all_from_db(self, table_name, param='', without_sort=False, order=None, field='*', curs=None):
 
         logs.write_log(f"scraping_db: function: get_all_from_db")
@@ -242,7 +246,7 @@ class DataBaseOperations:
         else:
             query = f"""SELECT {field} FROM {table_name} {param} """
 
-        print('query = ', query)
+        # print('query = ', query)
 
         with self.con:
             cur.execute(query)
@@ -294,7 +298,7 @@ class DataBaseOperations:
         cur = self.con.cursor()
 
         query = f"""DELETE FROM {table_name} {param}"""
-        print('query: ', query)
+        # print('query: ', query)
         with self.con:
             try:
                 cur.execute(query)
@@ -340,80 +344,80 @@ class DataBaseOperations:
                 # return response_dict['error', e]
             pass
 # ---------------- это для того, чтобы достать неотсортированные сообщения из базы и прогнать через оба алгоритма ---------
-    def get_from_bd_for_analyze_python_vs_excel(self):
-        """
-        Get in DB messages and write it to Excel file to check
-        :return: nothing
-        """
-        logs.write_log(f"scraping_db: function: get_from_bd_for_analyze_python_vs_excel")
-
-        profession_alex = []
-        profession_rus = []
-        profession_channel = []
-        profession_title = []
-        profession_body = []
-        profession_alex_tag = []
-        profession_alex_antitag = []
-        profession_rus_tag = []
-
-        if not self.con:
-            self.connect_db()
-
-        cur = self.con.cursor()
-
-        query = f"""SELECT * FROM all_messages WHERE DATE(created_at) > '2022-09-24' ORDER BY time_of_public"""
-        with self.con:
-            cur.execute(query)
-            r = cur.fetchall()
-        for item in r:
-            pro_alex = ''
-            pro_rus = ''
-            created_at = ''
-
-            print('r = ', item)
-            channel = item[1]
-            title = item[2].replace('Обсуждение вакансии в чате @devops_jobs', '')
-            body = item[3].replace('Обсуждение вакансии в чате @devops_jobs', '')
-            time_public = item[5]
-            created_at = item[6]
-            # alex_old = AlexSort().sort_by_profession_by_Alex(title, body)
-            alex = AlexSort2809().sort_by_profession_by_Alex(title, body)
-            rus = AlexRusSort().sort_by_profession_by_AlexRus(title, body)
-
-
-            for pro in alex['profession']:
-                pro_alex += pro + ' '
-            pro_rus = rus['profession']
-
-            profession_channel.append(channel)
-            profession_alex.append(pro_alex)
-            profession_alex_tag.append(alex['tag'])
-            profession_alex_antitag.append(alex['anti_tag'])
-            profession_rus.append(pro_rus)
-            try:
-                profession_rus_tag.append(rus['tag'])
-            except:
-                pass
-            profession_title.append(title)
-            profession_body.append(body)
-
-
-        df = pd.DataFrame(
-            {
-               'channel':  profession_channel,
-                'pro_Alex_28092022_nigth': profession_alex,
-                # 'tag_Alex': profession_alex_tag,
-                # 'antitag_Alex': profession_alex_antitag,
-                'alternative': profession_rus,
-                # 'tag_Rus': profession_rus_tag,
-                'title': profession_title,
-                'body': profession_body,
-                'created_at': created_at,
-                'time_public': time_public,
-            }
-        )
-
-        df.to_excel('all_messages.xlsx', sheet_name='Sheet1')
+#     def get_from_bd_for_analyze_python_vs_excel(self):
+#         """
+#         Get in DB messages and write it to Excel file to check
+#         :return: nothing
+#         """
+#         logs.write_log(f"scraping_db: function: get_from_bd_for_analyze_python_vs_excel")
+#
+#         profession_alex = []
+#         profession_rus = []
+#         profession_channel = []
+#         profession_title = []
+#         profession_body = []
+#         profession_alex_tag = []
+#         profession_alex_antitag = []
+#         profession_rus_tag = []
+#
+#         if not self.con:
+#             self.connect_db()
+#
+#         cur = self.con.cursor()
+#
+#         query = f"""SELECT * FROM all_messages WHERE DATE(created_at) > '2022-09-24' ORDER BY time_of_public"""
+#         with self.con:
+#             cur.execute(query)
+#             r = cur.fetchall()
+#         for item in r:
+#             pro_alex = ''
+#             pro_rus = ''
+#             created_at = ''
+#
+#             print('r = ', item)
+#             channel = item[1]
+#             title = item[2].replace('Обсуждение вакансии в чате @devops_jobs', '')
+#             body = item[3].replace('Обсуждение вакансии в чате @devops_jobs', '')
+#             time_public = item[5]
+#             created_at = item[6]
+#             # alex_old = AlexSort().sort_by_profession_by_Alex(title, body)
+#             alex = AlexSort2809().sort_by_profession_by_Alex(title, body)
+#             rus = AlexRusSort().sort_by_profession_by_AlexRus(title, body)
+#
+#
+#             for pro in alex['profession']:
+#                 pro_alex += pro + ' '
+#             pro_rus = rus['profession']
+#
+#             profession_channel.append(channel)
+#             profession_alex.append(pro_alex)
+#             profession_alex_tag.append(alex['tag'])
+#             profession_alex_antitag.append(alex['anti_tag'])
+#             profession_rus.append(pro_rus)
+#             try:
+#                 profession_rus_tag.append(rus['tag'])
+#             except:
+#                 pass
+#             profession_title.append(title)
+#             profession_body.append(body)
+#
+#
+#         df = pd.DataFrame(
+#             {
+#                'channel':  profession_channel,
+#                 'pro_Alex_28092022_nigth': profession_alex,
+#                 # 'tag_Alex': profession_alex_tag,
+#                 # 'antitag_Alex': profession_alex_antitag,
+#                 'alternative': profession_rus,
+#                 # 'tag_Rus': profession_rus_tag,
+#                 'title': profession_title,
+#                 'body': profession_body,
+#                 'created_at': created_at,
+#                 'time_public': time_public,
+#             }
+#         )
+#
+#         df.to_excel('all_messages.xlsx', sheet_name='Sheet1')
 
     def collect_data_for_send_to_bot(self, profession):
         """
@@ -764,7 +768,7 @@ class DataBaseOperations:
 
             self.con.commit()
 
-    def push_to_admin_table(self, results_dict, profession):
+    def push_to_admin_table(self, results_dict, profession, params):
 
         check_does_it_exist = []
 
@@ -776,9 +780,9 @@ class DataBaseOperations:
         self.check_or_create_table_admin(cur)
         pro = ''
 
-        results_dict['title'] = results_dict['title'].replace('\'', '\"')
-        results_dict['body'] = results_dict['body'].replace('\'', '\"')
-        results_dict['company'] = results_dict['company'].replace('\'', '\"')
+        results_dict['title'] = self.clear_title_or_body(results_dict['title'])
+        results_dict['body'] = self.clear_title_or_body(results_dict['body'])
+        results_dict['company'] = self.clear_title_or_body(results_dict['company'])
 
         for i in profession['profession']:
             pro += f'{i}, '
@@ -788,10 +792,10 @@ class DataBaseOperations:
                 table_name=i,
                 param=f"WHERE title='{results_dict['title']}' AND body='{results_dict['body']}'"
             )
-            if response:
-                check_does_it_exist.append(True)
-            else:
+            if not response:
                 check_does_it_exist.append(False)
+            else:
+                check_does_it_exist.append(True)
 
         results_dict['profession'] = pro[0:-2]
 
@@ -820,7 +824,11 @@ class DataBaseOperations:
                     print(f'-------------- Didn"t push in ADMIN LAST SESSION {e}\n')
                     pass
         else:
-            print(f'!!!!!!!!!!! Message exists in admin_last_session\n')
+            if r:
+                print(f'!!!!!!!!!!! Message exists in admin_last_session\n')
+            if False not in check_does_it_exist:
+                print(f'!!!!!!!!!!! Message exists in profess_table\n')
+
 
     def push_followers_statistics(self, channel_statistic_dict:dict):
 

@@ -251,7 +251,7 @@ class WriteToDbMessages():
 
         # STEP NEXT/ Get the profession/ previous it needs to get companies list from table companies
         #           I have got the companies previous. Look at up
-        self.companies = DataBaseOperations(con=con).get_all_from_db(table_name='companies', without_sort=True)  # check!!!
+        # self.companies = DataBaseOperations(con=con).get_all_from_db(table_name='companies', without_sort=True)  # check!!!
 
         response = AlexSort2809().sort_by_profession_by_Alex(title, body, self.companies)
         profession = response['profession']
@@ -267,7 +267,7 @@ class WriteToDbMessages():
 
                 # write to profession's tables. Returns dict with professions as a key and False, if it was written and True if existed
                 # -------------------------------- write all message for admin in one table--------------------------------
-                DataBaseOperations(None).push_to_admin_table(results_dict, profession)
+                DataBaseOperations(None).push_to_admin_table(results_dict, profession, params)
 
     async def this_func_push_to_prof_db_i_exclude_it_from_code(self, results_dict, profession, one_message):
 
@@ -562,7 +562,7 @@ class WriteToDbMessages():
             hash=0))
         last_id_agregator = history_argegator.messages[0].id
         print('last id in agregator = ', last_id_agregator)
-        await asyncio.sleep(random.randrange(5, 8))
+        await asyncio.sleep(random.randrange(1, 3))
         return last_id_agregator
 
     async def main_start(self, list_links, limit_msg, action):

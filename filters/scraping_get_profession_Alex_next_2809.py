@@ -4,7 +4,10 @@ It is the new pattern from Alexander
 
 import re
 from patterns import pattern_Alex2809
+from db_operations.scraping_db import DataBaseOperations
 # from db_operations.scraping_db import DataBaseOperations
+from patterns.pattern_Alex2809 import search_companies, search_companies2, english_pattern, remote_pattern, \
+    relocate_pattern, middle_pattern, senior_pattern
 
 
 class AlexSort2809:
@@ -24,24 +27,15 @@ class AlexSort2809:
     def sort_by_profession_by_Alex(self, title, body, companies=None, get_params=True, only_profession=False):
         params = {}
 
-
         if get_params:
+            text = f"{title}\n{body}"
             params['company_hiring'] = []
             # search company
-            for i in companies:
-                match = re.findall(rf'{i}', title+body)
-                if match:
-                    params['company_hiring'] = match[0]
-                    break
-            if not params['company_hiring']:
-                p = self.get_company(title, body, companies) #new code
-                companies_list = self.clean_company(p)
-                params['company_hiring'] = companies_list
-
-            params['english_level'] = self.english_requirements(title, body)
-            params['jobs_type'] = self.work_type_fulltime(title, body)
-            params['city'] = self.get_city(title, body)
-            params['relocation'] = self.get_relocation(title, body)
+            params['company_hiring'] = self.get_company_new(text)
+            params['jobs_type'] = self.get_remote_new(text)
+            # params['city'] = self.get_city(title, body)
+            params['relocation'] = self.get_relocation_new(text)
+            params['english'] = self.english_requirements_new(text)
 
         profession = []
         profession_dict = {}
@@ -127,7 +121,7 @@ class AlexSort2809:
             match = re.findall(word, message_to_check)
             if match:
                 self.tag_alex += f'TAG {key}={match}\n'
-                print(f'TAG {key} = {match}')
+                # print(f'TAG {key} = {match}')
                 self.result_dict2[key] += len(match)
 
 # -------------- cancel all matches if it excludes words ------------------
@@ -142,10 +136,35 @@ class AlexSort2809:
             match = re.findall(rf"{exclude_word}", message_to_check)
             if match:
                 self.tag_alex_anti += f'TAG ANTI {key}={match}\n'
-                print(f'ANTI TAG {key} = {match}')
+                # print(f'ANTI TAG {key} = {match}')
                 self.result_dict2[key] = 0
 
         pass
+
+    def get_company_new(self, text):
+        company = ''
+        companies_from_db = DataBaseOperations(None).get_all_from_db(
+            table_name='companies',
+            without_sort=True
+        )
+        for i in companies_from_db:
+            if i[1] in text:
+                return i[1]
+
+        match = re.findall(rf"{search_companies}", text)
+        if match:
+            return self.clean_company_new(match[0])
+
+        match = re.findall(rf"{search_companies2}", text)
+        if match:
+            return match[0]
+
+        # if company1 and company2 and company1 != company2:
+        #     company = company2
+        # elif company1 and company3 and company1 != company3:
+        #     company = company3
+
+        return ''
 
     def get_company(self, title, body, companies):  # new code
         text = title+body
@@ -166,6 +185,20 @@ class AlexSort2809:
         company = self.check_clear_element(company) # transform to string
         return company
 
+    def english_requirements_new(self, text):
+        match = re.findall(english_pattern, text)
+        if match:
+            match = match[0].replace('\n', '').replace('"', '').replace('#', '').replace('.', '')
+            match = match.strip()
+            if match[-1:] == '(':
+                match = match[:-1]
+            # print('match = ', match)
+        else:
+            match = ''
+
+        return match
+
+
     def english_requirements(self, title, body):
         text = title + body
         english = []
@@ -175,6 +208,20 @@ class AlexSort2809:
                 english.append(match)
         english = self.check_clear_element(english) # transform to string
         return english
+
+    def get_relocation_new(self, text):
+        match = re.findall(relocate_pattern, text)
+        if match:
+            return match[0]
+        else:
+            return ''
+
+    def get_remote_new(self, text):
+        match = re.findall(remote_pattern, text)
+        if match:
+            return match[0]
+        else:
+            return ''
 
     def work_type_fulltime(self, title, body):
         text = title+body
@@ -207,6 +254,23 @@ class AlexSort2809:
         city = self.check_clear_element(city) # transform to string
         return city
 
+    def clean_company_new(self, company):
+        pattern = "^[Cc]ompany[:]{0,1}|^[Кк]омпания[:]{0,1}" #clear company word
+        pattern_russian = "[а-яА-Я\s]{3,}"
+        pattern_english = "[a-zA-Z\s]{3,}"
+
+        # -------------- if russian and english, that delete russian and rest english -----------
+        if re.findall(pattern_russian, company) and re.findall(pattern_english, company):
+            match = re.findall(pattern_english, company)
+            company = match[0]
+
+        # -------------- if "company" in english text, replace this word
+        match = re.findall(pattern, company)
+        if match:
+            company = company.replace(match[0], '')
+
+        return company.strip()
+
     def clean_company(self, company_list):
         elements_list = []
         if type(company_list) in [tuple, list, set]:
@@ -229,7 +293,7 @@ class AlexSort2809:
                 return element
 
     def get_content_from_telegraph(self, link_telegraph):
-        print('link_telegraph = ', link_telegraph)
+        # print('link_telegraph = ', link_telegraph)
         """
         parsing
         """
