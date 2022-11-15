@@ -188,16 +188,28 @@ class DataBaseOperations:
         results_dict['company'] = self.clear_title_or_body(results_dict['company'])
 
         query = f"""SELECT * FROM {pro} WHERE title='{results_dict['title']}' AND body='{results_dict['body']}'"""
+        query_double = f"""SELECT * FROM {pro} 
+                        WHERE title LIKE '%{results_dict['title'].strip()}%' AND 
+                        body LIKE '%{results_dict['body'].strip()}%'"""
         with self.con:
             try:
                 cur.execute(query)
                 r = cur.fetchall()
-                print('requests is it exists in DB SUCCESSFUL')
             except Exception as e:
                 print(f'\nError in request or exists in DB {e}\n')
-                pass
 
-        if not r:
+        with self.con:
+            try:
+                cur.execute(query_double)
+                r2 = cur.fetchall()
+            except Exception as e:
+                print(f'\nError in request or exists in DB {e}\n')
+
+        if not r and r2:
+            pass
+
+
+        if not r and not r2:
             response_dict[pro] = False
             new_post = f"""INSERT INTO {pro} (
             chat_name, title, body, profession, vacancy, vacancy_url, company, english, relocation, job_type, 
@@ -218,8 +230,9 @@ class DataBaseOperations:
                     pass
 
                 self.quant += 1
-
+            pass
         else:
+            pass
             response_dict[pro] = True
             print(self.quant, f'!!!! This message exists already in {pro}\n')
 

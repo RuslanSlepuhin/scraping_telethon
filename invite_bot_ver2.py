@@ -180,9 +180,61 @@ class InviteBot:
             path = './patterns/pattern_test.py'
             await refresh_pattern(path)
 
-        @dp.message_handler(commands=['/getdata'])
+        @dp.message_handler(commands=['restore'])
         async def get_logs(message: types.Message):
-            pass
+            profession_list = {}
+            results_dict = {}
+
+            for profession in self.valid_profession_list:
+                channel = config['My_channels'][f'{profession}_channel']
+                all_message = await get_tg_history_messages(message, channel)
+                if all_message:
+                    for vacancy in all_message:
+                        results_dict['title'] = vacancy['message'].partition(f'\n')[0]
+                        results_dict['body'] = vacancy['message'].replace(results_dict['title'], '').replace(f'\n\n', f'\n')
+                        results_dict['time_of_public'] = (vacancy['date'] + timedelta(hours=3))
+                        results_dict['created_at'] = results_dict['time_of_public']
+                        results_dict['chat_name'] = ''
+                        results_dict['vacancy'] = ''
+                        results_dict['vacancy_url'] = ''
+                        results_dict['company'] = ''
+                        results_dict['english'] = ''
+                        results_dict['relocation'] = ''
+                        results_dict['job_type'] = ''
+                        results_dict['city'] = ''
+                        results_dict['salary'] = ''
+                        results_dict['experience'] = ''
+                        results_dict['contacts'] = ''
+                        results_dict['session'] = '20221114114824'
+
+                        is_exist = DataBaseOperations(None).get_all_from_db(
+                            table_name=profession,
+                            param=f"""WHERE title='{results_dict['title']}' AND body='{results_dict['body']}'"""
+                        )
+                        pass
+                        if not is_exist:
+                            print('NOT IN DB')
+                            print('profession: ', profession)
+
+                            profession_list['profession'] = [profession,]
+                            DataBaseOperations(None).push_to_bd(
+                                results_dict=results_dict,
+                                profession_list=profession_list
+                            )
+                        else:
+                            print('*** IN DB EXISTS ***')
+                            print('profession: ', profession)
+
+                            profession_list['profession'] = [profession, ]
+                            DataBaseOperations(None).push_to_bd(
+                                results_dict=results_dict,
+                                profession_list=profession_list
+                            )
+
+            # vacancies loop
+            # get one channel, get vacancies
+            # check prof. db
+            # if not exists do write
 
         # Возможность отмены, если пользователь передумал заполнять
         @dp.message_handler(state='*', commands=['cancel', 'start'])
@@ -360,7 +412,7 @@ class InviteBot:
                     # await asyncio.sleep(random.randrange(2, 3))
 
                 # delete messages for channel will be clean to take new messages
-                all_messages = await get_admin_history_messages(callback.message)
+                all_messages = await get_tg_history_messages(callback.message)
                 for i in all_messages:
                     await client.delete_messages(PeerChannel(int(config['My_channels']['admin_channel'])), i['id'])
 
@@ -435,7 +487,7 @@ class InviteBot:
                 self.last_id_message_agregator = await get_id_agregator()
 
                 profession = callback.data.split(' ')[-1]
-                history_messages = await get_admin_history_messages(callback.message)
+                history_messages = await get_tg_history_messages(callback.message)
 
                 # self.message_for_send = f'<b>Дайджест вакансий для {profession} за {datetime.now().strftime("%d.%m.%Y")}:</b>\n\n'
                 message_for_send = f'<b>Дайджест вакансий для {profession} за {datetime.now().strftime("%d.%m.%Y")}:</b>\n\n'
@@ -542,7 +594,9 @@ class InviteBot:
                     for short in vacancies_list:
                         try:
                             await write_to_logs_error(f"Results:\n{short}\n")
-                            await bot_aiogram.send_message(int(config['My_channels'][f'{profession}_channel']), short, parse_mode='html', disable_web_page_preview=True)
+                            # await bot_aiogram.send_message(int(config['My_channels'][f'{profession}_channel']), short, parse_mode='html', disable_web_page_preview=True)
+                            await bot_aiogram.send_message(-1001671844820, short, parse_mode='html', disable_web_page_preview=True)
+
                         except Exception as e:
                             await bot_aiogram.send_message(callback.message.chat.id, str(e))
                             pass
@@ -1542,7 +1596,7 @@ class InviteBot:
 
             return last_admin_channel_id
 
-        async def get_admin_history_messages(message):
+        async def get_tg_history_messages(message, channel=config['My_channels']['admin_channel']):
             logs.write_log(f"scraping_telethon2: function: get_admin_history_messages")
 
             print('get_admin_history_messages')
@@ -1554,7 +1608,7 @@ class InviteBot:
             total_count_limit = limit_msg  # значение 0 = все сообщения
             history = None
 
-            peer = await client.get_entity(int(config['My_channels']['admin_channel']))
+            peer = await client.get_entity(int(channel))
             await asyncio.sleep(2)
             channel = PeerChannel(peer.id)
             # while True:

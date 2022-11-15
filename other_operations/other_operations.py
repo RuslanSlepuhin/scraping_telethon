@@ -315,12 +315,13 @@ def nbsp():
         text = text.replace('\xa0', ' ')
         print(text)
 
-# delete_since(param="""WHERE DATE(created_at) > '2022-11-13 00:00:00'""")
+delete_since(param="WHERE DATE(created_at) >'2022-11-13'")
 
 response = DataBaseOperations(None).get_all_from_db(
-    table_name='admin_last_session',
-    param=None
+    table_name='marketing',
+    param="WHERE DATE(created_at) >'2022-11-13'",
+    without_sort=True
 )
 for i in response:
-    print(i[16])
+    print(i)
 print(len(response))
