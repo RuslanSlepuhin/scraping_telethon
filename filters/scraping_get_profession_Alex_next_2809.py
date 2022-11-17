@@ -7,7 +7,7 @@ from patterns import pattern_Alex2809
 from db_operations.scraping_db import DataBaseOperations
 # from db_operations.scraping_db import DataBaseOperations
 from patterns.pattern_Alex2809 import search_companies, search_companies2, english_pattern, remote_pattern, \
-    relocate_pattern, middle_pattern, senior_pattern
+    relocate_pattern, middle_pattern, senior_pattern, vacancy_name
 
 
 class AlexSort2809:
@@ -36,6 +36,7 @@ class AlexSort2809:
             # params['city'] = self.get_city(title, body)
             params['relocation'] = self.get_relocation_new(text)
             params['english'] = self.english_requirements_new(text)
+            params['vacancy'] = self.get_vacancy_name(text)
 
         profession = []
         profession_dict = {}
@@ -297,7 +298,17 @@ class AlexSort2809:
         """
         parsing
         """
+        pass
 
+    def get_vacancy_name(self, text):
+        match = re.findall(rf"{vacancy_name}", text)
+        if match:
+            vacancy = match[0]
+            vacancy = re.sub(r"[Дд]олжность[:\s]{1,2}", '', vacancy)
+            vacancy = re.sub(r"[Вв]акансия[:\s]{1,2}", '', vacancy)
+            vacancy = vacancy.strip()
+            return vacancy
+        return ""
 #  -------------- it reads from file for testing ------------------
 # with open('./../file.txt', 'r', encoding='utf-8') as file:
 #     text = file.read()

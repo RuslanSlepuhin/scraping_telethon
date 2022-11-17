@@ -262,16 +262,10 @@ class DataBaseOperations:
         # print('query = ', query)
 
         with self.con:
+
             cur.execute(query)
             response = cur.fetchall()
-            # n=0
-            # for i in response:
-            #     print('n = ', n)
-            #     print(i)
-            #     n += 1
-                # for j in i:
-                #     print('j = ', j)
-                #     n += 1
+
         if curs:
             return cur
         return response

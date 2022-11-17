@@ -392,15 +392,15 @@ class InviteBot:
 
             if callback.data[0:5] == 'admin':
 
-                a='581'
-                message_attempt = "Дайджест\n\n"
-                message_attempt += hlink(title="Подробнее", url="https://t.me/agrerator_channel_fake/251")
-                message_attempt += '\n'
-                message_attempt += 'Еще немного текста\n'
-                message_attempt += hlink(title="Подробнее", url=f"{config['My_channels']['agregator_link']}/{a}")
-                print(message_attempt)
-                await write_to_logs_error(f'Rigth:\n{message_attempt}')
-                await bot_aiogram.send_message(callback.message.chat.id, message_attempt, parse_mode='html', disable_web_page_preview=True)
+                # a='581'
+                # message_attempt = "Дайджест\n\n"
+                # message_attempt += hlink(title="Подробнее", url="https://t.me/agrerator_channel_fake/251")
+                # message_attempt += '\n'
+                # message_attempt += 'Еще немного текста\n'
+                # message_attempt += hlink(title="Подробнее", url=f"{config['My_channels']['agregator_link']}/{a}")
+                # print(message_attempt)
+                # await write_to_logs_error(f'Rigth:\n{message_attempt}')
+                # await bot_aiogram.send_message(callback.message.chat.id, message_attempt, parse_mode='html', disable_web_page_preview=True)
 
                 pass
 
@@ -1496,9 +1496,12 @@ class InviteBot:
                 params = AlexSort2809().sort_by_profession_by_Alex(title, body)['params']
 
                 # compose message_to_send
-                message_for_send = f'Вакансия {one_profession.title()}\n'
+                # message_for_send = f'Вакансия {one_profession.title()}\n'
+                message_for_send = ''
                 if results_dict['vacancy']:
                     message_for_send += f"Вакансия: {results_dict['vacancy']}\n"
+                elif params['vacancy']:
+                    message_for_send += f"Вакансия: {params['vacancy']}\n"
 
                 if results_dict['company']:
                     message_for_send += f"Компания: {results_dict['company']}\n"

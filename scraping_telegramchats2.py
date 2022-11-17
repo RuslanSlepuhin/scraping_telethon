@@ -192,7 +192,7 @@ class WriteToDbMessages():
 
         await self.process_messages(channel, all_messages)
         print('pause 25-35 sec.')
-        time.sleep(random.randrange(15, 20))
+        await asyncio.sleep(random.randrange(15, 20))
 
     async def process_messages(self, channel, all_messages):
         # channel_name = f'@{channel.username} | {channel.title}'
