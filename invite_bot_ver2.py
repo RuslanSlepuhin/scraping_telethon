@@ -490,7 +490,10 @@ class InviteBot:
                 history_messages = await get_tg_history_messages(callback.message)
 
                 # self.message_for_send = f'<b>Дайджест вакансий для {profession} за {datetime.now().strftime("%d.%m.%Y")}:</b>\n\n'
-                message_for_send = f'<b>Дайджест вакансий для {profession} за {datetime.now().strftime("%d.%m.%Y")}:</b>\n\n'
+                message_for_send = f'<i>Функционал дайджеста находится в состоянии альфа-тестирования, приносим свои ' \
+                                   f'извинения, мы работаем над тем чтобы вы получали информацию максимально ' \
+                                   f'качественную и в сжатые сроки</i>\n' \
+                                   f'<b>Дайджест вакансий для {profession} за {datetime.now().strftime("%d.%m.%Y")}:</b>\n\n'
                 length = len(history_messages)
                 n=0
                 for vacancy in history_messages:
