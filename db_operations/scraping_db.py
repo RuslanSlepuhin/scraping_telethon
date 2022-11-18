@@ -224,7 +224,7 @@ class DataBaseOperations:
             with self.con:
                 try:
                     cur.execute(new_post)
-                    print(self.quant, f'+++++++++++++ Has added to DB {pro}\n')
+                    print(self.quant, f'+++++++++++++ The vacancy has been added to DB {pro}\n')
                 except Exception as e:
                     print('didnt push in DB ', e)
                     pass
@@ -775,7 +775,7 @@ class DataBaseOperations:
 
             self.con.commit()
 
-    def push_to_admin_table(self, results_dict, profession, params):
+    def push_to_admin_table(self, results_dict, profession, params=None):
 
         check_does_it_exist = []
 
@@ -790,6 +790,7 @@ class DataBaseOperations:
         results_dict['title'] = self.clear_title_or_body(results_dict['title'])
         results_dict['body'] = self.clear_title_or_body(results_dict['body'])
         results_dict['company'] = self.clear_title_or_body(results_dict['company'])
+
 
         for i in profession['profession']:
             pro += f'{i}, '
@@ -826,7 +827,7 @@ class DataBaseOperations:
             with self.con:
                 try:
                     cur.execute(new_post)
-                    print(f'+++++++++++++ Has added to DB admin_last_session\n')
+                    print(f'+++++++++++++ The vacancy has been added to DB admin_last_session\n')
                 except Exception as e:
                     print(f'-------------- Didn"t push in ADMIN LAST SESSION {e}\n')
                     pass

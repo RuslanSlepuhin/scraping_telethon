@@ -7,7 +7,7 @@ from patterns import pattern_Alex2809
 from db_operations.scraping_db import DataBaseOperations
 # from db_operations.scraping_db import DataBaseOperations
 from patterns.pattern_Alex2809 import search_companies, search_companies2, english_pattern, remote_pattern, \
-    relocate_pattern, middle_pattern, senior_pattern, vacancy_name
+    relocate_pattern, middle_pattern, senior_pattern, vacancy_name, vacancy_pattern
 
 
 class AlexSort2809:
@@ -23,20 +23,13 @@ class AlexSort2809:
 
         self.keys_result_dict = ['fullstack', 'frontend', 'qa', 'ba', 'backend', 'pm', 'mobile', 'game', 'designer',
                                  'hr', 'analyst', 'product', 'devops', 'marketing', 'sales_manager']
-
+        self.valid_profession_list = ['marketing', 'ba', 'game', 'product', 'mobile',
+                                      'pm', 'sales_manager', 'analyst', 'frontend',
+                                      'designer', 'devops', 'hr', 'backend', 'frontend', 'qa', 'junior']
     def sort_by_profession_by_Alex(self, title, body, companies=None, get_params=True, only_profession=False):
         params = {}
 
-        if get_params:
-            text = f"{title}\n{body}"
-            params['company_hiring'] = []
-            # search company
-            params['company_hiring'] = self.get_company_new(text)
-            params['jobs_type'] = self.get_remote_new(text)
-            # params['city'] = self.get_city(title, body)
-            params['relocation'] = self.get_relocation_new(text)
-            params['english'] = self.english_requirements_new(text)
-            params['vacancy'] = self.get_vacancy_name(text)
+
 
         profession = []
         profession_dict = {}
@@ -104,6 +97,17 @@ class AlexSort2809:
 
         if not profession_dict['profession']:
             profession_dict['profession'] = {'no_sort'}
+
+        if get_params:
+            text = f"{title}\n{body}"
+            params['company_hiring'] = []
+            # search company
+            params['company_hiring'] = self.get_company_new(text)
+            params['jobs_type'] = self.get_remote_new(text)
+            # params['city'] = self.get_city(title, body)
+            params['relocation'] = self.get_relocation_new(text)
+            params['english'] = self.english_requirements_new(text)
+            params['vacancy'] = self.get_vacancy_name(text, profession_dict['profession'])
 
         return {'profession': profession_dict, 'params': params}
 
@@ -300,15 +304,43 @@ class AlexSort2809:
         """
         pass
 
-    def get_vacancy_name(self, text):
-        match = re.findall(rf"{vacancy_name}", text)
+    def get_vacancy_name(self, text, profession_list):
+        vacancy = ''
+        match = re.findall(rf"{vacancy_pattern['common_vacancy']}", text)
         if match:
             vacancy = match[0]
+        else:
+            for pro in profession_list:
+                if pro == 'no_sort':
+                    pattern = vacancy_pattern['backend_vacancy']
+                else:
+                    pattern = vacancy_pattern[f'{pro}_vacancy']
+                match = re.findall(rf"{pattern}", text)
+                if match:
+                    vacancy = match[0]
+                    break
+
+            if not vacancy:
+                pattern = vacancy_pattern['backend_vacancy']
+                match = re.findall(rf"{pattern}", text)
+                if match:
+                    vacancy = match[0]
+        if vacancy:
             vacancy = re.sub(r"[Дд]олжность[:\s]{1,2}", '', vacancy)
             vacancy = re.sub(r"[Вв]акансия[:\s]{1,2}", '', vacancy)
             vacancy = vacancy.strip()
-            return vacancy
-        return ""
+
+            vacancy = self.clean_vacancy_from_get_vacancy_name(vacancy)
+        return vacancy
+
+    def clean_vacancy_from_get_vacancy_name(self, vacancy):
+        trash_list = ["[Ии]щем в команду[:]?", "[Тт]ребуется[:]?", "[Ии]щем[:]?", "[Вв]акансия[:]?", "[Пп]озиция[:]?",
+                      "[Дд]олжность[:]?", "в поиске[:]?", "[Нн]азвание вакансии[:]?", "[VACANCYvacancy]{7}[:]?"]
+        for i in trash_list:
+            vacancy = re.sub(rf"{i}", "", vacancy)
+            # if i in vacancy:
+            #     vacancy = vacancy.replace(i, '')
+        return vacancy.strip()
 #  -------------- it reads from file for testing ------------------
 # with open('./../file.txt', 'r', encoding='utf-8') as file:
 #     text = file.read()
