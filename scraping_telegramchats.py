@@ -8,7 +8,7 @@ import psycopg2
 from db_operations.scraping_db import DataBaseOperations
 from telethon.tl.functions.channels import GetParticipantsRequest
 from telethon.tl.types import ChannelParticipantsSearch
-from links import list_links
+from tg_channels.links import list_links
 from telethon.sync import TelegramClient
 from telethon import events, client
 from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest

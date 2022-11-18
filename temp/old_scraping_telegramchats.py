@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from telethon.tl.functions.channels import GetParticipantsRequest
 from telethon.tl.types import ChannelParticipantsSearch
 
-from links import list_links
+from tg_channels.links import list_links
 from telethon.sync import TelegramClient
 from telethon import events, client
 import psycopg2
