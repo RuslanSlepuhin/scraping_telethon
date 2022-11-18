@@ -2,7 +2,7 @@
 import configparser
 import time
 from datetime import datetime, timedelta
-from links import list_links
+from tg_channels.links import list_links
 from settings.database_settings import database, user, password, host, port
 from telethon.sync import TelegramClient
 from telethon import events, client

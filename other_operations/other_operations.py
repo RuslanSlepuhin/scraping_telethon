@@ -1,9 +1,30 @@
 import re
 
+import psycopg2
+
 from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
 from db_operations.scraping_db import DataBaseOperations
 # from scraping_telegramchats2 import WriteToDbMessages
 import pandas as pd
+
+database2 = 'fake'
+user2 = 'ruslan'
+password2 = '12345'
+host2 = 'localhost'
+port2 = '5432'
+
+con2 = psycopg2.connect(
+    database=database2,
+    user=user2,
+    password=password2,
+    host=host2,
+    port=port2
+)
+cur = con2.cursor()
+
+valid_profession_list = ['marketing', 'ba', 'game', 'product', 'mobile',
+                                  'pm', 'sales_manager', 'analyst', 'frontend',
+                                  'designer', 'devops', 'hr', 'backend', 'qa', 'junior']
 
 def delete_since(tables_list=None, ids_list=None, param=None):
     """
@@ -315,13 +336,193 @@ def nbsp():
         text = text.replace('\xa0', ' ')
         print(text)
 
-delete_since(param="WHERE DATE(created_at) >'2022-11-13'")
+# delete_since(param="WHERE DATE(created_at) >'2022-11-13'")
 
-response = DataBaseOperations(None).get_all_from_db(
-    table_name='marketing',
-    param="WHERE DATE(created_at) >'2022-11-13'",
-    without_sort=True
-)
-for i in response:
-    print(i)
-print(len(response))
+def copy_companies_to_local_db():
+    database1 = 'd2tmbiujurbrcr'
+    user1 = 'ljgsrnphxwbfsg'
+    password1 = '7546fe6db78dc036f71813646989a02f0a37d8afbe4ca1ab5cc6fa38f9125f57'
+    host1 = 'ec2-54-220-255-121.eu-west-1.compute.amazonaws.com'
+    port1 = '5432'
+
+    con1 = psycopg2.connect(
+        database=database1,
+        user=user1,
+        password=password1,
+        host=host1,
+        port=port1
+    )
+
+    companies = DataBaseOperations(con1).get_all_from_db(
+        table_name='companies',
+        without_sort=True
+    )
+    database2 = 'd2tmbiujurbrcr'
+    user2 = 'ljgsrnphxwbfsg'
+    password2 = '7546fe6db78dc036f71813646989a02f0a37d8afbe4ca1ab5cc6fa38f9125f57'
+    host2 = 'ec2-54-220-255-121.eu-west-1.compute.amazonaws.com'
+    port2 = '5432'
+
+    con2 = psycopg2.connect(
+        database=database2,
+        user=user2,
+        password=password2,
+        host=host2,
+        port=port2
+    )
+    companies_list = []
+    for i in companies:
+        companies_list.append(i[1])
+
+    DataBaseOperations(con2).write_to_db_companies(companies_list)
+
+    print('the end of copy the companies')
+
+def create_all_bd_clone_fake():
+    valid_profession_list = ['marketing', 'ba', 'game', 'product', 'mobile',
+                                  'pm', 'sales_manager', 'analyst', 'frontend',
+                                  'designer', 'devops', 'hr', 'backend', 'qa', 'junior']
+    valid_profession_list.append('no_sort')
+    valid_profession_list = ['fullstack',]
+    database2 = 'fake'
+    user2 = 'ruslan'
+    password2 = '12345'
+    host2 = 'localhost'
+    port2 = '5432'
+
+    con2 = psycopg2.connect(
+        database=database2,
+        user=user2,
+        password=password2,
+        host=host2,
+        port=port2
+    )
+    cur = con2.cursor()
+    for i in valid_profession_list:
+        DataBaseOperations(con2).check_or_create_table(cur=cur, table_name=i)
+
+def write_to_excel_from_proff_and_nosort():
+    vacancies_dict = {}
+    vacancies_dict['chat_name']=[]
+    vacancies_dict['title']=[]
+    vacancies_dict['body']=[]
+    vacancies_dict['profession']=[]
+    vacancies_dict['vacancy']=[]
+    vacancies_dict['vacancy_url']=[]
+    vacancies_dict['company']=[]
+    vacancies_dict['english']=[]
+    vacancies_dict['relocation']=[]
+    vacancies_dict['job_type']=[]
+    vacancies_dict['city']=[]
+    vacancies_dict['salary']=[]
+    vacancies_dict['experience']=[]
+    vacancies_dict['contacts']=[]
+    response = DataBaseOperations(con2).get_all_from_db(
+        table_name='admin_last_session',
+        without_sort=True
+    )
+    for i in response:
+        vacancies_dict['chat_name'].append(i[1])
+        vacancies_dict['title'].append(i[2].replace('​', ''))
+        vacancies_dict['body'].append(i[3])
+        vacancies_dict['profession'].append(i[4])
+        vacancies_dict['vacancy'] .append(i[5])
+        vacancies_dict['vacancy_url'].append(i[6])
+        vacancies_dict['company'].append(i[7])
+        vacancies_dict['english'].append(i[8])
+        vacancies_dict['relocation'].append(i[9])
+        vacancies_dict['job_type'] .append(i[10])
+        vacancies_dict['city'].append(i[11])
+        vacancies_dict['salary'].append(i[12])
+        vacancies_dict['experience'].append(i[13])
+        vacancies_dict['contacts'].append(i[14])
+
+    df = pd.DataFrame(
+        {
+            'chat_name': vacancies_dict['chat_name'],
+            'title': vacancies_dict['title'],
+            'body': vacancies_dict['body'],
+            'profession': vacancies_dict['profession'],
+            'vacancy': vacancies_dict['vacancy'],
+            'vacancy_url': vacancies_dict['vacancy_url'],
+            'company': vacancies_dict['company'],
+            'english': vacancies_dict['english'],
+            'relocation': vacancies_dict['relocation'],
+            'job_type': vacancies_dict['job_type'],
+            'city': vacancies_dict['city'],
+            'salary': vacancies_dict['salary'],
+            'experience': vacancies_dict['experience'],
+            'contacts': vacancies_dict['contacts'],
+        }
+    )
+
+    df.to_excel(f'./../excel/for_checking.xlsx', sheet_name='Sheet1')
+    print('got it')
+
+def rewrite_vacancy():
+    from patterns.pattern_Alex2809 import vacancy_name
+    excel_data_df = pd.read_excel("./../excel/for_checking.xlsx", sheet_name='Sheet1')
+    excel_dict = {
+            'chat_name': excel_data_df['chat_name'].tolist(),
+            'title': excel_data_df['title'].tolist(),
+            'body': excel_data_df['body'].tolist(),
+            'profession': excel_data_df['profession'].tolist(),
+            'vacancy': excel_data_df['vacancy'].tolist(),
+            'vacancy_url': excel_data_df['vacancy_url'].tolist(),
+            'company': excel_data_df['company'].tolist(),
+            'english': excel_data_df['english'].tolist(),
+            'relocation': excel_data_df['relocation'].tolist(),
+            'job_type': excel_data_df['job_type'].tolist(),
+            'city': excel_data_df['city'].tolist(),
+            'salary': excel_data_df['salary'].tolist(),
+            'experience': excel_data_df['experience'].tolist(),
+            'contacts': excel_data_df['contacts'].tolist(),
+    }
+
+    for i in excel_dict['body']:
+        index = excel_dict['body'].index(i)
+        title = excel_dict['title'][index]
+
+        if not i and title:
+            text = title
+        else:
+            text = title + str(i)
+        match = re.findall(rf"{vacancy_name}", text)
+        print('match: ', match)
+        excel_dict['vacancy'][index] = match
+
+    df = pd.DataFrame(
+        {
+            'chat_name': excel_dict['chat_name'],
+            'title': excel_dict['title'],
+            'body': excel_dict['body'],
+            'profession': excel_dict['profession'],
+            'vacancy': excel_dict['vacancy'],
+            'vacancy_url': excel_dict['vacancy_url'],
+            'company': excel_dict['company'],
+            'english': excel_dict['english'],
+            'relocation': excel_dict['relocation'],
+            'job_type': excel_dict['job_type'],
+            'city': excel_dict['city'],
+            'salary': excel_dict['salary'],
+            'experience': excel_dict['experience'],
+            'contacts': excel_dict['contacts'],
+        }
+    )
+    df.to_excel(f'./../excel/for_checking.xlsx', sheet_name='Sheet1')
+    print('got it ')
+
+
+
+# response = DataBaseOperations(None).get_all_from_db(
+#     table_name='marketing',
+#     param="WHERE DATE(created_at) >'2022-11-13'",
+#     without_sort=True
+# )
+# for i in response:
+#     print(i)
+# print(len(response))
+# copy_companies_to_local_db()
+write_to_excel_from_proff_and_nosort()
+rewrite_vacancy()
+# create_all_bd_clone_fake()
