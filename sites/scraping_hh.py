@@ -39,15 +39,15 @@ class HHGetInformation:
             'time_of_public': [],
             'contacts': []
         }
-        self.search_words = ['pm',]
 
-        self.extended = ['game', 'product', 'mobile', 'marketing', 'sales_manager', 'analyst',
+        self.search_words = ['pm', 'game', 'product', 'mobile', 'marketing', 'sales_manager', 'analyst',
                              'frontend', 'designer', 'devops', 'hr', 'backend', 'qa', 'junior', 'ba']
 
         # self.search_words.extend(self.extended)
         self.current_message = None
         self.bot = bot_dict['bot']
         self.chat_id = bot_dict['chat_id']
+        self.msg = None
 
 
     async def get_content(self, db_tables=None):
@@ -67,7 +67,7 @@ class HHGetInformation:
         self.options.add_argument("--disable-dev-shm-usage")
         self.options.add_argument("--no-sandbox")
 
-        await self.bot.send_message(self.chat_id, 'https://hh.ru is starting', disable_web_page_preview=True)
+        self.msg = await self.bot.send_message(self.chat_id, 'https://hh.ru is starting', disable_web_page_preview=True)
 
         # link = f'https://hh.ru/search/vacancy?text=backend&from=suggest_post&area=1002?'
         link = 'https://hh.ru'
@@ -186,6 +186,7 @@ class HHGetInformation:
 
             # get body --------------------------
             body = soup.find('div', class_='vacancy-section').get_text()
+            body = body.replace('\n\n', '\n')
             print('body = ',body)
 
             # get tags --------------------------
@@ -235,6 +236,7 @@ class HHGetInformation:
             # get job type and remote --------------------------
             raw_content_2 = soup.findAll('p', class_='vacancy-description-list-item')
             counter = 1
+            job_type = ''
             for value in raw_content_2:
                 match counter:
                     case 1:
@@ -360,10 +362,10 @@ class HHGetInformation:
         # df.to_excel(f'./../excel/hh_{word}.xlsx', sheet_name='Sheet1')
         print('Has written to Excel')
 
-        self.current_message = await self.bot.send_message(
-            self.chat_id,
-            f'\nMessages are writting to Admin table, please wait a few time ...\n'
-        )
+        # self.current_message = await self.bot.send_message(
+        #     self.chat_id,
+        #     f'\nMessages are writting to Admin table, please wait a few time ...\n'
+        # )
 
         return to_write_excel_dict
 

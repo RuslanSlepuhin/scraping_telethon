@@ -82,6 +82,13 @@ class FindJobGetInformation:
         soup = BeautifulSoup(raw_content, 'lxml')
         list_links = soup.find_all('a', class_='vacancy-card vacancy-card_result')
 
+        self.current_message = await self.bot.edit_message_text(
+            f'{self.current_message.text}\nНайдено {len(list_links)} вакансий',
+            self.current_message.chat.id,
+            self.current_message.message_id,
+            disable_web_page_preview=True
+        )
+
         for i in list_links:
 
             links.append(i.get('href'))

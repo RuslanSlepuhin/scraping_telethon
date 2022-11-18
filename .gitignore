@@ -16,6 +16,12 @@ settings/config_keys.ini
 *.session-journal
 participants/*.xlsx
 
+# settings ini
+./settings/*.ini
+
+# links
+./tg_channels/
+
 #migrations
 migrations/
 

@@ -16,17 +16,13 @@ from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters import Text
 from aiogram.dispatcher.filters.state import StatesGroup, State
 from aiogram.types import KeyboardButton, ReplyKeyboardMarkup, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.utils.markdown import hlink
-from telethon import events
 from telethon.sync import TelegramClient
 from telethon.tl import functions
-from telethon.tl.functions.channels import GetParticipantRequest, GetParticipantsRequest, DeleteMessagesRequest
+from telethon.tl.functions.channels import GetParticipantsRequest
 from telethon.tl.functions.messages import GetHistoryRequest
-from telethon.tl.types import InputPeerChannel, InputPeerUser, InputUser, PeerUser, InputChannel, MessageService, \
-    ChannelParticipantsSearch, PeerChannel
+from telethon.tl.types import InputUser, InputChannel, ChannelParticipantsSearch, PeerChannel
 from db_operations.scraping_db import DataBaseOperations
 from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
-from links import list_links
 from scraping_telegramchats2 import WriteToDbMessages, main
 from sites.parsing_sites_runner import ParseSites
 from logs.logs import Logs
@@ -1869,8 +1865,8 @@ class InviteBot:
                 message_limit = ''
                 messages = message_for_send.split('\n\n')
                 for i in messages:
-                    if len(message_limit + i) < 4096:
-                        message_limit += i
+                    if len(message_limit + f"{i}\n\n") < 4096:
+                        message_limit += f"{i}\n\n"
                     else:
                         vacancies_list.append(message_limit)
                         message_limit = i

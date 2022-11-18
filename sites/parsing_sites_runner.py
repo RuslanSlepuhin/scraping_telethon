@@ -5,6 +5,7 @@ from sites.scraping_hh import HHGetInformation
 from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
 from db_operations.scraping_db import DataBaseOperations
 from scraping_telegramchats2 import WriteToDbMessages
+from progress.progress import ShowProgress
 import configparser
 from logs.logs import Logs
 logs = Logs()
@@ -51,6 +52,11 @@ class ParseSites:
             DataBaseOperations(con=con).write_to_db_companies(set(response_dict['company']))
 
 # -------------------------------- compose messages --------------------------------
+        await self.bot.send_message(self.chat_id, 'Пишет в админку')
+        msg = await self.bot.send_message(self.chat_id, 'progress 0%')
+        bot_dict = {'bot': self.bot, 'chat_id': self.chat_id}
+        sp = ShowProgress(bot_dict)
+
         last_id_agregator = await WriteToDbMessages(client=self.client, bot_dict=None).get_last_id_agregator() + 1
         message = ''
         body = ''
@@ -138,8 +144,14 @@ class ParseSites:
             )
             # write to db (append fields)
             # r_response_dict = DataBaseOperations(con=None).push_to_bd(result_dict, profession_list, agregator_id=last_id_agregator)
-            DataBaseOperations(None).push_to_admin_table(result_dict, profession_list['profession'])
 
+
+            DataBaseOperations(None).push_to_admin_table(result_dict, profession_list['profession'])
+            await sp.show_the_progress(
+                message=msg,
+                current_number=each_element+1,
+                end_number=len(response_dict['title'])
+            )
             pass
             # send to agregator
 

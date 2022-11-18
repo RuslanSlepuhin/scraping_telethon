@@ -1,20 +1,15 @@
 import asyncio
 import random
-from types import NoneType
 import pandas as pd
 import configparser
 import time
-from datetime import timedelta, datetime
+from datetime import timedelta
 import psycopg2
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from db_operations.scraping_db import DataBaseOperations
 from telethon.tl.functions.channels import GetParticipantsRequest
-from telethon.tl.types import ChannelParticipantsSearch, PeerChannel, InputPeerChannel
-from links import list_links
-from telethon.sync import TelegramClient
-from telethon import client, events
-from telethon.tl.functions.messages import GetHistoryRequest, ImportChatInviteRequest
-from sites.scraping_geekjob import GeekJobGetInformation
+from telethon.tl.types import ChannelParticipantsSearch
+from tg_channels.links import list_links
+from telethon.tl.functions.messages import GetHistoryRequest
 from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
 from aiogram.utils.markdown import hlink
 from logs.logs import Logs

@@ -1024,7 +1024,6 @@ english_pattern = "[^\n.,\-\−;:]+английского[^\n.,;:]+|[^\n\-\—;:
 
 # search_companies2 = "[Cc]ompany[Nname]{0,4}[:]{0,1}[^\n]{1}[A-Z][^\n()\.,а-яА-Я]+|[Кк]омпания[:]{0,1}[^\n]{1}[A-Z][^\n()\.,]+"
 search_companies2 = "[Cc]ompany[Nname]{0,4}[:]{0,1}[^\n]{1}[A-Z][^\n()\.,а-яА-Я]+|[Кк]омпания[:]{0,1}[^\n]{1}[“”\"'][А-ЯA-Z][^\n()\.,]+|[Нн]азвание\s{1}компании[^\n\.,;]*|разработчик в [^\n();:]*|[Ккомпания]{7,8}[^\n;\/\\\.,]{1,2}[\"]{1}[A-Za-zА-Яа-я]+[\"]{1}|[\n][^\n]+IT[^\n]компания|IT[^\n]{1,2}компания[^\n]{1,2}[A-Z\s]+"
-remote_pattern = "[Уу]дал[её][н]{1,2}[каыйоя]{1,2}[^\n;#илп,\.()]{1,8}|[Rr]emote[ly]{0,2}[^\n()\.,;:#а-яА-ЯA-Zfwa\/\"]*"
 
 relocate_pattern = "[^@\/][Rr]elocate[^\n\._\",T()#]*|[Рр]елокация[^\n\"\.r)]*|[Рр]елокационный[^\n;]*|[^\n#a-zA-Z]*[#]{0,1}[Пп]ереезд[а]{0,1}[^\n;]*"
 
@@ -1033,3 +1032,32 @@ middle_pattern = "[Mm]iddle"
 senior_pattern = "[Pp]attern"
 
 vacancy_name = "[^a-zA-ZА-Яа-я][Пп]озиция[^\n]{1,3}[^\n\.;]+|[^#][Вв]акансия[^\n,\.;][^а-яА-Я][^\n,]+|[Дд]олжность[^\n]+|в поиске[^\n][А-ЯA-Z][^\n\.,;]+|[Нн]азвание вакансии[^\n,;]+|[^#\w][VACANCYvacancy]{7}[^\n]+|[^\n.,;!\-]+[Ee]ngineer[^\n.,;]*|[^\n\.,;а-яА-Я#]+[dD]eveloper[^a-z][^\n;а-яА-Я\"]*|[^\n.,;]*[Pp]ro[duje]{2}ct[^\n][Mm]anager[^\n,;\"]+|[^\n.,;]+[Cc]ommunity[^\n][Mm]anager[^\n.,;]+|Программист[а][^\n\.,][CС]#|Position[^\n]+|[Аа]налитик[а] бизнес[^\n]процессов|[^\nа-яА-Я]*Lead[^\n]ML|React разработчик[а]?|[^\nа-яА-Я,]*[Рр]азработчик[а]?[^а-я][^\n\.;\"]*|Middlе Jаvа-рaзрaбoтчик|[a-zA-Z]*[^#\-]QA[^\n\.:;\-\"]|Инженер данных [^\n]+|Machine[\W]Learning[\W]Specialist|[^\nа-яА-Яє]+[Ff]ull[\W][sS]tack[^\nа-яА-Яє]+|[a-zA-Z]+[\W][23][Dd][\W]?[хХ]удожник[а]?|[^\n]+blockchain architect|ищем[^\n\.;]+|[^\n;\.,‼️]+artist[^\n;\.,]+|[MmiddleJjuniorSsenior]{6}[\W][Rr]uby[\W][Dd]eveloper|[a-zA-ZА-Яа-я]+\sтестировщик|Junior QA"
+
+job_format = "[^\n\•]*[Фф]ормат[\W]?[работы]{0,6}[:]?[^\n;]*|[а-я]*\s?[Рр]абота[а-я\s]*в [Оо]фисе[^\n;]*|[^\n\-\—]*[Уу]дал[её][н]{1,2}[каыйоя]{1,2}[^\n;#илп,\.()]{1,8}|[Rr]emote[ly]{0,2}[^\n()\.,;:#а-яА-ЯA-Zfwa\/\"]*|нахождение[\W]{1,2}в[^\n]*"
+remote_pattern = "[Уу]дал[её][н]{1,2}[каыйоя]{1,2}[^\n;#илп,\.()]{1,8}|[Rr]emote[ly]{0,2}[^\n()\.,;:#а-яА-ЯA-Zfwa\/\"]*"
+#-----------------------------------------
+vacancy_pattern = {
+    'common_vacancy': "[^a-zA-ZА-Яа-я][Пп]озиция[^\n]{1,3}[^\n\.;]+|[^#][Вв]акансия[^\n,\.;][^а-яА-Я][^\n,]+|[Дд]олжность[^\n]+|в поиске[^\n][А-ЯA-Z][^\n\.,;]+|[Нн]азвание вакансии[^\n,;]+|[^#\w][VACANCYvacancy]{7}[^\n,\.;]+|[Ии]щем[^\n\";.,]+",
+    'marketing_vacancy': "[\n][^\n]{0,15}маркетолог|[A-Z]*[a-z]*\s?[A-Z]*[a-z]*\s?[Mm]arketing[\W][Mm]anager",
+    'ba_vacancy': "",
+    'game_vacancy': "",
+    'product_vacancy': "SEO[\W]Specialist[^\n\"\.;]{0,30}|[sS]upport[\W]specialist|[Пп]роектн[ыйого]{2,3}[\W][Мм]енеджер[а]?|[^\nа-яА-Я:\.;,]*[Pp]ro[jedu]{2}ct[\W][Mm]anager[^\n(,\.\"?;]*|[Oo]ffice[\W][mM]anager[^\n\.,;\"]+",
+    'mobile_vacancy': "",
+    'pm_vacancy': "SEO[\W]Specialist[^\n\"\.;]{0,30}|[sS]upport[\W]specialist|[Пп]роектн[ыйого]{2,3}[\W][Мм]енеджер[а]?|[^\nа-яА-Я:\.;,]*[Pp]ro[jedu]{2}ct[\W][Mm]anager[^\n(,\.\"?;]*|[Oo]ffice[\W][mM]anager[^\n\.,;\"]+",
+    'sales_manager_vacancy': "",
+    'analyst_vacancy': "",
+    'frontend_vacancy': "[^\n.,;!\-]+[Ee]ngineer[^\n.,;]*|[^\n\.,;а-яА-Я#]+[dD]eveloper[^a-z][^\n;а-яА-Я\"]*|[^\n.,;]*[Pp]ro[duje]{2}ct[^\n][Mm]anager[^\n,;\"]+|[^\n.,;]+[Cc]ommunity[^\n][Mm]anager[^\n.,;]+|Программист[а][^\n\.,][CС]#|Position[^\n]+|[Аа]налитик[а] бизнес[^\n]процессов|[^\nа-яА-Я]*Lead[^\n]ML|React разработчик[а]?|[^\nа-яА-Я,]*[Рр]азработчик[а]?[^а-я][^\n\.;\"]*|Middlе Jаvа-рaзрaбoтчик|[a-zA-Z]*[^#\-]QA[^\n\.:;\-\"]|Инженер данных [^\n]+|Machine[\W]Learning[\W]Specialist|[^\nа-яА-Яє]+[Ff]ull[\W][sS]tack[^\nа-яА-Яє]+|[a-zA-Z]+[\W][23][Dd][\W]?[хХ]удожник[а]?|[^\n]+blockchain architect|ищем[^\n\.;]+|[^\n;\.,‼️]+artist[^\n;\.,]+|[MmiddleJjuniorSsenior]{6}[\W][Rr]uby[\W][Dd]eveloper|[a-zA-ZА-Яа-я]+\sтестировщик|Junior QA|[Bb]ig[\W][Dd]ata[\W][Ee]ngineer",
+    'designer_vacancy': "[аАРТрт]{3}-[Дд]иректор[а]?[^ом]|2D[\W]дизайнер[^\n,\.;]*|[^\nа-яА-Я]*[UXUI\/]{2,5}[\W][Dd]esigner[^\n\.,;\"]+|[^\n@:(]+[Dd]esigner[^\n\.,;\"]*|[^\nа-яА-Я]*[UXUI\/\|]{2,5}[\W][Дд]изайнер[^\n)\.,;]*|дизайнеров[\s\-\-]{1,3}[A-Za-z\+\/]+|^[Дд]изайнер$|[^\nа-яА-Я]+2D[\W][Хх]удожник|[^\nа-яА-Я\-]*[Aa]rtist[\W][^\n\"]*|[SMMsmmwebWEB]{3}[\W]?дизайнер",
+    'devops_vacancy': "[^\n\"]*CTO[^\n\.,;\"]*|[^\n\"]*technical[\W]officer[^\n\"]*",
+    'hr_vacancy': "",
+    'backend_vacancy': "[^\n.,;!\-]+[Ee]ngineer[^\n.,;]*|[^\n\.,;а-яА-Я#]+[dD]eveloper[^a-z][^\n;а-яА-Я\"]*|[^\n.,;]*[Pp]ro[duje]{2}ct[^\n][Mm]anager[^\n,;\"]+|[^\n.,;]+[Cc]ommunity[^\n][Mm]anager[^\n.,;]+|Программист[а][^\n\.,][CС]#|Position[^\n]+|[Аа]налитик[а] бизнес[^\n]процессов|[^\nа-яА-Я]*Lead[^\n]ML|React разработчик[а]?|[^\nа-яА-Я,]*[Рр]азработчик[а]?[^а-я][^\n\.;\"]*|Middlе Jаvа-рaзрaбoтчик|[a-zA-Z]*[^#\-]QA[^\n\.:;\-\"]|Инженер данных [^\n]+|Machine[\W]Learning[\W]Specialist|[^\nа-яА-Яє]+[Ff]ull[\W][sS]tack[^\nа-яА-Яє]+|[a-zA-Z]+[\W][23][Dd][\W]?[хХ]удожник[а]?|[^\n]+blockchain architect|ищем[^\n\.;]+|[^\n;\.,‼️]+artist[^\n;\.,]+|[MmiddleJjuniorSsenior]{6}[\W][Rr]uby[\W][Dd]eveloper|[a-zA-ZА-Яа-я]+\sтестировщик|Junior QA|[Bb]ig[\W][Dd]ata[\W][Ee]ngineer",
+    'qa_vacancy': "[^\n.,;!\-]+[Ee]ngineer[^\n.,;]*|[^\n\.,;а-яА-Я#]+[dD]eveloper[^a-z][^\n;а-яА-Я\"]*|[^\n.,;]*[Pp]ro[duje]{2}ct[^\n][Mm]anager[^\n,;\"]+|[^\n.,;]+[Cc]ommunity[^\n][Mm]anager[^\n.,;]+|Программист[а][^\n\.,][CС]#|Position[^\n]+|[Аа]налитик[а] бизнес[^\n]процессов|[^\nа-яА-Я]*Lead[^\n]ML|React разработчик[а]?|[^\nа-яА-Я,]*[Рр]азработчик[а]?[^а-я][^\n\.;\"]*|Middlе Jаvа-рaзрaбoтчик|[a-zA-Z]*[^#\-]QA[^\n\.:;\-\"]|Инженер данных [^\n]+|Machine[\W]Learning[\W]Specialist|[^\nа-яА-Яє]+[Ff]ull[\W][sS]tack[^\nа-яА-Яє]+|[a-zA-Z]+[\W][23][Dd][\W]?[хХ]удожник[а]?|[^\n]+blockchain architect|ищем[^\n\.;]+|[^\n;\.,‼️]+artist[^\n;\.,]+|[MmiddleJjuniorSsenior]{6}[\W][Rr]uby[\W][Dd]eveloper|[a-zA-ZА-Яа-я]+\sтестировщик|Junior QA|[Bb]ig[\W][Dd]ata[\W][Ee]ngineer",
+    'junior_vacancy': "",
+    'middle_vacancy': "",
+    'senior_vacancy': "",
+    'fullstack_vacancy': "",
+    'developer_qa_vacancy': "[^\n.,;!\-]+[Ee]ngineer[^\n.,;]*|[^\n\.,;а-яА-Я#]+[dD]eveloper[^a-z][^\n;а-яА-Я\"]*|[^\n.,;]*[Pp]ro[duje]{2}ct[^\n][Mm]anager[^\n,;\"]+|[^\n.,;]+[Cc]ommunity[^\n][Mm]anager[^\n.,;]+|Программист[а][^\n\.,][CС]#|Position[^\n]+|[Аа]налитик[а] бизнес[^\n]процессов|[^\nа-яА-Я]*Lead[^\n]ML|React разработчик[а]?|[^\nа-яА-Я,]*[Рр]азработчик[а]?[^а-я][^\n\.;\"]*|Middlе Jаvа-рaзрaбoтчик|[a-zA-Z]*[^#\-]QA[^\n\.:;\-\"]|Инженер данных [^\n]+|Machine[\W]Learning[\W]Specialist|[^\nа-яА-Яє]+[Ff]ull[\W][sS]tack[^\nа-яА-Яє]+|[a-zA-Z]+[\W][23][Dd][\W]?[хХ]удожник[а]?|[^\n]+blockchain architect|ищем[^\n\.;]+|[^\n;\.,‼️]+artist[^\n;\.,]+|[MmiddleJjuniorSsenior]{6}[\W][Rr]uby[\W][Dd]eveloper|[a-zA-ZА-Яа-я]+\sтестировщик|Junior QA|[Bb]ig[\W][Dd]ata[\W][Ee]ngineer",
+}
+valid_profession_list = ['marketing', 'ba', 'game', 'product', 'mobile',
+                                      'pm', 'sales_manager', 'analyst', 'frontend',
+                                      'designer', 'devops', 'hr', 'backend', 'qa', 'junior']
