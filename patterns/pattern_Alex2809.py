@@ -1061,3 +1061,5 @@ vacancy_pattern = {
 valid_profession_list = ['marketing', 'ba', 'game', 'product', 'mobile',
                                       'pm', 'sales_manager', 'analyst', 'frontend',
                                       'designer', 'devops', 'hr', 'backend', 'qa', 'junior']
+
+contacts_pattern = "[^\n\.][a-zA-Z0-9\-_\.]+@[a-z\-]+\.[a-z]+|clc\.to\/[a-zA-Z\-]+|[\W]{1}@[a-zA-Z_]+|[0-9]{9,}+[^\n][a-zA-Zа-яА-Я]+"

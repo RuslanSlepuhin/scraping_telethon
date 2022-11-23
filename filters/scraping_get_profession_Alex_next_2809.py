@@ -5,9 +5,8 @@ It is the new pattern from Alexander
 import re
 from patterns import pattern_Alex2809
 from db_operations.scraping_db import DataBaseOperations
-# from db_operations.scraping_db import DataBaseOperations
 from patterns.pattern_Alex2809 import search_companies, search_companies2, english_pattern, remote_pattern, \
-    relocate_pattern, middle_pattern, senior_pattern, vacancy_name, vacancy_pattern
+    relocate_pattern, middle_pattern, senior_pattern, vacancy_name, vacancy_pattern, contacts_pattern
 
 
 class AlexSort2809:
@@ -37,7 +36,13 @@ class AlexSort2809:
         self.tag_alex = ''
         self.tag_alex_anti = ''
 
-# ----------------- Check for used capitalize or don't ------------------
+        message = f'{title}\n{body}'
+        # match = re.findall(rf"{contacts_pattern}", message)
+        # if match:
+        #     self.result_dict2['contacts'] = 1
+        # else:
+        #     pass
+        # ----------------- Check for used capitalize or don't ------------------
         for i in self.pattern_alex:
             if i not in ['internship', 'remote', 'relocate', 'country', 'city']:
                 if i in ['pm', 'game', 'designer', 'hr', 'analyst', 'qa', 'ba', 'product']:
@@ -45,9 +50,6 @@ class AlexSort2809:
                 else:
                     capitalize = False
 
-                message = f'{title}\n{body}'
-                if i == 'remote':
-                    pass
                 self.get_profession(message, capitalize, key=i)
 
                 if not only_profession:
@@ -100,14 +102,28 @@ class AlexSort2809:
 
         if get_params:
             text = f"{title}\n{body}"
-            params['company_hiring'] = []
+            params['company'] = []
             # search company
-            params['company_hiring'] = self.get_company_new(text)
-            params['jobs_type'] = self.get_remote_new(text)
+            params['company'] = self.get_company_new(text)
+            # if not profession_dict['company']:
+            #     profession_dict['company'] = params['company']
+
+            params['job_type'] = self.get_remote_new(text)
+            # if not profession_dict['job_type']:
+            #     profession_dict['job_type'] = params['job_type']
+
             # params['city'] = self.get_city(title, body)
             params['relocation'] = self.get_relocation_new(text)
+            # if not profession_dict['relocation']:
+            #     profession_dict['relocation'] = params['relocation']
+
             params['english'] = self.english_requirements_new(text)
+            # if not profession_dict['english']:
+            #     profession_dict['english'] = params['english']
+
             params['vacancy'] = self.get_vacancy_name(text, profession_dict['profession'])
+            # if not profession_dict['vacancy']:
+            #     profession_dict['vacancy'] = params['vacancy']
 
         return {'profession': profession_dict, 'params': params}
 
@@ -183,7 +199,7 @@ class AlexSort2809:
                 company.append(match)
 
         if not company:
-            for param in pattern_Alex2809.params['company_hiring']:
+            for param in pattern_Alex2809.params['company']:
                 match = re.findall(rf'{param}', text)
                 if match:
                     company.append(match)
@@ -231,7 +247,7 @@ class AlexSort2809:
     def work_type_fulltime(self, title, body):
         text = title+body
         fulltime = []
-        for param in pattern_Alex2809.params['jobs_type']:
+        for param in pattern_Alex2809.params['job_type']:
             match = re.findall(param, text)
             if match:
                 fulltime.append(match)
