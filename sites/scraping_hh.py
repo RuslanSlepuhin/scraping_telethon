@@ -43,7 +43,7 @@ class HHGetInformation:
         self.search_words = ['junior', 'джуниор', 'kotlin', 'product', 'mobile', 'marketing', 'аналитик',
                              'frontend', 'designer', 'devops', 'hr', 'backend', 'qa', 'junior', 'ba']
 
-        self.search_words = ['junior', 'джуниор']
+        self.search_words = ['junior']
         self.current_message = None
         self.bot = bot_dict['bot']
         self.chat_id = bot_dict['chat_id']
@@ -264,17 +264,6 @@ class HHGetInformation:
                 date = date[0]
                 date = self.normalize_date(date)
             print('date = ', date)
-            # # get contacts by click --------------------------
-            # button = self.browser.find_element(By.XPATH,
-            #                                    "//button[@class='bloko-button bloko-button_kind-success bloko-button_scale-large bloko-button_stretched bloko-button_appearance-outlined']")
-            # button.click()
-            # time.sleep(2)
-            # soup_contacts = BeautifulSoup(self.browser.page_source, 'lxml')
-            # contacts = soup_contacts.find('div', class_='contacts__item').get_text()
-            # print('contacts = ', contacts)
-
-
-
 
             # ------------------------- search relocation ----------------------------
             relocation = ''
