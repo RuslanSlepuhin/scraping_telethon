@@ -82,6 +82,7 @@ class InviteBot:
         self.message = None
         self.last_id_message_agregator = None
         self.message_for_send = ''
+        self.feature = ''
 
     def main_invitebot(self):
         async def connect_with_client(message, id_user):
@@ -486,6 +487,12 @@ class InviteBot:
                                                                              f'Please choose others', reply_markup=self.markup)
                     await asyncio.sleep(random.randrange(2, 3))
 
+            if callback.data == 'one_day_statistics':
+                self.feature = 'one_day_statistics'
+                await bot_aiogram.send_message(callback.message.chat.id, "Type the date (format YYYY-MM-DD)")
+                # today_statistics = f"Statistics today {datetime.now().strftime('%Y-%m-%d')}:\n\n"
+                # print(datetime.now().strftime('%Y-%m-%d'))
+
 
             if 'PUSH' in callback.data:
 
@@ -566,17 +573,7 @@ class InviteBot:
                         await delete_used_vacancy_from_tg_db(vacancy, id_admin_last_session_table)
                     else:
                         await bot_aiogram.send_message(callback.message.chat.id, 'There is not response')
-                    # # ------------------- cleaning the areas for the used vacancy  -------------------
-                    #     print('\ndelete vacancy\n')
-                    #     await client.delete_messages(int(config['My_channels']['admin_channel']), vacancy['id'])
-                    #     await asyncio.sleep(random.randrange(2, 3))
-                    #
-                    #     # ----------------- deleting this vacancy's data from admin_temporary -----------------
-                    #     DataBaseOperations(None).delete_data(
-                    #         table_name='admin_temporary',
-                    #         param=f"WHERE id_admin_last_session_table='{id_admin_last_session_table}'"
-                    #     )
-                    # #------------------- end -------------------------
+
                     n += 1
                     await show_progress(callback.message, n, length)
 
@@ -593,46 +590,7 @@ class InviteBot:
                             pass
 
                 await delete_and_change_waste_vacancy(callback.message, last_id_message_agregator=self.last_id_message_agregator, profession=profession)
-                # # There are messages, which user deleted in admin. Their profession must be correct (delete current profession)
-                # response_admin_temporary = DataBaseOperations(None).get_all_from_db(
-                #     table_name='admin_temporary',
-                #     without_sort=True
-                # )
-                # length = len(response_admin_temporary)
-                # n = 0
-                # self.percent = 0
-                #
-                # if response_admin_temporary:
-                #     await bot_aiogram.send_message(callback.message.chat.id, 'It clears the temporary database')
-                #     await asyncio.sleep(random.randrange(2, 3))
-                #     self.message = await bot_aiogram.send_message(callback.message.chat.id, f'progress {self.percent}%')
-                #     await asyncio.sleep(random.randrange(2, 3))
-                #
-                # # theese vacancy we need to make profession changes
-                # for i in response_admin_temporary:
-                #     id_admin_last_session_table = i[2]
-                #     response_admin_last_session = DataBaseOperations(None).get_all_from_db(
-                #         table_name='admin_last_session',
-                #         param=f"WHERE id='{id_admin_last_session_table}'",
-                #         without_sort=True
-                #     )
-                #     prof_list = response_admin_last_session[0][4].split(', ')
-                #     try:
-                #         await update_vacancy_admin_last_session(profession, prof_list, id_admin_last_session_table,
-                #                                                last_id_message_agregator, update_id_agregator=False)
-                #     except Exception as e:
-                #         print('error with deleting from admin temporary ', e)
-                # # -------------------end ----------------------------
-                #
-                #     n =+ 1
-                #     await show_progress(callback.message, n, length)
-                #
-                # deleting (clearing) temporary table admin_temporary when all messages have been send
-                # DataBaseOperations(None).delete_table(
-                #     table_name='admin_temporary'
-                # )
-                # await bot_aiogram.send_message(callback.message.chat.id, 'Done!')
-                # ---------- drop the used temporary DB table when all operatons are complete ------------------
+
                 DataBaseOperations(None).delete_table(
                     table_name='admin_temporary'
                 )
@@ -767,6 +725,25 @@ class InviteBot:
                 data = await client.get_entity(message.text)
                 await bot_aiogram.send_message(message.chat.id, str(data))
                 self.peerchannel = False
+
+            if self.feature == 'one_day_statistics':
+                one_day_statistics = f'<b>Statistics {message.text}</b>\n\n'
+                counter = 0
+                try:
+                    for prof in self.valid_profession_list:
+                        response = DataBaseOperations(con).get_all_from_db(
+                            table_name=prof,
+                            param=f"""WHERE DATE(created_at)='{message.text}'"""
+                        )
+                        one_day_statistics += f"{prof}: {len(response)} vacancies\n"
+                        counter += len(response)
+                    one_day_statistics += f"____________\nSumm: {counter}"
+                    await bot_aiogram.send_message(message.chat.id, one_day_statistics, parse_mode='html')
+                    self.feature = ''
+
+                except Exception as e:
+                    await bot_aiogram.send_message(message.chat.id, 'Type the correct date')
+
 
             if marker:
 
@@ -915,16 +892,16 @@ class InviteBot:
                     await asyncio.sleep(1)
 
         # -----------------------parsing telegram channels -------------------------------------
-        #             await bot_aiogram.send_message(
-        #                 message.chat.id,
-        #                 'Парсит телеграм каналы...',
-        #                 parse_mode='HTML')
-        #             await main(client, bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id})  # run parser tg channels and write to profession's tables
-        #             await bot_aiogram.send_message(
-        #                 message.chat.id,
-        #                 '...прошло успешно, записано в базу',
-        #                 parse_mode='HTML')
-        #             await asyncio.sleep(2)
+                    await bot_aiogram.send_message(
+                        message.chat.id,
+                        'Парсит телеграм каналы...',
+                        parse_mode='HTML')
+                    await main(client, bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id})  # run parser tg channels and write to profession's tables
+                    await bot_aiogram.send_message(
+                        message.chat.id,
+                        '...прошло успешно, записано в базу',
+                        parse_mode='HTML')
+                    await asyncio.sleep(2)
 
         # ---------------------- parsing the sites. List of them will grow ------------------------
                     await bot_aiogram.send_message(message.chat.id, 'Парсятся сайты...')
@@ -982,16 +959,19 @@ class InviteBot:
                     self.markup = InlineKeyboardMarkup(row_width=1)
                     but_show = InlineKeyboardButton('Show the statistics',
                                                     callback_data='show_info_last_records')
-                    but_send_digest_full = InlineKeyboardButton('Разлить fulls посл сессию',
-                                                                callback_data='send_digest_full')
-                    but_send_digest_full_all = InlineKeyboardButton('Разлить fulls всё',
-                                                                    callback_data='send_digest_full_all')
-                    but_separate_channel = InlineKeyboardButton('Залить в 1 канал',
-                                                                callback_data='choose_one_channel')
+                    # but_send_digest_full = InlineKeyboardButton('Разлить fulls посл сессию',
+                    #                                             callback_data='send_digest_full')
+                    # but_send_digest_full_all = InlineKeyboardButton('Разлить fulls всё',
+                    #                                                 callback_data='send_digest_full_all')
+                    # but_separate_channel = InlineKeyboardButton('Залить в 1 канал',
+                    #                                             callback_data='choose_one_channel')
                     but_do_by_admin = InlineKeyboardButton('Go by admin',
                                                                 callback_data='go_by_admin')
-                    self.markup.row(but_show, but_send_digest_full)
-                    self.markup.row(but_send_digest_full_all, but_separate_channel)
+                    but_stat_today = InlineKeyboardButton('One day statistics', callback_data='one_day_statistics')
+                    # self.markup.row(but_show, but_send_digest_full)
+                    # self.markup.row(but_send_digest_full_all, but_separate_channel)
+                    self.markup.add(but_show)
+                    self.markup.add(but_stat_today)
                     self.markup.add(but_do_by_admin)
 
                     time_start = await get_time_start()
