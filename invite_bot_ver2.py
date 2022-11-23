@@ -27,21 +27,14 @@ from scraping_telegramchats2 import WriteToDbMessages, main
 from sites.parsing_sites_runner import ParseSites
 from logs.logs import Logs
 logs = Logs()
-
+import settings.os_getenv as settings
 config = configparser.ConfigParser()
 config.read("./settings/config.ini")
 
-api_id = os.getenv('api_id')
-api_hash = os.getenv('api_hash')
-username = os.getenv('username')
-token = os.getenv('token')
-#
-# config_keys = configparser.ConfigParser()
-# config_keys.read("./settings/config_keys.ini")
-# api_id = config_keys['Telegram']['api_id']
-# api_hash = config_keys['Telegram']['api_hash']
-# username = config_keys['Telegram']['username']
-# token = config_keys['Token']['token']
+api_id = settings.api_id
+api_hash = settings.api_hash
+username = settings.username
+token = settings.token
 
 logging.basicConfig(level=logging.INFO)
 bot_aiogram = Bot(token=token)
