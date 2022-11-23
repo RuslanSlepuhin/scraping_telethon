@@ -152,6 +152,8 @@ class WriteToDbMessages():
 
         await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], f'<em>channel {channel}</em>', parse_mode='html', disable_web_page_preview = True)
 
+        # data = await self.client.get_entity(channel)
+
         while True:
             try:
                 history = await self.client(GetHistoryRequest(

@@ -20,7 +20,7 @@ from telethon.sync import TelegramClient
 from telethon.tl import functions
 from telethon.tl.functions.channels import GetParticipantsRequest
 from telethon.tl.functions.messages import GetHistoryRequest
-from telethon.tl.types import InputUser, InputChannel, ChannelParticipantsSearch, PeerChannel
+from telethon.tl.types import InputUser, InputChannel, ChannelParticipantsSearch, PeerChannel, PeerUser
 from db_operations.scraping_db import DataBaseOperations
 from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
 from scraping_telegramchats2 import WriteToDbMessages, main
@@ -175,6 +175,24 @@ class InviteBot:
         async def get_logs(message: types.Message):
             path = './patterns/pattern_test.py'
             await refresh_pattern(path)
+
+        @dp.message_handler(commands=['id'])
+        async def get_logs(message: types.Message):
+            # 311614392
+            # 533794904
+            # 857262125
+            # 1359259501
+            # 537301906
+            for i in [311614392, 533794904, 857262125, 1359259501, 537301906]:
+                try:
+                    # peer = PeerUser(i)
+                    data = await client.get_entity(i)
+                    await bot_aiogram.send_message(message.chat.id, str(data))
+                    await asyncio.sleep(6)
+                except Exception as e:
+                    await bot_aiogram.send_message(message.chat.id, f"{i}: {str(e)}")
+                    await asyncio.sleep(6)
+
 
         @dp.message_handler(commands=['restore'])
         async def get_logs(message: types.Message):
@@ -360,21 +378,23 @@ class InviteBot:
             except Exception as e:
                 await bot_aiogram.send_message(message.chat.id, str(e))
 
-        async def get_id_agregator():
-            # Need to get id last message from agregator. To push 'test', get id and delete 'push' from
-            # push 'test'
-            id_agregator_channel = int(config['My_channels']['agregator_channel'])
-            await bot_aiogram.send_message(int(config['My_channels']['agregator_channel']), 'test')
-            # await asyncio.sleep(random.randrange(1, 2))
-
-            wtdb = WriteToDbMessages(
-                client=client,
-                bot_dict=None
-            )
-            last_id_message_agregator = await wtdb.get_last_id_agregator()
-            await client.delete_messages(id_agregator_channel, last_id_message_agregator)
-
-            return last_id_message_agregator
+        # async def get_id_agregator():
+        #     # Need to get id last message from agregator. To push 'test', get id and delete 'push' from
+        #     # push 'test'
+        #     id_agregator_channel = int(config['My_channels']['agregator_channel'])
+        #     await bot_aiogram.send_message(int(config['My_channels']['agregator_channel']), 'test')
+        #     # await asyncio.sleep(random.randrange(1, 2))
+        #
+        #     all_messages = await get_tg_history_messages(callback.message)
+        #
+        #     wtdb = WriteToDbMessages(
+        #         client=client,
+        #         bot_dict=None
+        #     )
+        #     last_id_message_agregator = await wtdb.get_last_id_agregator()
+        #     await client.delete_messages(id_agregator_channel, last_id_message_agregator)
+        #
+        #     return last_id_message_agregator
 
         @dp.callback_query_handler()
         async def catch_callback(callback: types.CallbackQuery):
@@ -425,8 +445,8 @@ class InviteBot:
                     n = 0
                     self.message = await bot_aiogram.send_message(callback.message.chat.id, f'progress {self.percent}%')
                     await asyncio.sleep(random.randrange(2, 3))
-                    for i in response:
-                        print(i)
+                    # for i in response:
+                    #     print(i)
 
                     # composed_message_dict = {}
                     for vacancy in response:
@@ -439,8 +459,7 @@ class InviteBot:
                     # it needs the checking. It can be in DB. Do it after is better. At the moment writing ti admin las session. Does not matter to write it if it exists in DB
 
                         try:
-                            # await bot_aiogram.send_message(config['My_channels']['admin_channel'], composed_message_dict['composed_message'], parse_mode='html')
-                            text = f"{vacancy[2]}{vacancy[3]}"
+                            text = f"{vacancy[2]}\n{vacancy[3]}"
                             if len(text) > 4096:
                                 text = text[:4093] + '...'
                             await bot_aiogram.send_message(config['My_channels']['admin_channel'], text, parse_mode='html')
@@ -480,7 +499,12 @@ class InviteBot:
                 await asyncio.sleep(random.randrange(1, 2))
 
 
-                self.last_id_message_agregator = await get_id_agregator()
+                # self.last_id_message_agregator = await get_id_agregator()
+                # to get last agregator id
+                self.last_id_message_agregator = await get_last_admin_channel_id(
+                    message=callback.message,
+                    channel=config['My_channels']['agregator_channel']
+                )
 
                 profession = callback.data.split(' ')[-1]
                 history_messages = await get_tg_history_messages(callback.message)
@@ -488,7 +512,7 @@ class InviteBot:
                 # self.message_for_send = f'<b>Дайджест вакансий для {profession} за {datetime.now().strftime("%d.%m.%Y")}:</b>\n\n'
                 message_for_send = f'<i>Функционал дайджеста находится в состоянии альфа-тестирования, приносим свои ' \
                                    f'извинения, мы работаем над тем чтобы вы получали информацию максимально ' \
-                                   f'качественную и в сжатые сроки</i>\n' \
+                                   f'качественную и в сжатые сроки</i>\n\n' \
                                    f'<b>Дайджест вакансий для {profession} за {datetime.now().strftime("%d.%m.%Y")}:</b>\n\n'
                 length = len(history_messages)
                 n=0
@@ -514,36 +538,7 @@ class InviteBot:
                             profession=profession,
                             id_admin_last_session_table=id_admin_last_session_table
                         )
-                        # # sending to agregator channel
-                        # if response[0][3] == 'None' or not response[0][3]: # response[0][3] indicates message was sended to agregator already
-                        #     print('\npush vacancy in agregator\n')
-                        #     print(f"\n{vacancy['message'][0:40]}")
-                        #
-                        #     # sending the raw message without fields vacancy city etc
-                        #     await bot_aiogram.send_message(int(config['My_channels']['agregator_channel']), vacancy['message'])
-                        #     await asyncio.sleep(random.randrange(2, 3))
-                        #     self.last_id_message_agregator += 1
-                        #
-                        # #     # 3. writing id agregator in vacancy in admin last session because it has been sent to agregator
-                        #     response = DataBaseOperations(None).get_all_from_db('admin_last_session',
-                        #                                                     param=f"WHERE id={id_admin_last_session_table}",
-                        #                                                     without_sort=True)
-                        #     if response:
-                        #         prof_list = response[0][4].split(', ')
-                        #
-                        #         # 4. if one that delete vacancy from admin_last_session
-                        #         await update_vacancy_admin_last_session(
-                        #             profession=profession,
-                        #             prof_list=prof_list,
-                        #             id_admin_last_session_table=id_admin_last_session_table,
-                        #             last_id_message_agregator=self.last_id_message_agregator,
-                        #             update_id_agregator=True)
-                        #     else:
-                        #         await bot_aiogram.send_message(callback.message.chat.id, f"<b>For the developer</b>: Hey, bot didn't find this vacancy in admin_last_session", parse_mode='html')
-                        # --------------------------------- end -------------------------------------
 
-                        # await sending_to_prof_channel(vacancy, profession)
-                        # ---------------- sending to prof channel ----------------
                         pass
 
                         if "full" in callback.data:
@@ -574,6 +569,8 @@ class InviteBot:
                             )
 
                         await delete_used_vacancy_from_tg_db(vacancy, id_admin_last_session_table)
+                    else:
+                        await bot_aiogram.send_message(callback.message.chat.id, 'There is not response')
                     # # ------------------- cleaning the areas for the used vacancy  -------------------
                     #     print('\ndelete vacancy\n')
                     #     await client.delete_messages(int(config['My_channels']['admin_channel']), vacancy['id'])
@@ -923,16 +920,16 @@ class InviteBot:
                     await asyncio.sleep(1)
 
         # -----------------------parsing telegram channels -------------------------------------
-                    await bot_aiogram.send_message(
-                        message.chat.id,
-                        'Парсит телеграм каналы...',
-                        parse_mode='HTML')
-                    await main(client, bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id})  # run parser tg channels and write to profession's tables
-                    await bot_aiogram.send_message(
-                        message.chat.id,
-                        '...прошло успешно, записано в базу',
-                        parse_mode='HTML')
-                    await asyncio.sleep(2)
+        #             await bot_aiogram.send_message(
+        #                 message.chat.id,
+        #                 'Парсит телеграм каналы...',
+        #                 parse_mode='HTML')
+        #             await main(client, bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id})  # run parser tg channels and write to profession's tables
+        #             await bot_aiogram.send_message(
+        #                 message.chat.id,
+        #                 '...прошло успешно, записано в базу',
+        #                 parse_mode='HTML')
+        #             await asyncio.sleep(2)
 
         # ---------------------- parsing the sites. List of them will grow ------------------------
                     await bot_aiogram.send_message(message.chat.id, 'Парсятся сайты...')
@@ -1561,50 +1558,36 @@ class InviteBot:
 
                 return {'composed_message': message_for_send, 'db_id': message[0]}
 
-        async def get_last_admin_channel_id(message):
+        async def get_last_admin_channel_id(message, channel=config['My_channels']['admin_channel']):
             last_admin_channel_id = None
-
-            await bot_aiogram.send_message(config['My_channels']['admin_channel'], 'test')
-
+            await bot_aiogram.send_message(channel, 'test')
             await asyncio.sleep(1)
             logs.write_log(f"scraping_telethon2: function: get_last_id_agregator")
-            try:
-                # peer = PeerChannel(-1001897438132)
-                peer = await client.get_input_entity(config['My_channels']['admin_channel_url'])
-                # peer = await client.get_entity(int(config['My_channels']['admin_channel']))
-            except Exception as e:
-                # peer = PeerChannel(int(config['My_channels']['admin_channel']))
-                await bot_aiogram.send_message(message.chat.id, f'get_entity error: {e}')
-                peer = PeerChannel(-1001897438132)
 
+            if channel != config['My_channels']['admin_channel']:
+                limit_msg=1
+            else:
+                limit_msg=100
 
             try:
-                history_argegator = await client(GetHistoryRequest(
-                    peer=peer,
-                    offset_id=0,
-                    offset_date=None, add_offset=0,
-                    limit=1, max_id=0, min_id=0,
-                    hash=0))
-                last_admin_channel_id = history_argegator.messages[0].id
-                print('last_admin_channel_id = ', last_admin_channel_id)
-                await asyncio.sleep(1)
+                all_messages = await get_tg_history_messages(message, channel, limit_msg)
+                last_admin_channel_id = all_messages[0]['id']
 
-                # delete this test message
-                # channel = InputPeerChannel(peer.id, peer.access_hash)
-                channel = PeerChannel(peer.channel_id)
-                await client.delete_messages(channel, last_admin_channel_id)
+                peer_channel = PeerChannel(int(channel))
+                for i in all_messages:
+                    await client.delete_messages(peer_channel, i['id'])
             except Exception as e:
                 await bot_aiogram.send_message(message.chat.id, f'for admin channel: {e}')
 
             return last_admin_channel_id
 
-        async def get_tg_history_messages(message, channel=config['My_channels']['admin_channel']):
+        async def get_tg_history_messages(message, channel=config['My_channels']['admin_channel'], limit_msg=100):
             logs.write_log(f"scraping_telethon2: function: get_admin_history_messages")
 
             print('get_admin_history_messages')
             offset_msg = 0  # номер записи, с которой начинается считывание
             # limit_msg = 1   # максимальное число записей, передаваемых за один раз
-            limit_msg = 100
+            # limit_msg = 100
             all_messages = []  # список всех сообщений
             total_messages = 0
             total_count_limit = limit_msg  # значение 0 = все сообщения
@@ -1843,7 +1826,8 @@ class InviteBot:
                     await bot_aiogram.send_message(message.chat.id,
                                                    f"<b>For the developer</b>: Hey, bot didn't find this vacancy in admin_last_session",
                                                    parse_mode='html')
-
+            else:
+                await bot_aiogram.send_message(message.chat.id, 'It was sent in agregator time ago')
 
         async def delete_used_vacancy_from_tg_db(vacancy, id_admin_last_session_table):
             # ------------------- cleaning the areas for the used vacancy  -------------------
