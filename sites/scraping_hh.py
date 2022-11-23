@@ -43,7 +43,7 @@ class HHGetInformation:
         self.search_words = ['pm', 'game', 'product', 'mobile', 'marketing', 'sales_manager', 'analyst',
                              'frontend', 'designer', 'devops', 'hr', 'backend', 'qa', 'junior', 'ba']
 
-        # self.search_words.extend(self.extended)
+        self.search_words = ['kiss',]
         self.current_message = None
         self.bot = bot_dict['bot']
         self.chat_id = bot_dict['chat_id']

@@ -239,7 +239,7 @@ class DataBaseOperations:
         return response_dict
 
     def clear_title_or_body(self, text):
-        text = text.replace('\'', '\"').replace('\n\n', '').replace('\xa0', ' ')
+        text = text.replace('\'', '\"')
         return text
 
     def get_all_from_db(self, table_name, param='', without_sort=False, order=None, field='*', curs=None):
@@ -793,7 +793,7 @@ class DataBaseOperations:
 
 
         for i in profession['profession']:
-            pro += f'{i}, '
+            # pro += f'{i}, '
 
             #m---- get response from each prof tables and let True if exists and False if don't ---------
             response = self.get_all_from_db(
@@ -801,41 +801,42 @@ class DataBaseOperations:
                 param=f"WHERE title='{results_dict['title']}' AND body='{results_dict['body']}'"
             )
             if not response:
-                check_does_it_exist.append(False)
-            else:
-                check_does_it_exist.append(True)
+                pro += f'{i}, '
+                 # delete this profession from profession['profession]
+        if pro:
+            results_dict['profession'] = pro[0:-2]
 
-        results_dict['profession'] = pro[0:-2]
-
-        # check message for exists in admin table
-        query_check = f"SELECT * FROM admin_last_session WHERE title='{results_dict['title']}' AND body = '{results_dict['body']}'"
-        with self.con:
-            cur.execute(query_check)
-            r = cur.fetchall()
-
-        if not r and False in check_does_it_exist:
-
-            new_post = f"""INSERT INTO admin_last_session (
-                        chat_name, title, body, profession, vacancy, vacancy_url, company, english, relocation, job_type, 
-                        city, salary, experience, contacts, time_of_public, created_at, session) 
-                                    VALUES ('{results_dict['chat_name']}', '{results_dict['title']}', '{results_dict['body']}', 
-                                    '{results_dict['profession']}', '{results_dict['vacancy']}', '{results_dict['vacancy_url']}', '{results_dict['company']}', 
-                                    '{results_dict['english']}', '{results_dict['relocation']}', '{results_dict['job_type']}', 
-                                    '{results_dict['city']}', '{results_dict['salary']}', '{results_dict['experience']}', 
-                                    '{results_dict['contacts']}', '{results_dict['time_of_public']}', '{datetime.now()}', 
-                                    '{results_dict['session']}');"""
+            # check message for exists in admin table
+            query_check = f"SELECT * FROM admin_last_session WHERE title='{results_dict['title']}' AND body = '{results_dict['body']}'"
             with self.con:
-                try:
-                    cur.execute(new_post)
-                    print(f'+++++++++++++ The vacancy has been added to DB admin_last_session\n')
-                except Exception as e:
-                    print(f'-------------- Didn"t push in ADMIN LAST SESSION {e}\n')
-                    pass
+                cur.execute(query_check)
+                r = cur.fetchall()
+
+            if not r:
+
+                new_post = f"""INSERT INTO admin_last_session (
+                            chat_name, title, body, profession, vacancy, vacancy_url, company, english, relocation, job_type, 
+                            city, salary, experience, contacts, time_of_public, created_at, session) 
+                                        VALUES ('{results_dict['chat_name']}', '{results_dict['title']}', '{results_dict['body']}', 
+                                        '{results_dict['profession']}', '{results_dict['vacancy']}', '{results_dict['vacancy_url']}', '{results_dict['company']}', 
+                                        '{results_dict['english']}', '{results_dict['relocation']}', '{results_dict['job_type']}', 
+                                        '{results_dict['city']}', '{results_dict['salary']}', '{results_dict['experience']}', 
+                                        '{results_dict['contacts']}', '{results_dict['time_of_public']}', '{datetime.now()}', 
+                                        '{results_dict['session']}');"""
+                with self.con:
+                    try:
+                        cur.execute(new_post)
+                        print(f'+++++++++++++ The vacancy has been added to DB admin_last_session\n')
+                    except Exception as e:
+                        print(f'-------------- Didn"t push in ADMIN LAST SESSION {e}\n')
+                        pass
+            else:
+                if r:
+                    print(f'!!!!!!!!!!! Message exists in admin_last_session\n')
+                if False not in check_does_it_exist:
+                    print(f'!!!!!!!!!!! Message exists in profess_table\n')
         else:
-            if r:
-                print(f'!!!!!!!!!!! Message exists in admin_last_session\n')
-            if False not in check_does_it_exist:
-                print(f'!!!!!!!!!!! Message exists in profess_table\n')
+            print('There is not profession')
 
 
     def push_followers_statistics(self, channel_statistic_dict:dict):

@@ -15,7 +15,7 @@ pattern = {
                 "@foranalysts", "free training courses", "Ищу Работу", "Как это сделать", "@jobforjunior",
                 "Шукаю работу", "xodim", "Шукаю віддалену роботу", "Каналы для", "Канал для", "ВАКАНСИЯ ЗАКРЫТА",
                 "в поиске новых карьерных возможностей", "Очікування зп", "Шукаю роботу", "Открыт к новым предложениям",
-                "в поиске новых карьерных", "в поиске работы", "Шукаю віддалену роботу", "Шукаю роботу",
+                "в поиске новых карьерных", "в поиске работы", "Шукаю віддалену роботу", "Шукаю роботу","Шукаю працу","у пошуках працы",
                 "Я соискатель", "Моё резюме", "Мое резюме", "My CV", "I am looking for a job")
     },
 
@@ -42,7 +42,7 @@ pattern = {
                 "Python Developer", 'C\\+\\+ Qt Developer', 'Position:Backend Engineer', "Middle Ruby Developer",
                 "Вакансия: Senior PHP Developer", "Sеnior Jаvа-рaзрaбoтчик", "Вакансия: Automation QA",
                 "Должность: Manual QA", "Web-дизайнер (UI/UX) middle", "Laravel", 'Senior Java developer',
-                "Вакансия: Java Software Developer", "HCM", "на позицию DevOps", "Senior backend", "Php developer",
+                "Product designer","Go developer","JAVA backend","SRE-инженер", "Python Developer","Blockchain Developer","Java developer (middle, senior)","Java developer (senior)","Senior Java engineer","Java разработчика", "Senior Java developer","JAVA разработчик", "#backend","Java Developer","#QA", "Ruby on Rails", "DevOps", "Вакансия: Java Software Developer", "Ruby full-stack developer", "HCM", "на позицию DevOps", "Senior backend", "QA manual","Php developer",
                 "#resume")
     },
 
@@ -99,13 +99,13 @@ pattern = {
             "environment artist", "concept artist", "layout 3d artist", "Game Designer"),
         'mex': ("дизайнеры", "Artec 3D", "3D scanners", "DevOps", "Web UI", "Product manager", "Product owner",
                 "из дизайнера", "из Дизайнера", "designers", "3D Unity", "3D unity", "Unity 3D",
-                "Understanding UI state", "Material UI", "до UI", "Python", "#Java", "Kotlin", "Swift", " C ",
-                "C\\+\\+", "C#", "ObjectiveC", "React", "SoapUI", "Postman", "iOS разработчик", "Full Stack",
-                "fullstack Web Developer", "Flutter Developer", "Senior Dealer", "Инженер-электронщик",
+                "Understanding UI state", "Material UI", "до UI", "Python", "#Java", "JavaScript","Kotlin", "Swift", "Git ","Git,","Git."," C ",
+                "C\\+\\+", "C#", "ObjectiveC", "React", "SoapUI", "Postman", "POSTMAN", "PostgreSQL", "MySQL", "iOS разработчик", "Full Stack",
+                "fullstack Web Developer", "Flutter Developer", "Senior Dealer", "Инженер-электронщик", "NodeJS", "Vue", "VueRouter", "Vuex",
                 "Marketing Manager", "Unity Dev", "C#", "SMM Specialist", "Rest Api", "SQLite", "QA Automation",
                 "Senior Android  developer", "Qa engineer", "Middle Тестировщик", "Senior ios разработчик",
-                "Android-разработчик", "Продакт-менеджер", "Аналитик DWH", "Delphi", "Business Analyst",
-                "QA Engineer", "Angular", "bitrix", "битрикс")
+                "Android-разработчик", "Продакт-менеджер", "Аналитик DWH", "Delphi", "Business Analyst", "#automation", "#selenium", "автотесты", "автотестов", "cucumber",
+                "QA Engineer", "Angular", "bitrix", "битрикс", "менеджера по продажам", "менеджер по продажам", "специалист по тестированию", "Soap", "postman","тестировщик", "json", "JSON", "Администратор", "администратор", "баз данных","базы данных", "Баз данных","Базы данных")
     },
 
     # capitalize
