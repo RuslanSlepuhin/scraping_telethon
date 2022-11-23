@@ -521,8 +521,11 @@ class DataBaseOperations:
                 if not response:
                     query = f"""INSERT INTO companies (company) VALUES ('{company}')"""
                     with con:
-                        cur.execute(query)
-                        print(f'to put: {company}')
+                        try:
+                            cur.execute(query)
+                            print(f'to put: {company}')
+                        except Exception as e:
+                            print('Company has not been write to db:\n', e)
 
     def rewrite_to_archive(self):
 
