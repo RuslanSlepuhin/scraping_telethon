@@ -40,10 +40,10 @@ class HHGetInformation:
             'contacts': []
         }
 
-        self.search_words = ['pm', 'game', 'product', 'mobile', 'marketing', 'sales_manager', 'analyst',
+        self.search_words = ['junior', 'джуниор', 'kotlin', 'product', 'mobile', 'marketing', 'аналитик',
                              'frontend', 'designer', 'devops', 'hr', 'backend', 'qa', 'junior', 'ba']
 
-        self.search_words = ['kiss',]
+        self.search_words = ['junior', 'джуниор']
         self.current_message = None
         self.bot = bot_dict['bot']
         self.chat_id = bot_dict['chat_id']
@@ -187,6 +187,7 @@ class HHGetInformation:
             # get body --------------------------
             body = soup.find('div', class_='vacancy-section').get_text()
             body = body.replace('\n\n', '\n')
+            body = re.sub(r'\<[A-Za-z\/=\"\-\>\s\._\<]{1,}\>', " ", body)
             print('body = ',body)
 
             # get tags --------------------------

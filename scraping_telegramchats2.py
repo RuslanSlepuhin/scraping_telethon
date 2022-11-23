@@ -152,7 +152,8 @@ class WriteToDbMessages():
 
         await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], f'<em>channel {channel}</em>', parse_mode='html', disable_web_page_preview = True)
 
-        # data = await self.client.get_entity(channel)
+        # data = await self.client.get_entity('https://t.me/fake_prof_channel')
+        # print(data)
 
         while True:
             try:
@@ -261,10 +262,12 @@ class WriteToDbMessages():
         profession = await self.clear_not_valid_professions(profession)  # delete not valid keys (middle, senior and others)
         print('valid professions ', profession['profession'])
         if profession['profession']:
-
+            for key in params:
+                if not results_dict[key] and params[key]:
+                    results_dict[key] = params[key]
                 # write to profession's tables. Returns dict with professions as a key and False, if it was written and True if existed
                 # -------------------------------- write all message for admin in one table--------------------------------
-                DataBaseOperations(None).push_to_admin_table(results_dict, profession, params)
+            DataBaseOperations(None).push_to_admin_table(results_dict, profession, params)
 
     async def this_func_push_to_prof_db_i_exclude_it_from_code(self, results_dict, profession, one_message):
 

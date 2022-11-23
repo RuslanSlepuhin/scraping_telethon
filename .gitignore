@@ -17,7 +17,9 @@ settings/config_keys.ini
 participants/*.xlsx
 
 # settings ini
-./settings/*.ini
+settings/
+
+delete*.py
 
 # links
 ./tg_channels/

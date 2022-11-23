@@ -36,6 +36,7 @@ api_hash = settings.api_hash
 username = settings.username
 token = settings.token
 
+
 logging.basicConfig(level=logging.INFO)
 bot_aiogram = Bot(token=token)
 storage = MemoryStorage()
@@ -443,7 +444,7 @@ class InviteBot:
 
                     # composed_message_dict = {}
                     for vacancy in response:
-                        composed_message_dict = await compose_message(message=vacancy, one_profession=profession)
+                        composed_message_dict = await compose_message(message=vacancy, one_profession=profession, full=True)
                         composed_message_dict['id_admin_channel'] = ''
                         composed_message_dict['id_admin_channel'] = last_admin_channel_id + 1
                         composed_message_dict['it_was_sending_to_agregator'] = ''
@@ -452,7 +453,8 @@ class InviteBot:
                     # it needs the checking. It can be in DB. Do it after is better. At the moment writing ti admin las session. Does not matter to write it if it exists in DB
 
                         try:
-                            text = f"{vacancy[2]}\n{vacancy[3]}"
+                            # text = f"{vacancy[2]}\n{vacancy[3]}"
+                            text = composed_message_dict['composed_message']
                             if len(text) > 4096:
                                 text = text[:4093] + '...'
                             await bot_aiogram.send_message(config['My_channels']['admin_channel'], text, parse_mode='html')
@@ -909,7 +911,7 @@ class InviteBot:
                     await asyncio.sleep(1)
                     self.start_time_scraping_channels = datetime.now()
                     print('time_start = ', self.start_time_scraping_channels)
-                    await bot_aiogram.send_message(message.chat.id, 'Scraping is starting')
+                    # await bot_aiogram.send_message(message.chat.id, 'Scraping is starting')
                     await asyncio.sleep(1)
 
         # -----------------------parsing telegram channels -------------------------------------
@@ -1461,19 +1463,19 @@ class InviteBot:
                     profession_list['profession'] = [one_profession, ]  # rewrite list if one_profession
 
                 results_dict['chat_name'] = message[1]
-                results_dict['title'] = message[2]
-                results_dict['body'] = message[3]
+                results_dict['title'] = message[2] #full
+                results_dict['body'] = message[3] #full
                 results_dict['profession'] = message[4]
-                results_dict['vacancy'] = message[5]
-                results_dict['vacancy_url'] = message[6]
-                results_dict['company'] = message[7]
-                results_dict['english'] = message[8]
-                results_dict['relocation'] = message[9]
-                results_dict['job_type'] = message[10]
-                results_dict['city'] = message[11]
-                results_dict['salary'] = message[12]
-                results_dict['experience'] = message[13]
-                results_dict['contacts'] = message[14]
+                results_dict['vacancy'] = message[5] #+
+                results_dict['vacancy_url'] = message[6] #+  #full
+                results_dict['company'] = message[7] #+
+                results_dict['english'] = message[8] #+
+                results_dict['relocation'] = message[9] #+
+                results_dict['job_type'] = message[10] #+
+                results_dict['city'] = message[11] #+
+                results_dict['salary'] = message[12] #full
+                results_dict['experience'] = message[13] #full
+                results_dict['contacts'] = message[14] #full
                 results_dict['time_of_public'] = message[15]
                 results_dict['created_at'] = message[16]
                 results_dict['agregator_link'] = message[17]
@@ -1484,13 +1486,16 @@ class InviteBot:
                 body = message[3]
                 params = AlexSort2809().sort_by_profession_by_Alex(title, body)['params']
 
+
                 # compose message_to_send
                 # message_for_send = f'Вакансия {one_profession.title()}\n'
                 message_for_send = ''
                 if results_dict['vacancy']:
-                    message_for_send += f"Вакансия: {results_dict['vacancy']}\n"
+                    message_for_send += f"<b>Вакансия: {results_dict['vacancy']}</b>\n"
                 elif params['vacancy']:
-                    message_for_send += f"Вакансия: {params['vacancy']}\n"
+                    message_for_send += f"<b>Вакансия: {params['vacancy']}</b>\n"
+                else:
+                    message_for_send += f"<b>Вакансия: #{random.randrange(100, 5000)}</b>\n"
 
                 if results_dict['company']:
                     message_for_send += f"Компания: {results_dict['company']}\n"
@@ -1515,11 +1520,12 @@ class InviteBot:
                 elif params['relocation']:
                     message_for_send += f"Релокация: {params['relocation']}\n"
 
-                if sended_to_agregator and sended_to_agregator != "None":
-                    # message_for_send += f"{config['My_channels']['agregator_link']}/{sended_to_agregator}\n"
-                    message_for_send += f"<a href=\"{config['My_channels']['agregator_link']}/{sended_to_agregator}\">Подробнее</a>"
-                    # message_for_send += hlink(title="Подробнее", url=f"{config['My_channels']['agregator_link']}/{sended_to_agregator}")
-                    message_for_send += '\n'
+                if not full:
+                    if sended_to_agregator and sended_to_agregator != "None":
+                        # message_for_send += f"{config['My_channels']['agregator_link']}/{sended_to_agregator}\n"
+                        message_for_send += f"<a href=\"{config['My_channels']['agregator_link']}/{sended_to_agregator}\">Подробнее</a>"
+                        # message_for_send += hlink(title="Подробнее", url=f"{config['My_channels']['agregator_link']}/{sended_to_agregator}")
+                        message_for_send += '\n'
 
                 if not message_for_send:
                     message_for_send = 'The vacancy not found\n\n'
@@ -1527,20 +1533,21 @@ class InviteBot:
 
                 if full:
                     if results_dict['salary']:
-                        message_for_send += f"<b>Зарплата:</b> {results_dict['salary']}\n"
+                        message_for_send += f"Зарплата: {results_dict['salary']}\n"
 
                     if results_dict['experience']:
-                        message_for_send += f"<b>Опыт работы:</b> {results_dict['experience']}\n"
+                        message_for_send += f"Опыт работы: {results_dict['experience']}\n"
 
                     if results_dict['contacts']:
-                        message_for_send += f"<b>Контакты:</b> {results_dict['contacts']}\n"
+                        message_for_send += f"Контакты: {results_dict['contacts']}\n"
                     elif results_dict['vacancy_url']:
-                        message_for_send += f"<b>Ссылка на вакансию:</b> {results_dict['vacancy_url']}\n\n"
+                        message_for_send += f"Ссылка на вакансию: {results_dict['vacancy_url']}\n"
 
-                    message_for_send += f"{results_dict['title']}\n"
+                    if results_dict['vacancy'].strip() != results_dict['title'].strip() or (results_dict['vacancy'] and results_dict['title']):
+                        message_for_send += f"\n<b>{results_dict['title']}</b>\n"
                     message_for_send += results_dict['body']
 
-                    message_for_send = re.sub(r'\<[A-Za-z\/=\"\-\>\s\._\<]{1,}\>', " ", message_for_send)
+                    # message_for_send = re.sub(r'\<[A-Za-z\/=\"\-\>\s\._\<]{1,}\>', " ", message_for_send)
 
                 # else:
                 #     message_for_send += f"https://t.me/it_jobs_agregator/{sended_to_agregator}\n"
@@ -1820,7 +1827,7 @@ class InviteBot:
                                                    f"<b>For the developer</b>: Hey, bot didn't find this vacancy in admin_last_session",
                                                    parse_mode='html')
             else:
-                await bot_aiogram.send_message(message.chat.id, 'It was sent in agregator time ago')
+                await bot_aiogram.send_message(message.chat.id, 'It was sent in agregator some time ago')
 
         async def delete_used_vacancy_from_tg_db(vacancy, id_admin_last_session_table):
             # ------------------- cleaning the areas for the used vacancy  -------------------
