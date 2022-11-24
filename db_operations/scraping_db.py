@@ -117,7 +117,6 @@ class DataBaseOperations:
         logs.write_log(f"scraping_db: function: check_or_create_table")
 
         with self.con:
-
             cur.execute(f"""CREATE TABLE IF NOT EXISTS {table_name} (
                             id SERIAL PRIMARY KEY,
                             chat_name VARCHAR(150),
@@ -141,8 +140,7 @@ class DataBaseOperations:
                             FOREIGN KEY (session) REFERENCES current_session(session)
                             );"""
                         )
-
-            self.con.commit()
+            print(f'table {table_name} has been crated or exists')
 
     def push_to_bd(self, results_dict, profession_list=None, agregator_id=None):
 
@@ -489,13 +487,9 @@ class DataBaseOperations:
                     marker = True
         return new_response
 
-    def write_to_db_companies(self, companies):
-
-        logs.write_log(f"scraping_db: function: write_to_db_companies")
-
+    def check_table_companies(self):
         con = self.connect_db()
         cur = con.cursor()
-
         query = """CREATE TABLE IF NOT EXISTS companies (
             id SERIAL PRIMARY KEY,
             company VARCHAR(100)
@@ -503,6 +497,14 @@ class DataBaseOperations:
             """
         with con:
             cur.execute(query)
+            print('Table companies has been created or exists')
+
+    def write_to_db_companies(self, companies):
+
+        logs.write_log(f"scraping_db: function: write_to_db_companies")
+
+        con = self.connect_db()
+        cur = con.cursor()
 
         for company in companies:
 
@@ -572,7 +574,7 @@ class DataBaseOperations:
     def output_tables(self):
 
         logs.write_log(f"scraping_db: function: output_tables")
-
+        tables_list = []
         db_tables = []
 
         if not self.con:
@@ -593,7 +595,9 @@ class DataBaseOperations:
                 print(f"{i[2]} = {result}")
                 if result:
                     summ += result
+                    tables_list.append(i[2])
         print(f'\nвсего записей: {summ}')
+        return tables_list
 
     def delete_table(self, table_name):
 
