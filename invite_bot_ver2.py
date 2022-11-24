@@ -495,6 +495,8 @@ class InviteBot:
 
 
             if 'PUSH' in callback.data:
+                profession_list = {}
+                results_dict = {}
 
                 self.percent = 0
                 self.message = await bot_aiogram.send_message(callback.message.chat.id, f'progress {self.percent}%')
@@ -569,7 +571,28 @@ class InviteBot:
                                 update_profession=True,
                                 update_id_agregator=False
                             )
+                            # write to prof DB
+                            profession_list['profession'] = [profession,]
+                            results_dict['chat_name'] = vacancy_from_admin[0][1]
+                            results_dict['title'] = vacancy_from_admin[0][2]
+                            results_dict['body'] = vacancy_from_admin[0][3]
+                            results_dict['profession'] = vacancy_from_admin[0][4]
+                            results_dict['vacancy'] = vacancy_from_admin[0][5]
+                            results_dict['vacancy_url'] = vacancy_from_admin[0][6]
+                            results_dict['company'] = vacancy_from_admin[0][7]
+                            results_dict['english'] = vacancy_from_admin[0][8]
+                            results_dict['relocation'] = vacancy_from_admin[0][9]
+                            results_dict['job_type'] = vacancy_from_admin[0][10]
+                            results_dict['city'] = vacancy_from_admin[0][11]
+                            results_dict['salary'] = vacancy_from_admin[0][12]
+                            results_dict['experience'] = vacancy_from_admin[0][13]
+                            results_dict['contacts'] = vacancy_from_admin[0][14]
+                            results_dict['time_of_public'] = vacancy_from_admin[0][15]
+                            results_dict['created_at'] = vacancy_from_admin[0][16]
+                            results_dict['agregator_link'] = vacancy_from_admin[0][17]
+                            results_dict['session'] = vacancy_from_admin[0][18]
 
+                        response_dict = DataBaseOperations(None).push_to_bd(results_dict, profession_list, self.last_id_message_agregator)
                         await delete_used_vacancy_from_tg_db(vacancy, id_admin_last_session_table)
                     else:
                         await bot_aiogram.send_message(callback.message.chat.id, 'There is not response')
@@ -1479,8 +1502,8 @@ class InviteBot:
 
                 if results_dict['company']:
                     message_for_send += f"Компания: {results_dict['company']}\n"
-                elif params['company_hiring']:
-                    message_for_send += f"Компания: {params['company_hiring']}\n"
+                elif params['company']:
+                    message_for_send += f"Компания: {params['company']}\n"
 
                 if results_dict['city']:
                     message_for_send += f"Город/страна: {results_dict['city']}\n"
@@ -1492,8 +1515,8 @@ class InviteBot:
 
                 if results_dict['job_type']:
                     message_for_send += f"Формат работы: {results_dict['job_type']}\n"
-                elif params['jobs_type']:
-                    message_for_send += f"Формат работы: {params['jobs_type']}\n"
+                elif params['job_type']:
+                    message_for_send += f"Формат работы: {params['job_type']}\n"
 
                 if results_dict['relocation']:
                     message_for_send += f"Релокация: {results_dict['relocation']}\n"
