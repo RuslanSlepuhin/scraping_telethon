@@ -965,21 +965,21 @@ class DataBaseOperations:
         with self.con:
             cur.execute(f"""CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
-                id_user INTEGER,
-                api_id INTEGER,
+                id_user VARCHAR(20),
+                api_id VARCHAR(20),
                 api_hash VARCHAR (50),
                 phone_number VARCHAR (25),
                 password VARCHAR (100)
                 );"""
                         )
 
-        query_does_user_exist = f"""SELECT * FROM users WHERE api_id={api_id}"""
+        query_does_user_exist = f"""SELECT * FROM users WHERE api_id='{api_id}'"""
         with self.con:
             cur.execute(query_does_user_exist)
         r= cur.fetchall()
 
         if not r:
-            query = f"""INSERT INTO users (id_user, api_id, api_hash, phone_number) VALUES ({id_user}, {api_id}, '{api_hash}', '{phone_number}')"""
+            query = f"""INSERT INTO users (id_user, api_id, api_hash, phone_number) VALUES ('{id_user}', '{api_id}', '{api_hash}', '{phone_number}')"""
             try:
                 with self.con:
                     cur.execute(query)
@@ -989,14 +989,14 @@ class DataBaseOperations:
         else:
             print('user exists')
 
-    def change_type_column(self, list_table_name):
+    def change_type_column(self, list_table_name, name_and_type='title VARCHAR(4096)'):
 
         if not self.con:
             self.connect_db()
         cur = self.con.cursor()
 
         for table_name in list_table_name:
-            query_for_change_type = f"""ALTER TABLE {table_name} ALTER COLUMN title VARCHAR(4096)"""
+            query_for_change_type = f"""ALTER TABLE {table_name} ALTER COLUMN {name_and_type}"""
             with self.con:
                 try:
                     cur.execute(query_for_change_type)
