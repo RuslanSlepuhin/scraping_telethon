@@ -11,13 +11,15 @@ db.sqlite3
 venv/
 .git/
 .idea/
-settings/config_keys.ini
+settings/*.ini
+other_operations/
+messages/
+excel/
+__backup__/
 
 *.session-journal
 participants/*.xlsx
 
-# settings ini
-settings/
 
 delete*.py
 
