@@ -73,10 +73,10 @@ class InviteBot:
         self.current_customer = None
         self.api_id: int
         self.api_hash: str
-        self.phone_number: str
-        self.hash_phone: str
-        self.code: str
-        self.password: ''
+        self.phone_number = '' # str
+        self.hash_phone = '' # str
+        self.code = '' # str
+        self.password = '' #str
         self.peerchannel = False
         self.percent = None
         self.message = None
@@ -108,17 +108,6 @@ class InviteBot:
                     await get_code(message)
             else:
                 await bot_aiogram.send_message(message.chat.id, 'Connection is ok')
-
-        async def or_connect(message):
-            try:
-                is_connect = client.is_connected()
-            except Exception as e:
-                return await bot_aiogram.send_message(message.chat.id, str(e))
-
-            if is_connect:
-                return True
-            else:
-                return False
 
         class Form(StatesGroup):
             api_id = State()
@@ -367,7 +356,9 @@ class InviteBot:
                     await bot_aiogram.send_message(message.chat.id, 'Connection is ok')
 
                 else:
-                    await client.sign_in(phone=self.phone_number, code=self.code, password=self.password, phone_code_hash=self.hash_phone)
+                    # await client.sign_in(phone=self.phone_number, password=self.password, code=self.code, phone_code_hash=self.hash_phone)
+                    await client.sign_in(password=self.password, code=self.code)
+
                     await bot_aiogram.send_message(message.chat.id, 'Connection is ok')
 
             except Exception as e:
@@ -800,6 +791,7 @@ class InviteBot:
                             username = user[2]
                             print(type(username))
 
+#-----------------------------------------------------try---------------------------------------------------------------
                             try:
                                 user_channel_status = await bot_aiogram.get_chat_member(chat_id=channel_short_name, user_id=id_user)
                                 if user_channel_status.status != types.ChatMemberStatus.LEFT:
@@ -819,15 +811,27 @@ class InviteBot:
                                     await msg.delete()
                                     msg = None
                                 await bot_aiogram.send_message(message.chat.id, str(e))
-
+                                print(f"if username != None {str(e)}")
+# ----------------------------------------------------end---------------------------------------------------------------
                             if not user_exists:
                                 if username != 'None':
-                                    user_to_send1 = await client.get_input_entity(username)
-                                    user_to_send = [user_to_send1]
+# -----------------------------------------------------try---------------------------------------------------------------
+                                    try:
+                                        user_to_send1 = await client.get_input_entity(username)
+                                        user_to_send = [user_to_send1]
+                                    except Exception as e:
+                                        await bot_aiogram.send_message(message.chat.id, f"if username != None {str(e)}")
+                                        print(f"if username != None {str(e)}")
+# ----------------------------------------------------end---------------------------------------------------------------
                                 else:
-                                    user_to_send = [InputUser(id_user, access_hash_user)]  # (PeerUser(id_user))
-
-
+# -----------------------------------------------------try---------------------------------------------------------------
+                                    try:
+                                        user_to_send = [InputUser(id_user, access_hash_user)]  # (PeerUser(id_user))
+                                    except Exception as e:
+                                        await bot_aiogram.send_message(message.chat.id, f"if username = None {str(e)}")
+                                        print(f"if username = None {str(e)}")
+# ----------------------------------------------------end---------------------------------------------------------------
+# -----------------------------------------------------try---------------------------------------------------------------
                                 try:
                                     if msg:
                                         await msg.delete()
@@ -850,10 +854,16 @@ class InviteBot:
                                         if msg:
                                             await msg.delete()
                                             msg = None
-                                        await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: Для пользователя id={user[0]}\n{str(e)}', parse_mode='html')
+# -----------------------------------------------------try---------------------------------------------------------------
+                                        try:
+                                            await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: Для пользователя id={user[0]}\n{str(e)}', parse_mode='html')
+                                        except Exception:
+                                            print('exception: 858')
+                                            pass
+# ----------------------------------------------------end---------------------------------------------------------------
                                         numbers_failure += 1
                                         msg = None
-
+# ----------------------------------------------------end---------------------------------------------------------------
 
                                 n += 1
                                 await asyncio.sleep(random.randrange(5, 10))
@@ -874,6 +884,9 @@ class InviteBot:
                                            f'<b>{channel_short_name}</b>: {numbers_invite} пользователей заинвайтились, проверьте в канале\n'
                                            f'{numbers_failure} не заинватились в канал\n'
                                            f'{was_subscribe} были уже подписаны на канал', parse_mode='html')
+                        print(f'886: {channel_short_name}: {numbers_invite} пользователей заинвайтились, проверьте в канале\n'
+                                           f'{numbers_failure} не заинватились в канал\n'
+                                           f'{was_subscribe} были уже подписаны на канал')
                         all_participant = []
                         marker = False
                         os.remove(f'{file_name}')
@@ -881,7 +894,8 @@ class InviteBot:
                         if msg:
                             await msg.delete()
                             msg = None
-                        await bot_aiogram.send_message(message.chat.id, f'{e}')
+                        await bot_aiogram.send_message(message.chat.id, f'bottom: 890 {e}')
+                        print(f'bottom: 890 {e}')
 
                 #pass
 
@@ -946,10 +960,10 @@ class InviteBot:
                     # con = db_connect()
                     if customer:
                         # get_customer_from_db = get_db(id_customer)
-                        get_customer_from_db = DataBaseOperations(None).get_all_from_db(table_name='users', param=f"WHERE id_user={id_customer}", without_sort=True)
+                        get_customer_from_db = DataBaseOperations(None).get_all_from_db(table_name='users', param=f"WHERE id_user='{id_customer}'", without_sort=True)
                         self.current_customer = get_customer_from_db[0]
 
-                        self.api_id = self.current_customer[2]
+                        self.api_id = int(self.current_customer[2])
                         self.api_hash = self.current_customer[3]
                         self.phone_number = self.current_customer[4]
                         self.password = self.current_customer[5]
