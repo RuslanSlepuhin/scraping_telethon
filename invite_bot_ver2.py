@@ -798,30 +798,39 @@ class InviteBot:
                                     if msg:
                                         await msg.delete()
                                         msg = None
-                                    msg = await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: пользователь с id={id_user} уже подписан', parse_mode='html')
+                                    # msg = await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: пользователь с id={id_user} уже подписан', parse_mode='html')
+                                    print('Пользователь уже подписан')
                                     await asyncio.sleep(1)
                                     was_subscribe += 1
                                     user_exists = True
                                 else:
+                                    print('Пользователь новый')
                                     user_exists = False
 
                             except Exception as e:
+                                print('Пользователь новый')
                                 user_exists = False
                                 if msg:
                                     await msg.delete()
                                     msg = None
-                                await bot_aiogram.send_message(message.chat.id, f"813: {str(e)}")
+                                # await bot_aiogram.send_message(message.chat.id, f"813: {str(e)}")
                                 print(f"813: if username != None {str(e)}")
 # ----------------------------------------------------end---------------------------------------------------------------
                             if not user_exists:
                                 if username != 'None':
 # -----------------------------------------------------try---------------------------------------------------------------
                                     try:
-                                        user_to_send1 = await client.get_input_entity(username)
-                                        user_to_send = [user_to_send1]
+                                        user_to_send = [await client.get_input_entity(username)]
                                     except Exception as e:
-                                        await bot_aiogram.send_message(message.chat.id, f"824: if username != None {str(e)}")
-                                        print(f"824: if username != None {str(e)}")
+                                        try:
+                                            await asyncio.sleep(5)
+                                            user_to_send = [await client.get_entity(username)]
+                                        except Exception as e:
+                                            try:
+                                                user_to_send = [InputUser(id_user, access_hash_user)]
+                                            except Exception as e:
+                                                await bot_aiogram.send_message(message.chat.id, f"824: if username != None {str(e)}")
+                                                print(f"824: if username != None {str(e)}")
 # ----------------------------------------------------end---------------------------------------------------------------
                                 else:
 # -----------------------------------------------------try---------------------------------------------------------------
@@ -832,23 +841,21 @@ class InviteBot:
                                         print(f"831: if username = None {str(e)}")
 # ----------------------------------------------------end---------------------------------------------------------------
 # -----------------------------------------------------try---------------------------------------------------------------
+                                if msg:
+                                    await msg.delete()
+                                    msg = None
                                 try:
-                                    if msg:
-                                        await msg.delete()
-                                        msg = None
-
                                     # client.invoke(InviteToChannelRequest(channel_to_send,  [user_to_send]))
                                     # await client(InviteToChannelRequest(channel_to_send, user_to_send))  #work!!!!!
-
                                     await client(functions.channels.InviteToChannelRequest(channel_to_send, user_to_send))
 
                                     msg = await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}:</b> {user[0]} заинвайлся успешно\n'
                                                                                   f'({numbers_invite+1} инвайтов)', parse_mode='html')
                                     numbers_invite += 1
 
-
                                 except Exception as e:
-                                    if re.findall(r'seconds is required (caused by InviteToChannelRequest)', str(e)):
+                                    if re.findall(r'seconds is required (caused by InviteToChannelRequest)', str(e)) or \
+                                            str(e) == "Too many requests (caused by InviteToChannelRequest)":
                                         break
                                     else:
                                         if msg:
@@ -866,7 +873,7 @@ class InviteBot:
 # ----------------------------------------------------end---------------------------------------------------------------
 
                                 n += 1
-                                await asyncio.sleep(random.randrange(5, 10))
+                                await asyncio.sleep(random.randrange(10, 15))
                                 if n >=198:
                                     if msg:
                                         await msg.delete()
