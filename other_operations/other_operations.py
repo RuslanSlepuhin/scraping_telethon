@@ -1,18 +1,16 @@
 import re
-
 import psycopg2
-
 from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
 from db_operations.scraping_db import DataBaseOperations
 # from scraping_telegramchats2 import WriteToDbMessages
 import pandas as pd
 
-database2 = 'fake'
+#-----------------------------
+database2 = 'itcoty_backup'
 user2 = 'ruslan'
 password2 = '12345'
 host2 = 'localhost'
 port2 = '5432'
-
 con2 = psycopg2.connect(
     database=database2,
     user=user2,
@@ -20,7 +18,35 @@ con2 = psycopg2.connect(
     host=host2,
     port=port2
 )
-cur = con2.cursor()
+cur2 = con2.cursor()
+#------------------------------
+database_fake = 'fake'
+user_fake = 'ruslan'
+password_fake = '12345'
+host_fake = 'localhost'
+port_fake = '5432'
+con_fake = psycopg2.connect(
+    database=database_fake,
+    user=user_fake,
+    password=password_fake,
+    host=host_fake,
+    port=port_fake
+)
+cur_fake = con2.cursor()
+#--------------------------------
+database_from = 'd2tmbiujurbrcr'
+user_from = 'ljgsrnphxwbfsg'
+password_from = '7546fe6db78dc036f71813646989a02f0a37d8afbe4ca1ab5cc6fa38f9125f57'
+host_from = 'ec2-54-220-255-121.eu-west-1.compute.amazonaws.com'
+port_from = '5432'
+con_from = psycopg2.connect(
+    database=database_from,
+    user=user_from,
+    password=password_from,
+    host=host_from,
+    port=port_from
+)
+cur_from = con_from.cursor()
 
 valid_profession_list = ['marketing', 'ba', 'game', 'product', 'mobile',
                                   'pm', 'sales_manager', 'analyst', 'frontend',
@@ -61,8 +87,9 @@ def write_pattern_to_db():
                 pass
             pass
 
-def show_all_tables():
-    DataBaseOperations(None).output_tables()
+def show_all_tables(con):
+    tables_list = DataBaseOperations(con).output_tables()
+    return tables_list
 
 def delete_tables(tables_delete=None):
     # if not tables_delete:
@@ -225,9 +252,9 @@ def send_fulls(time_start=None):
         pass
         response_from_db = DataBaseOperations(None).push_to_bd(results_dict, profession_list, agregator_id=145)
 
-def change_column(list_table_name):
+def change_column(list_table_name, name_and_type):
     db=DataBaseOperations(None)
-    db.change_type_column(list_table_name=list_table_name)
+    db.change_type_column(list_table_name=list_table_name, name_and_type=name_and_type)
 
 def check_english():
     with open('../file.txt', 'r') as f:
@@ -378,28 +405,47 @@ def copy_companies_to_local_db():
 
     print('the end of copy the companies')
 
-def create_all_bd_clone_fake():
-    valid_profession_list = ['marketing', 'ba', 'game', 'product', 'mobile',
+def create_all_bd_clone_fake(con, cur):
+    valid_profession_list = ['admin_last_session', 'marketing', 'ba', 'game', 'product', 'mobile',
                                   'pm', 'sales_manager', 'analyst', 'frontend',
                                   'designer', 'devops', 'hr', 'backend', 'qa', 'junior']
     valid_profession_list.append('no_sort')
-    valid_profession_list = ['fullstack',]
-    database2 = 'fake'
-    user2 = 'ruslan'
-    password2 = '12345'
-    host2 = 'localhost'
-    port2 = '5432'
 
-    con2 = psycopg2.connect(
-        database=database2,
-        user=user2,
-        password=password2,
-        host=host2,
-        port=port2
-    )
-    cur = con2.cursor()
     for i in valid_profession_list:
-        DataBaseOperations(con2).check_or_create_table(cur=cur, table_name=i)
+        DataBaseOperations(con).check_or_create_table(cur=cur, table_name=i)
+    DataBaseOperations(con).check_table_companies()
+
+
+def transfer(con, cur):
+    for i in ['admin_last_session','marketing', 'ba', 'game', 'product', 'mobile', 'pm', 'sales_manager', 'analyst', 'frontend', 'designer', 'devops', 'hr', 'backend', 'qa', 'junior']:
+        response = DataBaseOperations(con_from).get_all_from_db(table_name=i)
+        for vacancy in response:
+            query = f"""INSERT INTO {i} VALUES (
+                    {vacancy[0]},
+                    '{vacancy[1]}'
+                    '{vacancy[2]}'
+                    '{vacancy[3]}'
+                    '{vacancy[4]}'
+                    '{vacancy[5]}'
+                    '{vacancy[6]}'
+                    '{vacancy[7]}'
+                    '{vacancy[8]}'
+                    '{vacancy[9]}'
+                    '{vacancy[10]}'
+                    '{vacancy[11]}'
+                    '{vacancy[12]}'
+                    '{vacancy[13]}'
+                    '{vacancy[14]}'
+                    '{vacancy[15]}'
+                    '{vacancy[16]}'
+                    '{vacancy[17]}'
+                    '{vacancy[18]}'
+                    '{vacancy[19]}'
+                    )"""
+            with con:
+                cur.execute(query)
+                print(f'vacancy has been added to {i}')
+
 
 def write_to_excel_from_proff_and_nosort():
     vacancies_dict = {}
@@ -512,17 +558,32 @@ def rewrite_vacancy():
     df.to_excel(f'./../excel/for_checking.xlsx', sheet_name='Sheet1')
     print('got it ')
 
+def how_many_records(con):
+    param = """WHERE DATE(created_at)>'2022-11-23'"""
+    n = 0
+    for i in ['admin_last_session', 'no_sort', 'marketing', 'ba', 'game', 'product', 'mobile', 'pm',
+              'sales_manager', 'analyst', 'frontend', 'designer', 'devops', 'hr', 'backend', 'qa', 'junior']:
+        response = DataBaseOperations(con).get_all_from_db(
+            table_name=i,
+            without_sort=True,
+            param=param
+        )
+        print(i, len(response))
+        n += len(response)
+    print("---------------\nsum: ", n)
 
+def create_current_session():
+    query = """CREATE TABLE IF NOT EXISTS current_session (
+                        id SERIAL PRIMARY KEY,
+                        session VARCHAR(15) UNIQUE
+                        );"""
+    with con2:
+        cur2.execute(query)
+        print('OK')
 
-# response = DataBaseOperations(None).get_all_from_db(
-#     table_name='marketing',
-#     param="WHERE DATE(created_at) >'2022-11-13'",
-#     without_sort=True
+# change_column(
+#     list_table_name=['users'],
+#     name_and_type='id_user VARCHAR(20)'
 # )
-# for i in response:
-#     print(i)
-# print(len(response))
-# copy_companies_to_local_db()
-write_to_excel_from_proff_and_nosort()
-rewrite_vacancy()
-# create_all_bd_clone_fake()
+
+delete_tables(['users'])

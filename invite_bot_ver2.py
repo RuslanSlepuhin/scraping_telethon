@@ -810,8 +810,8 @@ class InviteBot:
                                 if msg:
                                     await msg.delete()
                                     msg = None
-                                await bot_aiogram.send_message(message.chat.id, str(e))
-                                print(f"if username != None {str(e)}")
+                                await bot_aiogram.send_message(message.chat.id, f"813: {str(e)}")
+                                print(f"813: if username != None {str(e)}")
 # ----------------------------------------------------end---------------------------------------------------------------
                             if not user_exists:
                                 if username != 'None':
@@ -820,16 +820,16 @@ class InviteBot:
                                         user_to_send1 = await client.get_input_entity(username)
                                         user_to_send = [user_to_send1]
                                     except Exception as e:
-                                        await bot_aiogram.send_message(message.chat.id, f"if username != None {str(e)}")
-                                        print(f"if username != None {str(e)}")
+                                        await bot_aiogram.send_message(message.chat.id, f"824: if username != None {str(e)}")
+                                        print(f"824: if username != None {str(e)}")
 # ----------------------------------------------------end---------------------------------------------------------------
                                 else:
 # -----------------------------------------------------try---------------------------------------------------------------
                                     try:
                                         user_to_send = [InputUser(id_user, access_hash_user)]  # (PeerUser(id_user))
                                     except Exception as e:
-                                        await bot_aiogram.send_message(message.chat.id, f"if username = None {str(e)}")
-                                        print(f"if username = None {str(e)}")
+                                        await bot_aiogram.send_message(message.chat.id, f"831: if username = None {str(e)}")
+                                        print(f"831: if username = None {str(e)}")
 # ----------------------------------------------------end---------------------------------------------------------------
 # -----------------------------------------------------try---------------------------------------------------------------
                                 try:
@@ -858,8 +858,8 @@ class InviteBot:
                                         try:
                                             await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: Для пользователя id={user[0]}\n{str(e)}', parse_mode='html')
                                         except Exception:
-                                            print('exception: 858')
-                                            pass
+                                            print('exception: 861')
+                                            await bot_aiogram.send_message(message.chat.id, "exception: 861")
 # ----------------------------------------------------end---------------------------------------------------------------
                                         numbers_failure += 1
                                         msg = None
@@ -894,8 +894,8 @@ class InviteBot:
                         if msg:
                             await msg.delete()
                             msg = None
-                        await bot_aiogram.send_message(message.chat.id, f'bottom: 890 {e}')
-                        print(f'bottom: 890 {e}')
+                        await bot_aiogram.send_message(message.chat.id, f'bottom: 897: {e}')
+                        print(f'bottom: 897: {e}')
 
                 #pass
 
