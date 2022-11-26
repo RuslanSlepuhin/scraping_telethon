@@ -16,7 +16,7 @@ pattern = {
                 "Шукаю работу", "xodim", "Шукаю віддалену роботу", "Каналы для", "Канал для", "ВАКАНСИЯ ЗАКРЫТА",
                 "в поиске новых карьерных возможностей", "Очікування зп", "Шукаю роботу", "Открыт к новым предложениям",
                 "в поиске новых карьерных", "в поиске работы", "Шукаю віддалену роботу", "Шукаю роботу","Шукаю працу","у пошуках працы",
-                "Я соискатель", "Моё резюме", "Мое резюме", "My CV", "I am looking for a job")
+                "Шукаю свою першу роботу", "Я соискатель", "Моё резюме", "Мое резюме", "My CV", "I am looking for a job", "Шукаю свою першу роботу", "#resume")
     },
 
     'contacts': {
@@ -38,12 +38,12 @@ pattern = {
         'mex': ("React as a plus", "understanding of front-end", "взаимодействие с отделом frontend", "QA Automation",
                 "Test Automation Engineer", "C\\+\\+", "Position:Backend Engineer", "Вакансия: Senior PHP Developer",
                 "PHP Developer", "PHP backend-разработчик", "Java developer", "Senior Backend Developer",
-                "Position:IT Recruiter", "Senior C\\+\\+", "Senior C\\+\\+", "Backend engineer", "QA Engineer",
-                "Python Developer", 'C\\+\\+ Qt Developer', 'Position:Backend Engineer', "Middle Ruby Developer",
-                "Вакансия: Senior PHP Developer", "Sеnior Jаvа-рaзрaбoтчик", "Вакансия: Automation QA",
-                "Должность: Manual QA", "Web-дизайнер (UI/UX) middle", "Laravel", 'Senior Java developer',
+                "Position:IT Recruiter", "Senior C\\+\\+","Senior C++", "Senior C\\+\\+", "Backend engineer", "QA Engineer",
+                "Python Developer", 'C\\+\\+ Qt Developer', 'Position:Backend Engineer', "Middle Ruby Developer", "Senior Data Engineer",
+                "Вакансия: Senior PHP Developer", "Sеnior Jаvа-рaзрaбoтчик", "Вакансия: Automation QA", "Crystal/Ruby full-stack developer", "Мобильный разработчик","Flutter",
+                "Должность: Manual QA", "Web-дизайнер (UI/UX) middle", "Laravel", 'Senior Java developer', "Backend-разработчик", "Senior Golang",
                 "Product designer","Go developer","JAVA backend","SRE-инженер", "Python Developer","Blockchain Developer","Java developer (middle, senior)","Java developer (senior)","Senior Java engineer","Java разработчика", "Senior Java developer","JAVA разработчик", "#backend","Java Developer","#QA", "Ruby on Rails", "DevOps", "Вакансия: Java Software Developer", "Ruby full-stack developer", "HCM", "на позицию DevOps", "Senior backend", "QA manual","Php developer",
-                "#resume")
+                "Тестировщик", "Вакансия: QA Инженер","Frontend engineer", "Senior Frontend developer", "Junior Manual QA","Golang","#QA","#AutomationQA","Test Automation Engineer", "Java developer","Java Team Lead", "Team Lead(Java)", "QA auto", "Java developer (senior)", "Java Developer (middle)", "Senior Devops", "Web-developer", "Веб-программист", "Senior PHP Developer", " .NET","C#", "React developer", "Business Development Manager")
     },
 
     'backend': {
@@ -62,7 +62,24 @@ pattern = {
                 "Ищем верстальщика", "Middle qa", "Angular developer", "Vue developer", "Lead devops",
                 "Devops engineer", "Middle front-end", "Middle frontend", "Middle+ front-end", "Middle+ frontend",
                 "#devops", "product lead", "Ищем Frontend developer", "#resume", "UI Designer", "Designer", "UI designer",
-                "Network Engineer", "#kotlin", "Network administration", "Network architect")
+               "Senior Frontend Developer", "Разработчик JS", "React Frontend developer", "Вакансия: Frontend engineer", "разработчик на React Native", "Ведущий тестировщик", "AQA", "Senior Devops","Администратор баз данных","Javascript developer", "консультант техподдержки","Вакансия: Frontend ","Вакансия:  Frontend Developer","Senior Frontend Developer","Front-end разработчик"," Frontend Software Engineer","#QA", "Test Automation Engineer", "QA Auto","Junior JavaScript разработчик","Network Engineer", "#kotlin", "Network administration", "Network architect","React Native", "Junior Manual QA")
+    },
+
+    'python': {
+        'ma': ("Senior Python developer", "Python Engineer", "#ML ", "машинному обучению", "MLOps", "ML engineer", "Python Developer", "Разработчик Python"),
+
+    },
+
+    'C++': {
+        'ma': ("C\\+\\+", "С\\+\\+", "C#"),
+    },
+
+    'PHP': {
+        'ma': ("PHP"," PHP", "PHP разработчик", " РНР"),
+    },
+
+    'Java': {
+        'ma': ("Java ", "Java,","Java.","Java"),
     },
 
     #capitalize
