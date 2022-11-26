@@ -146,13 +146,18 @@ class AlexSort2809:
                 self.result_dict2[key] += len(match)
 
 # -------------- cancel all matches if it excludes words ------------------
+#         print('key = ', key)
         for exclude_word in self.pattern_alex[key]['mex']:
+            # print('exclude_word = ', exclude_word)
 
             if not capitalize:
                 exclude_word = exclude_word.lower()
                 message_to_check = message.lower()
             else:
                 message_to_check = message
+
+            # print('exclude_word = ', exclude_word)
+            # print('message_to_check = ', message_to_check)
 
             match = re.findall(rf"{exclude_word}", message_to_check)
             if match:

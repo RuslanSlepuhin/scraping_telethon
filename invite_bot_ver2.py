@@ -1872,7 +1872,7 @@ class InviteBot:
                                                    f"<b>For the developer</b>: Hey, bot didn't find this vacancy in admin_last_session",
                                                    parse_mode='html')
             else:
-                await bot_aiogram.send_message(message.chat.id, 'It was sent in agregator some time ago')
+                await bot_aiogram.send_message(message.chat.id, 'It has sent in agregator some time ago')
 
         async def delete_used_vacancy_from_tg_db(vacancy, id_admin_last_session_table):
             # ------------------- cleaning the areas for the used vacancy  -------------------

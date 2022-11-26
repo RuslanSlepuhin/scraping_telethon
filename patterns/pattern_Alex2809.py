@@ -38,7 +38,7 @@ pattern = {
         'mex': ("React as a plus", "understanding of front-end", "взаимодействие с отделом frontend", "QA Automation",
                 "Test Automation Engineer", "C\\+\\+", "Position:Backend Engineer", "Вакансия: Senior PHP Developer",
                 "PHP Developer", "PHP backend-разработчик", "Java developer", "Senior Backend Developer",
-                "Position:IT Recruiter", "Senior C\\+\\+","Senior C++", "Senior C\\+\\+", "Backend engineer", "QA Engineer",
+                "Position:IT Recruiter", "Senior C\\+\\+","Senior C\\+\\+", "Senior C\\+\\+", "Backend engineer", "QA Engineer",
                 "Python Developer", 'C\\+\\+ Qt Developer', 'Position:Backend Engineer', "Middle Ruby Developer", "Senior Data Engineer",
                 "Вакансия: Senior PHP Developer", "Sеnior Jаvа-рaзрaбoтчик", "Вакансия: Automation QA", "Crystal/Ruby full-stack developer", "Мобильный разработчик","Flutter",
                 "Должность: Manual QA", "Web-дизайнер (UI/UX) middle", "Laravel", 'Senior Java developer', "Backend-разработчик", "Senior Golang",
@@ -65,22 +65,22 @@ pattern = {
                "Senior Frontend Developer", "Разработчик JS", "React Frontend developer", "Вакансия: Frontend engineer", "разработчик на React Native", "Ведущий тестировщик", "AQA", "Senior Devops","Администратор баз данных","Javascript developer", "консультант техподдержки","Вакансия: Frontend ","Вакансия:  Frontend Developer","Senior Frontend Developer","Front-end разработчик"," Frontend Software Engineer","#QA", "Test Automation Engineer", "QA Auto","Junior JavaScript разработчик","Network Engineer", "#kotlin", "Network administration", "Network architect","React Native", "Junior Manual QA")
     },
 
-    'python': {
-        'ma': ("Senior Python developer", "Python Engineer", "#ML ", "машинному обучению", "MLOps", "ML engineer", "Python Developer", "Разработчик Python"),
-
-    },
-
-    'C++': {
-        'ma': ("C\\+\\+", "С\\+\\+", "C#"),
-    },
-
-    'PHP': {
-        'ma': ("PHP"," PHP", "PHP разработчик", " РНР"),
-    },
-
-    'Java': {
-        'ma': ("Java ", "Java,","Java.","Java"),
-    },
+    # 'python': {
+    #     'ma': ("Senior Python developer", "Python Engineer", "#ML ", "машинному обучению", "MLOps", "ML engineer", "Python Developer", "Разработчик Python"),
+    #
+    # },
+    #
+    # 'C++': {
+    #     'ma': ("C\\+\\+", "С\\+\\+", "C#"),
+    # },
+    #
+    # 'PHP': {
+    #     'ma': ("PHP"," PHP", "PHP разработчик", " РНР"),
+    # },
+    #
+    # 'Java': {
+    #     'ma': ("Java ", "Java,","Java.","Java"),
+    # },
 
     #capitalize
     'pm': {
