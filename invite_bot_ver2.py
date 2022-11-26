@@ -83,6 +83,11 @@ class InviteBot:
         self.last_id_message_agregator = None
         self.message_for_send = ''
         self.feature = ''
+        self.quantity_in_statistics = 0
+        self.quantity_entered_to_admin_channel = 0
+        self.out_from_admin_channel = 0
+        self.quantity_entered_to_shorts = 0
+
 
     def main_invitebot(self):
         async def connect_with_client(message, id_user):
@@ -425,6 +430,9 @@ class InviteBot:
                 profession = callback.data.split('/')[1]
                 param = f"WHERE profession LIKE '%{profession}' OR profession LIKE '%{profession},%'"
                 response = DataBaseOperations(None).get_all_from_db(table_name='admin_last_session', param=param, without_sort=True)
+
+                self.quantity_in_statistics = len(response)
+
                 if response:
                     self.percent = 0
                     length = len(response)
@@ -435,6 +443,8 @@ class InviteBot:
                     #     print(i)
 
                     # composed_message_dict = {}
+
+                    self.quantity_entered_to_admin_channel = 0
                     for vacancy in response:
                         composed_message_dict = await compose_message(message=vacancy, one_profession=profession, full=True)
                         composed_message_dict['id_admin_channel'] = ''
@@ -452,6 +462,7 @@ class InviteBot:
                             await bot_aiogram.send_message(config['My_channels']['admin_channel'], text, parse_mode='html')
                             last_admin_channel_id += 1
                             DataBaseOperations(None).push_to_admin_temporary(composed_message_dict)
+                            self.quantity_entered_to_admin_channel += 1
                             await asyncio.sleep(random.randrange(2, 3))
                         except Exception as e:
                             await bot_aiogram.send_message(callback.message.chat.id, f"It hasn't been pushed to admin_channel : {e}")
@@ -504,6 +515,8 @@ class InviteBot:
                 profession = callback.data.split(' ')[-1]
                 history_messages = await get_tg_history_messages(callback.message)
 
+                self.out_from_admin_channel = len(history_messages)
+
                 # self.message_for_send = f'<b>Дайджест вакансий для {profession} за {datetime.now().strftime("%d.%m.%Y")}:</b>\n\n'
                 message_for_send = f'<i>Функционал дайджеста находится в состоянии альфа-тестирования, приносим свои ' \
                                    f'извинения, мы работаем над тем чтобы вы получали информацию максимально ' \
@@ -511,6 +524,8 @@ class InviteBot:
                                    f'<b>Дайджест вакансий для {profession} за {datetime.now().strftime("%d.%m.%Y")}:</b>\n\n'
                 length = len(history_messages)
                 n=0
+
+                self.quantity_entered_to_shorts = 0
                 for vacancy in history_messages:
                     print('\npush vacancy\n')
 
@@ -554,6 +569,7 @@ class InviteBot:
                             composed_message_dict={}
                             composed_message_dict = await compose_message(vacancy_from_admin[0], profession)
                             message_for_send += f"{composed_message_dict['composed_message']}\n"
+                            self.quantity_entered_to_shorts += 1
                             prof_list = vacancy_from_admin[0][4].split(',')
                             await update_vacancy_admin_last_session(
                                 profession=profession,
@@ -608,7 +624,12 @@ class InviteBot:
                 DataBaseOperations(None).delete_table(
                     table_name='admin_temporary'
                 )
-                await bot_aiogram.send_message(callback.message.chat.id, 'Done!')
+                await bot_aiogram.send_message(callback.message.chat.id, f'<b>Done!</b>\n'
+                                                                         f'- in to statistics: {self.quantity_in_statistics}\n'
+                                                                         f'- in to admin {self.quantity_entered_to_admin_channel}\n'
+                                                                         f'- out from admin {self.out_from_admin_channel}\n'
+                                                                         f'- in to shorts {self.quantity_entered_to_shorts}',
+                                               parse_mode='html')
 
 
             if callback.data == 'choose_one_channel':  # compose keyboard for each profession
@@ -1122,59 +1143,59 @@ class InviteBot:
 
             await Form.api_id.set()
             await bot_aiogram.send_message(message.chat.id, "Введите api_id (отменить /cancel)")
+        #
+        # def send_to_db(id_user, api_id, api_hash, phone_number):
+        #
+        #     logs.write_log(f"invite_bot_2: function: send_to_db")
+        #
+        #     global con
+        #
+        #     if not con:
+        #         con = db_connect()
+        #
+        #     cur = con.cursor()
+        #     with con:
+        #         cur.execute(f"""CREATE TABLE IF NOT EXISTS users (
+        #             id SERIAL PRIMARY KEY,
+        #             id_user INTEGER,
+        #             api_id INTEGER,
+        #             api_hash VARCHAR (50),
+        #             phone_number VARCHAR (25),
+        #             password VARCHAR (100)
+        #             );"""
+        #                     )
+        #         con.commit()
+        #
+        #     with con:
+        #         cur.execute(f"""SELECT * FROM users WHERE id_user={id_user}""")
+        #         r = cur.fetchall()
+        #
+        #     if not r:
+        #         with con:
+        #             new_post = f"""INSERT INTO users (id_user, api_id, api_hash, phone_number)
+        #                                             VALUES ({id_user}, {api_id}, '{api_hash}', '{phone_number}');"""
+        #             cur.execute(new_post)
+        #             con.commit()
+        #             print(f'Пользователь {id_user} добавлен в базу')
+        #             pass
 
-        def send_to_db(id_user, api_id, api_hash, phone_number):
-
-            logs.write_log(f"invite_bot_2: function: send_to_db")
-
-            global con
-
-            if not con:
-                con = db_connect()
-
-            cur = con.cursor()
-            with con:
-                cur.execute(f"""CREATE TABLE IF NOT EXISTS users (
-                    id SERIAL PRIMARY KEY,
-                    id_user INTEGER,
-                    api_id INTEGER,
-                    api_hash VARCHAR (50),
-                    phone_number VARCHAR (25),
-                    password VARCHAR (100)
-                    );"""
-                            )
-                con.commit()
-
-            with con:
-                cur.execute(f"""SELECT * FROM users WHERE id_user={id_user}""")
-                r = cur.fetchall()
-
-            if not r:
-                with con:
-                    new_post = f"""INSERT INTO users (id_user, api_id, api_hash, phone_number) 
-                                                    VALUES ({id_user}, {api_id}, '{api_hash}', '{phone_number}');"""
-                    cur.execute(new_post)
-                    con.commit()
-                    print(f'Пользователь {id_user} добавлен в базу')
-                    pass
-
-        def get_db(id_customer):
-
-            global con
-
-            logs.write_log(f"invite_bot_2: function: get_db")
-
-            if not con:
-                con = db_connect()
-
-            cur = con.cursor()
-
-            query = f"""SELECT * FROM users WHERE id_user={id_customer}"""
-            with con:
-                cur.execute(query)
-                r = cur.fetchall()
-                print(r)
-            return r
+        # def get_db(id_customer):
+        #
+        #     global con
+        #
+        #     logs.write_log(f"invite_bot_2: function: get_db")
+        #
+        #     if not con:
+        #         con = db_connect()
+        #
+        #     cur = con.cursor()
+        #
+        #     query = f"""SELECT * FROM users WHERE id_user={id_customer}"""
+        #     with con:
+        #         cur.execute(query)
+        #         r = cur.fetchall()
+        #         print(r)
+        #     return r
 
         def db_connect():
 
@@ -1877,7 +1898,7 @@ class InviteBot:
                         message_limit += f"{i}\n\n"
                     else:
                         vacancies_list.append(message_limit)
-                        message_limit = i
+                        message_limit = f"{i}\n\n"
                 vacancies_list.append(message_limit)
             else:
                 vacancies_list = [message_for_send]
