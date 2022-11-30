@@ -24,19 +24,19 @@ config.read("./settings/config.ini")
 
 quant = 1  # счетчик вывода количества запушенных в базу сообщений (для контроля в консоли)
 
-database = config['DB3']['database']
-user = config['DB3']['user']
-password = config['DB3']['password']
-host = config['DB3']['host']
-port = config['DB3']['port']
-
-con = psycopg2.connect(
-    database=database,
-    user=user,
-    password=password,
-    host=host,
-    port=port
-)
+# database = config['DB3']['database']
+# user = config['DB3']['user']
+# password = config['DB3']['password']
+# host = config['DB3']['host']
+# port = config['DB3']['port']
+#
+# con = psycopg2.connect(
+#     database=database,
+#     user=user,
+#     password=password,
+#     host=host,
+#     port=port
+# )
 
 
 class WriteToDbMessages():
@@ -152,7 +152,7 @@ class WriteToDbMessages():
 
         await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], f'<em>channel {channel}</em>', parse_mode='html', disable_web_page_preview = True)
 
-        # data = await self.client.get_entity('https://t.me/fake_prof_channel')
+        # data = await self.client.get_entity('https://t.me/fake_adminka')
         # print(data)
 
         while True:
@@ -212,6 +212,7 @@ class WriteToDbMessages():
 
         for one_message in reversed(all_messages):
             await self.operations_with_each_message(channel, one_message)
+
 
     async def operations_with_each_message(self, channel, one_message):
 
@@ -293,7 +294,7 @@ class WriteToDbMessages():
         """
         logs.write_log(f"scraping_telethon2: function: get_last_and_tgpublic_shorts")
 
-        self.companies = DataBaseOperations(con=con).get_all_from_db(table_name='companies', without_sort=True)  # check!!!
+        self.companies = DataBaseOperations(None).get_all_from_db(table_name='companies', without_sort=True)  # check!!!
 
         # get current session
         if not current_session:
@@ -321,9 +322,6 @@ class WriteToDbMessages():
         else:
             await self.send_fulls(all=True, one_profession=one_profession)  # 2. for send last full messages from db
 
-
-
-
         await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], 'DONE')
 
     async def send_sorts(self):
@@ -337,7 +335,7 @@ class WriteToDbMessages():
             # get last records from table with profession PRO
             # param = f"WHERE created_at > '{time_start['year']}-{time_start['month']}-{time_start['day']} {time_start['hour']}:{time_start['minute']}:{time_start['sec']}'"
             param = f"WHERE session='{self.current_session}'"
-            response_messages = DataBaseOperations(con=con).get_all_from_db(pro,
+            response_messages = DataBaseOperations(None).get_all_from_db(pro,
                                                                             param=param)  # check!!!
             for response in response_messages:
                 title = response[2]

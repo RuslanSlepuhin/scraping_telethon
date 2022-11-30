@@ -82,7 +82,7 @@ class ParseSites:
                 "chat_name": response_dict['chat_name'][each_element] if  response_dict['chat_name'][each_element] else "",
                 "vacancy": response_dict['vacancy'][each_element] if response_dict['vacancy'][each_element] else "",
                 "company": response_dict['company'][each_element] if response_dict['company'][each_element] else "",
-                "body": response_dict['english'][each_element] if response_dict['english'][each_element] else "",
+                "body": response_dict['body'][each_element] if response_dict['body'][each_element] else "",
                 "english": response_dict['english'][each_element] if response_dict['english'][each_element] else "",
                 "relocation": response_dict['relocation'][each_element] if response_dict['relocation'][each_element] else "",
                 "job_type": response_dict['job_type'][each_element] if response_dict['job_type'][each_element] else "",

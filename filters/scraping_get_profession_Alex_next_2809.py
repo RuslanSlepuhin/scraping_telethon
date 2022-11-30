@@ -6,7 +6,7 @@ import re
 from patterns import pattern_Alex2809
 from db_operations.scraping_db import DataBaseOperations
 from patterns.pattern_Alex2809 import search_companies, search_companies2, english_pattern, remote_pattern, \
-    relocate_pattern, middle_pattern, senior_pattern, vacancy_name, vacancy_pattern, contacts_pattern
+    relocate_pattern, middle_pattern, senior_pattern, vacancy_name, vacancy_pattern, contacts_pattern, profession_new_pattern
 
 
 class AlexSort2809:
@@ -25,9 +25,11 @@ class AlexSort2809:
         self.valid_profession_list = ['marketing', 'ba', 'game', 'product', 'mobile',
                                       'pm', 'sales_manager', 'analyst', 'frontend',
                                       'designer', 'devops', 'hr', 'backend', 'frontend', 'qa', 'junior']
+
+
     def sort_by_profession_by_Alex(self, title, body, companies=None, get_params=True, only_profession=False):
         params = {}
-
+        new_pattern_has_done = False
 
 
         profession = []
@@ -45,12 +47,23 @@ class AlexSort2809:
         # ----------------- Check for used capitalize or don't ------------------
         for i in self.pattern_alex:
             if i not in ['internship', 'remote', 'relocate', 'country', 'city']:
+                # if i in ['backend',]:
+                #     match = re.findall(profession_new_pattern[i], message)
+                #     if match:
+                #         print(f'{i}: сработал новый паттерн')
+                #         self.result_dict2[i] = len(match)
+                #         new_pattern_has_done = True
+                #     else:
+                #         new_pattern_has_done = False
+
                 if i in ['pm', 'game', 'designer', 'hr', 'analyst', 'qa', 'ba', 'product']:
                     capitalize = True
                 else:
                     capitalize = False
 
-                self.get_profession(message, capitalize, key=i)
+                if not new_pattern_has_done:
+                    self.get_profession(message, capitalize, key=i)
+                # new_pattern_has_done = False
 
                 if not only_profession:
                     if i == 'contacts' and self.result_dict2['contacts'] == 0:
@@ -141,29 +154,31 @@ class AlexSort2809:
 
             match = re.findall(word, message_to_check)
             if match:
-                self.tag_alex += f'TAG {key}={match}\n'
+                self.tag_alex += f'TAG {capitalize} {key}={match}\n'
                 # print(f'TAG {key} = {match}')
                 self.result_dict2[key] += len(match)
 
 # -------------- cancel all matches if it excludes words ------------------
 #         print('key = ', key)
-        for exclude_word in self.pattern_alex[key]['mex']:
-            # print('exclude_word = ', exclude_word)
+        if self.result_dict2[key]:
+            for exclude_word in self.pattern_alex[key]['mex']:
+                # print('exclude_word = ', exclude_word)
+                if (exclude_word == '#QA' or exclude_word == 'qa') and key == 'frontend':
+                    pass
+                if not capitalize:
+                    exclude_word = exclude_word.lower()
+                    message_to_check = message.lower()
+                else:
+                    message_to_check = message
 
-            if not capitalize:
-                exclude_word = exclude_word.lower()
-                message_to_check = message.lower()
-            else:
-                message_to_check = message
+                # print('exclude_word = ', exclude_word)
+                # print('message_to_check = ', message_to_check)
 
-            # print('exclude_word = ', exclude_word)
-            # print('message_to_check = ', message_to_check)
-
-            match = re.findall(rf"{exclude_word}", message_to_check)
-            if match:
-                self.tag_alex_anti += f'TAG ANTI {key}={match}\n'
-                # print(f'ANTI TAG {key} = {match}')
-                self.result_dict2[key] = 0
+                match = re.findall(rf"{exclude_word}", message_to_check)
+                if match:
+                    self.tag_alex_anti += f'TAG ANTI {key}={match}\n'
+                    # print(f'ANTI TAG {capitalize} {key} = {match}')
+                    self.result_dict2[key] = 0
 
         pass
 

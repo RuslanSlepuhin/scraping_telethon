@@ -37,11 +37,11 @@ class DataBaseOperations:
             port = config['DB3']['port']
         except:
             config.read("./settings/config.ini")
-            database = config['DB3']['database']
-            user = config['DB3']['user']
-            password = config['DB3']['password']
-            host = config['DB3']['host']
-            port = config['DB3']['port']
+            database = config['DB_local_clone']['database']
+            user = config['DB_local_clone']['user']
+            password = config['DB_local_clone']['password']
+            host = config['DB_local_clone']['host']
+            port = config['DB_local_clone']['port']
         try:
             self.con = psycopg2.connect(
                 database=database,
@@ -115,6 +115,8 @@ class DataBaseOperations:
     def check_or_create_table(self, cur, table_name):
 
         logs.write_log(f"scraping_db: function: check_or_create_table")
+
+        cur = self.con.cursor()
 
         with self.con:
             cur.execute(f"""CREATE TABLE IF NOT EXISTS {table_name} (
@@ -488,14 +490,16 @@ class DataBaseOperations:
         return new_response
 
     def check_table_companies(self):
-        con = self.connect_db()
-        cur = con.cursor()
+
+        if not self.con:
+            self.con = self.connect_db()
+        cur = self.con.cursor()
         query = """CREATE TABLE IF NOT EXISTS companies (
             id SERIAL PRIMARY KEY,
             company VARCHAR(100)
             );
             """
-        with con:
+        with self.con:
             cur.execute(query)
             print('Table companies has been created or exists')
 
@@ -955,13 +959,10 @@ class DataBaseOperations:
         except Exception as e:
             print('Something is wrong ', e)
 
-    def write_user_without_password(self, id_user, api_id, api_hash, phone_number):
-        logs.write_log(f"scraping_db: function: write_user_without_password")
-
+    def create_table_users(self):
         if not self.con:
             self.connect_db()
         cur = self.con.cursor()
-
         with self.con:
             cur.execute(f"""CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -973,6 +974,16 @@ class DataBaseOperations:
                 );"""
                         )
 
+
+    def write_user_without_password(self, id_user, api_id, api_hash, phone_number):
+        logs.write_log(f"scraping_db: function: write_user_without_password")
+
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+
+        self.create_table_users()
+
         query_does_user_exist = f"""SELECT * FROM users WHERE api_id='{api_id}'"""
         with self.con:
             cur.execute(query_does_user_exist)
@@ -983,9 +994,9 @@ class DataBaseOperations:
             try:
                 with self.con:
                     cur.execute(query)
-                    print('user been added to db')
+                    print(f'user {id_user}has been added to db')
             except Exception as e:
-                print(f"Didn't write the user to db. Reason: {e}")
+                print(f"Didn't write the user to db. Because: {e}")
         else:
             print('user exists')
 
@@ -1005,6 +1016,7 @@ class DataBaseOperations:
                     print(f"title in {table_name} didn't change for reason {e}")
 
     def check_admin_temporary(self, cur):
+        cur = self.con.cursor()
         with self.con:
 
             cur.execute(f"""CREATE TABLE IF NOT EXISTS admin_temporary (

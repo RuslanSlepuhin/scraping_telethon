@@ -13,6 +13,7 @@ from bs4 import BeautifulSoup
 # from bot.scraping_push_to_channels import PushChannels
 from db_operations.scraping_db import DataBaseOperations
 from patterns.pattern_Alex2809 import cities_pattern, params
+from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
 
 
 class HHGetInformation:
@@ -43,7 +44,7 @@ class HHGetInformation:
         self.search_words = ['junior', 'джуниор', 'kotlin', 'product', 'mobile', 'marketing', 'аналитик',
                              'frontend', 'designer', 'devops', 'hr', 'backend', 'qa', 'junior', 'ba']
 
-        self.search_words = ['junior']
+        self.search_words = ['junior', 'product manager', 'project manager', 'product owner']
         self.current_message = None
         self.bot = bot_dict['bot']
         self.chat_id = bot_dict['chat_id']
@@ -66,43 +67,19 @@ class HHGetInformation:
         self.options.add_argument("--headless")
         self.options.add_argument("--disable-dev-shm-usage")
         self.options.add_argument("--no-sandbox")
-
         self.msg = await self.bot.send_message(self.chat_id, 'https://hh.ru is starting', disable_web_page_preview=True)
 
-        # link = f'https://hh.ru/search/vacancy?text=backend&from=suggest_post&area=1002?'
         link = 'https://hh.ru'
         response_dict = await self.get_info(link)
-        # for self.page in range(1, 48):
-        #     link = f'https://geekjob.ru/vacancies/{self.page}'
-        #     await self.get_info(link)
+
         return response_dict
 
     async def get_info(self, link):
-        # full_response_dict = {
-        #     'chat_name': [],
-        #     'title': [],
-        #     'body': [],
-        #     'vacancy': [],
-        #     'vacancy_url': [],
-        #     'company': [],
-        #     'company_link': [],
-        #     'english': [],
-        #     'relocation': [],
-        #     'job_type': [],
-        #     'city': [],
-        #     'salary': [],
-        #     'experience': [],
-        #     'time_of_public': [],
-        #     'contacts': []
-        # }
 
         self.browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=self.options)
-        # self.browser.get(link)
-
         for word in self.search_words:
 
             self.current_message = await self.bot.send_message(self.chat_id, f'Поиск вакансий по слову {word}...')
-
             self.browser.get('http://hh.ru')
             time.sleep(1)
 
@@ -114,14 +91,7 @@ class HHGetInformation:
 
             self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             time.sleep(1)
-            # response_dict = await self.get_link_message(self.browser.page_source, word)
             await self.get_link_message(self.browser.page_source, word)
-
-
-            # for key in response_dict:
-            #     full_response_dict[key].extend(response_dict[key])
-            #
-            # pass
 
         self.browser.quit()
         return self.to_write_excel_dict
@@ -315,11 +285,16 @@ class HHGetInformation:
             self.to_write_excel_dict['time_of_public'].append(date)
             self.to_write_excel_dict['contacts'].append(contacts)
 
-            # results_dict['chat_name'] = 'geek_jobs.ru'
-            # results_dict['title'] = title
-            # results_dict['body'] = body
-            # results_dict['time_of_public'] = date
-            # message_dict['message'] = f'{title}\n{body}'
+# ------------------ it is for write vacancy to BD -------------------
+            # profession = AlexSort2809.sort_by_profession_by_Alex(
+            #     title=title, body=body)['profession']
+
+            # push_to_admin = DataBaseOperations(None).push_to_admin_table(
+            #     results_dict=results_dict,
+            #     profession=profession
+            # )
+# ------------------  end  -------------------
+
             self.current_message = await self.bot.edit_message_text(
                 f'{self.current_message.text}\n{self.count_message_in_one_channel}. {vacancy}\n',
                 self.current_message.chat.id,

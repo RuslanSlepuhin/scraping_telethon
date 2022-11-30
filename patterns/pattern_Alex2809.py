@@ -1,6 +1,3 @@
-"""
-This pattern was made at night at 28/09/2022 with ALexander (online).
-"""
 
 pattern = {
 
@@ -15,8 +12,11 @@ pattern = {
                 "@foranalysts", "free training courses", "Ищу Работу", "Как это сделать", "@jobforjunior",
                 "Шукаю работу", "xodim", "Шукаю віддалену роботу", "Каналы для", "Канал для", "ВАКАНСИЯ ЗАКРЫТА",
                 "в поиске новых карьерных возможностей", "Очікування зп", "Шукаю роботу", "Открыт к новым предложениям",
-                "в поиске новых карьерных", "в поиске работы", "Шукаю віддалену роботу", "Шукаю роботу","Шукаю працу","у пошуках працы",
-                "Шукаю свою першу роботу", "Я соискатель", "Моё резюме", "Мое резюме", "My CV", "I am looking for a job", "Шукаю свою першу роботу", "#resume")
+                "в поиске новых карьерных", "в поиске работы", "Шукаю віддалену роботу", "Шукаю роботу", "Шукаю працу",
+                "у пошуках працы",
+                "Шукаю свою першу роботу", "Я соискатель", "Моё резюме", "Мое резюме", "My CV",
+                "I am looking for a job",
+                "Шукаю свою першу роботу", "#resume", " Ділимося з вами дружніми Telegram каналами", "делимся резюме")
     },
 
     'contacts': {
@@ -62,7 +62,7 @@ pattern = {
                 "Ищем верстальщика", "Middle qa", "Angular developer", "Vue developer", "Lead devops",
                 "Devops engineer", "Middle front-end", "Middle frontend", "Middle+ front-end", "Middle+ frontend",
                 "#devops", "product lead", "Ищем Frontend developer", "#resume", "UI Designer", "Designer", "UI designer",
-               "Senior Frontend Developer", "Разработчик JS", "React Frontend developer", "Вакансия: Frontend engineer", "разработчик на React Native", "Ведущий тестировщик", "AQA", "Senior Devops","Администратор баз данных","Javascript developer", "консультант техподдержки","Вакансия: Frontend ","Вакансия:  Frontend Developer","Senior Frontend Developer","Front-end разработчик"," Frontend Software Engineer","#QA", "Test Automation Engineer", "QA Auto","Junior JavaScript разработчик","Network Engineer", "#kotlin", "Network administration", "Network architect","React Native", "Junior Manual QA")
+                "Technical writer ","Senior Frontend Developer", "Разработчик JS", "React Frontend developer", "Вакансия: Frontend engineer", "разработчик на React Native", "Ведущий тестировщик", "AQA", "Senior Devops","Администратор баз данных","Javascript developer", "консультант техподдержки","Вакансия: Frontend ","Вакансия:  Frontend Developer","Senior Frontend Developer","Front-end разработчик"," Frontend Software Engineer","#QA", "Test Automation Engineer", "QA Auto","Junior JavaScript разработчик","Network Engineer", "#kotlin", "Network administration", "Network architect","React Native", "Junior Manual QA")
     },
 
     # 'python': {
@@ -136,7 +136,7 @@ pattern = {
                 "Frontent developer", "TeamLead Python", "Senior DevOps", "Middle devops", "Java Developer",
                 "Раскадровщик", "@Recruiter", "@IraRecruiter", "разработчика BackEnd", "3D художников",
                 "Вакансия: DevOps", "Data engineer", "Senior Android", "Разработчик Bitrix24", "Devops",
-                "Менеджер по продажам", "Data entry", "Senior PHP Developer", "DevOps Engineer")
+                "Менеджер по продажам", "Data entry", "Senior PHP Developer", "DevOps Engineer", "Я Саша, ИТ-рекрутер")
     },
 
     # capitalize
@@ -192,20 +192,25 @@ pattern = {
                 "Django", "Middle QA", "Mobile manual QA", "SeniorQA", "QA Automation (Python)", "По тестированию", "Участвуют в devops",
                 "Участвовать в devops", "Участие в devops", "Copywriter", "Senior ux/ui", "Senior ui/ui", "Ruby разработчик",
                 "Системный аналитик", "Senior python", "Ios разработчик", "Ios developer", "Middle ios", "Junior ios", "Senior ios",
-                'QA Automation', 'Sales Enablement Specialist', 'Backend-разработчика', 'тестовые окружения',
-                'ручное тестирование', 'специалистов по тестированию')
+                "QA Automation", "Sales Enablement Specialist", "Backend-разработчика", "Project manager","тестовые окружения",
+                "ручное тестирование", "специалистов по тестированию","Менеджер проектов","Проект-менеджер")
     },
 
     'marketing': {
-        'ma': ("SMM", "Copyrighter", "SEO", "Marketer", "Маркетолог", "Marketing manager", "Менеджер по маркетингу",
+        'ma': ("SMM", "Copyrighter", "SEO", "Marketer", "Маркетолог", "Marketing", "Менеджер по маркетингу",
                "Video Tutorial Creator", "Producer", "Lead Generation Specialist", "#leadgeneration",
-               "User Acquisition"),
-        'mex': ("SEO HR", "Product manager", "SEO HR", "HRBP", "Sales Manager", "Manual QA", "Product Manager")
+               "User Acquisition", "копирайтер", "линкбилдинг","linkbuilder", "Link Builder","CRO","ASO"),
+        'mex': ("SEO HR", "Product manager", "SEO HR", "HRBP", "Sales Manager", "Manual QA", "Product Manager", "Back-end", "Kotlin Developer",
+                "Middle Business Analyst", "PHP Developer","DevOps","C# Developer","Lead Business Analyst", "Data Scientist", "System Administrator",
+                "Project manager", "ищет веб-дизайнер", "ищем веб-дизайнер","Product Owner","CEO", "Lead Generation", "IT-specialist",
+                "Front-end", "Product designer", "Менеджер проектов","Проект-менеджер","Full stack", "Level Designer", "Artist", "Креативный продюсер",
+                "Менеджер по продажам", "Fullstack","SRE")
     },
 
     'sales_manager': {
         'ma': ("Sales manager", "sales manager", "Sales Manager", "Менеджера по продажам", "Менеджер холодных продаж",
-               "Менеджер по продажам", "менеджер_отдела_продаж"),
+               "Менеджер по продажам", "менеджер_отдела_продаж", "Lead Generation", "IT Sales Researcher", "#leadgeneration","User Acquisition",
+               "линкбилдинг","linkbuilder", "Link Builder","CRO"),
         'mex': ()
     },
 
@@ -215,7 +220,7 @@ pattern = {
                 "джуниоров к сожалению пока не рассматриваем", "джуниоров, к сожалению, пока не рассматриваем",
                 "Работать с junior", "Senior Sales Manager", "не рассматриваем Junior", "Required 5 to 7 Years",
                 "джуниоров к сожалению пока не смотрим!", "QA Lead", "Senior QA", "Supervise junior",
-                "We do not plan to hire Junior", "middle")
+                "We do not plan to hire Junior", "middle","позиции Junior специалистов пока не актуальны")
     },
 
     'middle': {
@@ -257,6 +262,7 @@ pattern = {
         'mex': ()
     },
 }
+
 
 params = {
     'company_hiring': ('[К,к]омпан[и,i][я,и,й][^\,"\n]{1,3}[#А-ЯA-Z][a-zA-Zа-яА-Я0-9]{2,20}[^\,"\n]{1}«{0,1}[А-ЯA-Z]{0,20}[A-ZА-Яa-zа-я]{0,20}',
@@ -1080,3 +1086,9 @@ valid_profession_list = ['marketing', 'ba', 'game', 'product', 'mobile',
                                       'designer', 'devops', 'hr', 'backend', 'qa', 'junior']
 
 contacts_pattern = "[^\n\.][a-zA-Z0-9\-_\.]+@[a-z\-]+\.[a-z]+|clc\.to\/[a-zA-Z\-]+|[\W]{1}@[a-zA-Z_]+|[0-9]{9,}+[^\n][a-zA-Zа-яА-Я]+"
+
+#--------------------------- professions -------------------------------------
+
+profession_new_pattern = {
+    "backend": "[rRPHPouby]{3,4}\W+[Dd]ev[^\n\":;\s]+|[Ии]щу[^\n]*[bB]ac[\-]?kend|[Bb]ack[\-]?end\W{1,3}[Dd]ev[^\n\"';:\s]+|[^\nа-яА-Я\s\.;]*\W?[Bb]ack[\-]?end|[Sscal]{5}\W+[Dd]ev[^\n\":;\s]+|[gG]olang\W+[Dd]ev[^\n\":;\s]+|[Pp]ython\W+[Dd]ev[^\n\":;\s]+|[Jj]ava\W+[Dd]ev[^\n\":;\s]+|[PpHh]{3}\Wпрограммист|C\#\W+[Dd]ev[^\n\":;\s]+|[Ee]mbedded|бэк[^\n]{1,7}разработчик|PHP*\W{1}[SYMFONYsymfony]{7}|PHP|[Ll]inux|[Nn]ode\.?[js]{0,2}",
+}

@@ -23,6 +23,7 @@ from telethon.tl.functions.messages import GetHistoryRequest
 from telethon.tl.types import InputUser, InputChannel, ChannelParticipantsSearch, PeerChannel, PeerUser
 from db_operations.scraping_db import DataBaseOperations
 from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
+from progress.progress import ShowProgress
 from scraping_telegramchats2 import WriteToDbMessages, main
 from sites.parsing_sites_runner import ParseSites
 from logs.logs import Logs
@@ -35,7 +36,6 @@ api_id = settings.api_id
 api_hash = settings.api_hash
 username = settings.username
 token = settings.token
-
 
 logging.basicConfig(level=logging.INFO)
 bot_aiogram = Bot(token=token)
@@ -87,6 +87,7 @@ class InviteBot:
         self.quantity_entered_to_admin_channel = 0
         self.out_from_admin_channel = 0
         self.quantity_entered_to_shorts = 0
+        self.participants_dict = {}
 
 
     def main_invitebot(self):
@@ -113,6 +114,10 @@ class InviteBot:
                     await get_code(message)
             else:
                 await bot_aiogram.send_message(message.chat.id, 'Connection is ok')
+
+        class Form_delete(StatesGroup):
+            date = State()
+
 
         class Form(StatesGroup):
             api_id = State()
@@ -160,6 +165,26 @@ class InviteBot:
             await bot_aiogram.send_message(message.chat.id, 'Type the channel link and get channel data')
             self.peerchannel = True
 
+        @dp.message_handler(commands=['download'])
+        async def download(message: types.Message):
+            await get_excel_tags_from_admin(message)
+
+        @dp.message_handler(commands=['delete_till'])
+        async def download(message: types.Message):
+            await Form_delete.date.set()
+            await bot_aiogram.send_message(message.chat.id, 'Until what date to delete (inclusive)? Format YYYY-MM-DD\nor /cancel')
+
+        # ------------------------ fill date form ----------------------------------
+        # date
+        @dp.message_handler(state=Form_delete.date)
+        async def process_api_id(message: types.Message, state: FSMContext):
+            async with state.proxy() as data:
+                data['date'] = message.text
+                await delete_since(tables_list=['admin_last_session'], param=f"""WHERE DATE(created_at)<'{data['date']}'""")
+
+            await state.finish()
+
+
         @dp.message_handler(commands=['refresh_pattern'])
         async def get_logs(message: types.Message):
             path = './patterns/pattern_test.py'
@@ -181,7 +206,6 @@ class InviteBot:
                 except Exception as e:
                     await bot_aiogram.send_message(message.chat.id, f"{i}: {str(e)}")
                     await asyncio.sleep(6)
-
 
         @dp.message_handler(commands=['restore'])
         async def get_logs(message: types.Message):
@@ -369,30 +393,13 @@ class InviteBot:
             except Exception as e:
                 await bot_aiogram.send_message(message.chat.id, str(e))
 
-        # async def get_id_agregator():
-        #     # Need to get id last message from agregator. To push 'test', get id and delete 'push' from
-        #     # push 'test'
-        #     id_agregator_channel = int(config['My_channels']['agregator_channel'])
-        #     await bot_aiogram.send_message(int(config['My_channels']['agregator_channel']), 'test')
-        #     # await asyncio.sleep(random.randrange(1, 2))
-        #
-        #     all_messages = await get_tg_history_messages(callback.message)
-        #
-        #     wtdb = WriteToDbMessages(
-        #         client=client,
-        #         bot_dict=None
-        #     )
-        #     last_id_message_agregator = await wtdb.get_last_id_agregator()
-        #     await client.delete_messages(id_agregator_channel, last_id_message_agregator)
-        #
-        #     return last_id_message_agregator
 
         @dp.callback_query_handler()
         async def catch_callback(callback: types.CallbackQuery):
             short_digest = ''
             response = []
 
-            if callback.data == 'go_by_admin':
+            if callback.data == 'go_by_admin': # next step if callback.data[2:] in self.valid_profession_list:
                 # make the keyboard with all professions
                 self.markup = await compose_inline_keyboard(prefix='admin')
                 await bot_aiogram.send_message(callback.message.chat.id, 'choose the channel for vacancy checking', reply_markup=self.markup)
@@ -414,7 +421,7 @@ class InviteBot:
                 try:
                     DataBaseOperations(None).delete_table('admin_temporary')
                 except Exception as e:
-                    pass
+                    print(e)
                     # await bot_aiogram.send_message(callback.message.chat.id, f'The attempt to delete admin_temporary is wrong\n{str(e)}')
                     # await asyncio.sleep(random.randrange(2, 3))
 
@@ -423,7 +430,7 @@ class InviteBot:
                 for i in all_messages:
                     await client.delete_messages(PeerChannel(int(config['My_channels']['admin_channel'])), i['id'])
 
-                # to get last message_id
+                # getting the last message_id
                 last_admin_channel_id = await get_last_admin_channel_id(callback.message)
 
 
@@ -439,10 +446,6 @@ class InviteBot:
                     n = 0
                     self.message = await bot_aiogram.send_message(callback.message.chat.id, f'progress {self.percent}%')
                     await asyncio.sleep(random.randrange(2, 3))
-                    # for i in response:
-                    #     print(i)
-
-                    # composed_message_dict = {}
 
                     self.quantity_entered_to_admin_channel = 0
                     for vacancy in response:
@@ -457,9 +460,10 @@ class InviteBot:
                         try:
                             # text = f"{vacancy[2]}\n{vacancy[3]}"
                             text = composed_message_dict['composed_message']
+                            # text = re.sub(r'\<[A-Za-z\/=\"\-\>\s\._\<]{1,}\>', " ", text)
                             if len(text) > 4096:
                                 text = text[:4093] + '...'
-                            await bot_aiogram.send_message(config['My_channels']['admin_channel'], text, parse_mode='html')
+                            await bot_aiogram.send_message(config['My_channels']['admin_channel'], text, parse_mode='html', disable_web_page_preview=True)
                             last_admin_channel_id += 1
                             DataBaseOperations(None).push_to_admin_temporary(composed_message_dict)
                             self.quantity_entered_to_admin_channel += 1
@@ -802,8 +806,16 @@ class InviteBot:
                         numbers_failure = 0
                         was_subscribe = 0
 
-
+                        self.participants_dict['status'] = []
                         # ---------------------------- отправлять по одному инвайту---------------------------------
+
+                        print(f'\nLEN ALL_PARTICIPANTS IS {len(all_participant)}\n')
+
+                        sp = ShowProgress({'bot': bot_aiogram, 'chat_id': message.chat.id})
+                        current_step = 0
+                        length = len(all_participant)
+                        msg_2 = await bot_aiogram.send_message(message.chat.id, 'process 0%')
+
                         for user in all_participant:
                             print('id: ', user[0], 'hash', user[1], 'username', user[2])
 
@@ -821,6 +833,7 @@ class InviteBot:
                                         msg = None
                                     # msg = await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: пользователь с id={id_user} уже подписан', parse_mode='html')
                                     print('Пользователь уже подписан')
+                                    self.participants_dict['status'].append('уже подписан')
                                     await asyncio.sleep(1)
                                     was_subscribe += 1
                                     user_exists = True
@@ -835,7 +848,7 @@ class InviteBot:
                                     await msg.delete()
                                     msg = None
                                 # await bot_aiogram.send_message(message.chat.id, f"813: {str(e)}")
-                                print(f"813: if username != None {str(e)}")
+                                print(f"#813: if username != None {str(e)}")
 # ----------------------------------------------------end---------------------------------------------------------------
                             if not user_exists:
                                 if username != 'None':
@@ -850,16 +863,16 @@ class InviteBot:
                                             try:
                                                 user_to_send = [InputUser(id_user, access_hash_user)]
                                             except Exception as e:
-                                                await bot_aiogram.send_message(message.chat.id, f"824: if username != None {str(e)}")
-                                                print(f"824: if username != None {str(e)}")
+                                                # await bot_aiogram.send_message(message.chat.id, f"#824: if username != None {str(e)}")
+                                                print(f"#824: if username != None {str(e)}")
 # ----------------------------------------------------end---------------------------------------------------------------
                                 else:
                                     # -----------------------------------------------------try---------------------------------------------------------------
                                     try:
                                         user_to_send = [InputUser(id_user, access_hash_user)]  # (PeerUser(id_user))
                                     except Exception as e:
-                                        await bot_aiogram.send_message(message.chat.id, f"831: if username = None {str(e)}")
-                                        print(f"831: if username = None {str(e)}")
+                                        # await bot_aiogram.send_message(message.chat.id, f"#831: if username = None {str(e)}")
+                                        print(f"#831: if username = None {str(e)}")
 # ----------------------------------------------------end---------------------------------------------------------------
 # -----------------------------------------------------try---------------------------------------------------------------
                                 if msg:
@@ -869,14 +882,19 @@ class InviteBot:
                                     # client.invoke(InviteToChannelRequest(channel_to_send,  [user_to_send]))
                                     # await client(InviteToChannelRequest(channel_to_send, user_to_send))  #work!!!!!
                                     await client(functions.channels.InviteToChannelRequest(channel_to_send, user_to_send))
+                                    self.participants_dict['status'].append('инвайт прошел')
 
                                     msg = await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}:</b> {user[0]} заинвайлся успешно\n'
                                                                                   f'({numbers_invite+1} инвайтов)', parse_mode='html')
+                                    print(f'{channel_short_name}: {user[0]} заинвайлся успешно\n'
+                                                                                  f'({numbers_invite+1} инвайтов)\n\n')
                                     numbers_invite += 1
 
                                 except Exception as e:
                                     if re.findall(r'seconds is required (caused by InviteToChannelRequest)', str(e)) or \
                                             str(e) == "Too many requests (caused by InviteToChannelRequest)":
+                                        await bot_aiogram.send_message(message.chat.id, str(e))
+                                        print(str(e))
                                         break
                                     else:
                                         if msg:
@@ -884,17 +902,19 @@ class InviteBot:
                                             msg = None
 # -----------------------------------------------------try---------------------------------------------------------------
                                         try:
-                                            await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: Для пользователя id={user[0]}\n{str(e)}', parse_mode='html')
+                                            # await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: Для пользователя id={user[0]}\n{str(e)}', parse_mode='html')
+                                            self.participants_dict['status'].append(str(e))
+                                            print(f'{channel_short_name}: Для пользователя id={user[0]}\n{str(e)}\n\n')
                                         except Exception:
-                                            print('exception: 861')
-                                            await bot_aiogram.send_message(message.chat.id, "exception: 861")
+                                            print('exception: #861')
+                                            # await bot_aiogram.send_message(message.chat.id, "exception: #861")
 # ----------------------------------------------------end---------------------------------------------------------------
                                         numbers_failure += 1
                                         msg = None
 # ----------------------------------------------------end---------------------------------------------------------------
-
+                                print('---------------------------------------------')
                                 n += 1
-                                await asyncio.sleep(random.randrange(10, 15))
+                                await asyncio.sleep(random.randrange(50, 70))
                                 if n >=198:
                                     if msg:
                                         await msg.delete()
@@ -903,6 +923,26 @@ class InviteBot:
                                                                                   f'Пока запущено ожидание по каналу {channel_short_name}, Вы можете отправить еще один файл (с другим названием) для инвайта в <b>ДРУГОЙ канал</b>', parse_mode='html')
                                     await asyncio.sleep(60*24+15)
                                     n=0
+
+                            current_step += 1
+                            await sp.show_the_progress(msg_2, current_step, length)
+
+                        if len(self.participants_dict['status'])<len(self.participants_dict):
+                            difference_between = len(self.participants_dict) - len(self.participants_dict['status'])
+                            for i in range(0, difference_between):
+                                self.participants_dict['status'].append('-')
+
+                        df = pd.DataFrame(
+                            {
+                                'id_participant': self.participants_dict['id_participant'],
+                                'access_hash': self.participants_dict['access_hash'],
+                                'username': self.participants_dict['user'],
+                                'status': self.participants_dict['status'],
+                            }
+                        )
+                        df.to_excel(f'./excel/invite_report.xlsx', sheet_name='Sheet1')
+                        print('got it')
+                        await send_file_to_user(message, f'./excel/invite_report.xlsx')
         # ---------------------------- end отправлять по одному инвайту---------------------------------
 
                         if msg:
@@ -922,8 +962,8 @@ class InviteBot:
                         if msg:
                             await msg.delete()
                             msg = None
-                        await bot_aiogram.send_message(message.chat.id, f'bottom: 897: {e}')
-                        print(f'bottom: 897: {e}')
+                        # await bot_aiogram.send_message(message.chat.id, f'bottom: #897: {e}')
+                        print(f'bottom: #897: {e}')
 
                 #pass
 
@@ -989,8 +1029,11 @@ class InviteBot:
                     if customer:
                         # get_customer_from_db = get_db(id_customer)
                         get_customer_from_db = DataBaseOperations(None).get_all_from_db(table_name='users', param=f"WHERE id_user='{id_customer}'", without_sort=True)
-                        self.current_customer = get_customer_from_db[0]
+                        if not get_customer_from_db:
+                            await Form.api_id.set()
+                            return await bot_aiogram.send_message(message.chat.id, "Введите api_id (отменить /cancel)")
 
+                        self.current_customer = get_customer_from_db[0]
                         self.api_id = int(self.current_customer[2])
                         self.api_hash = self.current_customer[3]
                         self.phone_number = self.current_customer[4]
@@ -1103,7 +1146,7 @@ class InviteBot:
                         'user': excel_data_df['username'].tolist(),
                     }
                     print(excel_dict)
-
+                    self.participants_dict = excel_dict
                     n = 0
                     while n<len(excel_dict['id_participant']):
                         all_participant.append([int(excel_dict['id_participant'][n]), int(excel_dict['access_hash'][n]), excel_dict['user'][n]])
@@ -1516,7 +1559,7 @@ class InviteBot:
                 results_dict['company'] = message[7] #+
                 results_dict['english'] = message[8] #+
                 results_dict['relocation'] = message[9] #+
-                results_dict['job_type'] = message[10] #+
+                results_dict['job_type'] = re.sub(r'\<[A-Za-z\/=\"\-\>\s\._\<]{1,}\>', " ", message[10]) #+
                 results_dict['city'] = message[11] #+
                 results_dict['salary'] = message[12] #full
                 results_dict['experience'] = message[13] #full
@@ -1601,6 +1644,7 @@ class InviteBot:
                 if len(message_for_send) > 4096:
                     message_for_send = message_for_send[0:4092] + '...'
 
+
                 return {'composed_message': message_for_send, 'db_id': message[0]}
 
         async def get_last_admin_channel_id(message, channel=config['My_channels']['admin_channel']):
@@ -1641,6 +1685,8 @@ class InviteBot:
             peer = await client.get_entity(int(channel))
             await asyncio.sleep(2)
             channel = PeerChannel(peer.id)
+
+            # channel = int(config['My_channels']['admin_channel'])
             # while True:
             try:
                 history = await client(GetHistoryRequest(
@@ -1854,7 +1900,8 @@ class InviteBot:
                 print(f"\n{vacancy['message'][0:40]}")
 
                 # sending the raw message without fields vacancy city etc
-                await bot_aiogram.send_message(int(config['My_channels']['agregator_channel']), vacancy['message'])
+                await bot_aiogram.send_message(int(config['My_channels']['agregator_channel']), vacancy['message'],
+                                               disable_notification=True)
                 await asyncio.sleep(random.randrange(2, 3))
                 self.last_id_message_agregator += 1
 
@@ -1917,6 +1964,95 @@ class InviteBot:
             with open("./logs/logs_errors.txt", "a", encoding='utf-8') as file:
                 file.write(text)
 
+        async def get_excel_tags_from_admin(message):
+            sp = ShowProgress(
+                bot_dict={
+                    'bot': bot_aiogram,
+                    'chat_id': message.chat.id
+                }
+            )
+            excel_list = {}
+            excel_list['title'] = []
+            excel_list['body'] = []
+            excel_list['profession'] = []
+            excel_list['tag'] = []
+            excel_list['anti_tag'] = []
+            excel_list['vacancy'] = []
+            n = 0
+            for i in ['admin_last_session']:
+                response = DataBaseOperations(None).get_all_from_db(
+                    table_name=f'{i}',
+                    param="""WHERE profession <> 'no_sort'""",
+                    # param="""WHERE profession LIKE '%designer%'""",
+                    without_sort=True
+                )
+
+                # if n > 200:
+                #     break
+                await bot_aiogram.send_message(message.chat.id, f'There are {len(response)} records from {i}\nPlease wait...')
+                msg = await bot_aiogram.send_message(message.chat.id, 'progress 0%')
+                n=0
+                length=len(response)
+                for vacancy in response:
+                    title = vacancy[2]
+                    body = vacancy[3]
+                    vac = vacancy[5]
+                    response_from_filter = AlexSort2809().sort_by_profession_by_Alex(title=title, body=body)
+                    profession = response_from_filter['profession']
+                    params = response_from_filter['params']
+                    if vac:
+                        excel_list['vacancy'].append(vac)
+                    elif params['vacancy']:
+                        excel_list['vacancy'].append(params['vacancy'])
+                    else:
+                        excel_list['vacancy'].append('-')
+                    excel_list['title'].append(title)
+                    excel_list['body'].append(body)
+                    excel_list['profession'].append(profession['profession'])
+                    excel_list['tag'].append(profession['tag'])
+                    excel_list['anti_tag'].append(profession['anti_tag'])
+                    n += 1
+                    print(f'step {n} passed')
+                    msg = await sp.show_the_progress(
+                        message=msg,
+                        current_number=n,
+                        end_number = length
+                    )
+                    # if n>200:
+                    #     break
+            df = pd.DataFrame(
+                {
+                    'title': excel_list['title'],
+                    'body': excel_list['body'],
+                    'vacancy': excel_list['vacancy'],
+                    'profession': excel_list['profession'],
+                    'tag': excel_list['tag'],
+                    'anti_tag': excel_list['anti_tag']
+                }
+            )
+
+            df.to_excel(f'./excel/statistics.xlsx', sheet_name='Sheet1')
+            print('got it')
+            await send_file_to_user(message, f'./excel/statistics.xlsx')
+
+        async def delete_since(tables_list=None, ids_list=None, param=None):
+            """
+            delete records since time in params in tables in list[]
+            """
+            """
+            DATE(created_at) > '2022-09-24'
+            """
+            if not tables_list:
+                tables_list = ['backend', 'frontend', 'devops', 'pm', 'product', 'designer', 'analyst', 'mobile', 'qa',
+                               'hr', 'game',
+                               'ba', 'marketing', 'junior', 'sales_manager', 'no_sort', 'admin_last_session']
+            for i in tables_list:
+                if not ids_list:
+                    DataBaseOperations(None).delete_data(table_name=i, param=param)
+                else:
+                    for id in ids_list:
+                        DataBaseOperations(None).delete_data(table_name=i, param=f"WHERE id={id}")
+                        print(f'Was deleted id={id} from {i}')
         executor.start_polling(dp, skip_updates=True)
 
 InviteBot().main_invitebot()
