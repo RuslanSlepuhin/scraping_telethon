@@ -37,11 +37,11 @@ class DataBaseOperations:
             port = config['DB3']['port']
         except:
             config.read("./settings/config.ini")
-            database = config['DB3']['database']
-            user = config['DB3']['user']
-            password = config['DB3']['password']
-            host = config['DB3']['host']
-            port = config['DB3']['port']
+            database = config['DB_local_clone']['database']
+            user = config['DB_local_clone']['user']
+            password = config['DB_local_clone']['password']
+            host = config['DB_local_clone']['host']
+            port = config['DB_local_clone']['port']
         try:
             self.con = psycopg2.connect(
                 database=database,
@@ -115,6 +115,8 @@ class DataBaseOperations:
     def check_or_create_table(self, cur, table_name):
 
         logs.write_log(f"scraping_db: function: check_or_create_table")
+
+        cur = self.con.cursor()
 
         with self.con:
             cur.execute(f"""CREATE TABLE IF NOT EXISTS {table_name} (
@@ -488,14 +490,16 @@ class DataBaseOperations:
         return new_response
 
     def check_table_companies(self):
-        con = self.connect_db()
-        cur = con.cursor()
+
+        if not self.con:
+            self.con = self.connect_db()
+        cur = self.con.cursor()
         query = """CREATE TABLE IF NOT EXISTS companies (
             id SERIAL PRIMARY KEY,
             company VARCHAR(100)
             );
             """
-        with con:
+        with self.con:
             cur.execute(query)
             print('Table companies has been created or exists')
 
@@ -510,7 +514,8 @@ class DataBaseOperations:
 
             # if company is recruiter, is not the company, do not write to DB
             if not re.findall(r'[Рр]екрутер', company):
-
+                if '\'' in company:
+                    company = company.replace('\'', '')
                 query = f"""SELECT * FROM companies WHERE company='{company}'"""
                 with con:
                     try:
@@ -641,7 +646,7 @@ class DataBaseOperations:
                 cur.execute(query)
                 print(f'Added columns to table {table}')
 
-    def run_free_request(self, request):
+    def run_free_request(self, request, output_text=None):
 
         logs.write_log(f"scraping_db: function: run_free_request")
 
@@ -649,11 +654,14 @@ class DataBaseOperations:
             self.connect_db()
         cur = self.con.cursor()
 
+        if not output_text:
+            output_text = 'free_request has got'
+
         query = request
         with self.con:
             try:
                 cur.execute(query)
-                print('got')
+                print(output_text)
             except Exception as e:
                 print(e)
             pass
@@ -783,9 +791,7 @@ class DataBaseOperations:
             self.con.commit()
 
     def push_to_admin_table(self, results_dict, profession, params=None):
-
-        check_does_it_exist = []
-
+        response_from_db = {}
         logs.write_log(f"scraping_db: function: push_to_admin_table")
 
         if not self.con:
@@ -798,18 +804,26 @@ class DataBaseOperations:
         results_dict['body'] = self.clear_title_or_body(results_dict['body'])
         results_dict['company'] = self.clear_title_or_body(results_dict['company'])
 
+        list_prof = profession['profession']
+        print('\n\nНюанс в 805 строке scarping db\n\n')
 
-        for i in profession['profession']:
+        if type(list_prof) is set and 'no_sort' not in list_prof:
+            list_prof.add('no_sort')
+        elif type(list_prof) is list and 'no_sort' not in list_prof:
+            list_prof.append('no_sort')
+
+        for i in list_prof:
             # pro += f'{i}, '
 
-            #m---- get response from each prof tables and let True if exists and False if don't ---------
+            # m---- get response from each prof tables and let True if exists and False if don't ---------
             response = self.get_all_from_db(
                 table_name=i,
                 param=f"WHERE title='{results_dict['title']}' AND body='{results_dict['body']}'"
             )
             if not response:
                 pro += f'{i}, '
-                 # delete this profession from profession['profession]
+            else:
+                print(f'This vacancy exists in {i} table')
         if pro:
             results_dict['profession'] = pro[0:-2]
 
@@ -820,16 +834,16 @@ class DataBaseOperations:
                 r = cur.fetchall()
 
             if not r:
-
+                response_from_db = False
                 new_post = f"""INSERT INTO admin_last_session (
-                            chat_name, title, body, profession, vacancy, vacancy_url, company, english, relocation, job_type, 
-                            city, salary, experience, contacts, time_of_public, created_at, session) 
-                                        VALUES ('{results_dict['chat_name']}', '{results_dict['title']}', '{results_dict['body']}', 
-                                        '{results_dict['profession']}', '{results_dict['vacancy']}', '{results_dict['vacancy_url']}', '{results_dict['company']}', 
-                                        '{results_dict['english']}', '{results_dict['relocation']}', '{results_dict['job_type']}', 
-                                        '{results_dict['city']}', '{results_dict['salary']}', '{results_dict['experience']}', 
-                                        '{results_dict['contacts']}', '{results_dict['time_of_public']}', '{datetime.now()}', 
-                                        '{results_dict['session']}');"""
+                                    chat_name, title, body, profession, vacancy, vacancy_url, company, english, relocation, job_type, 
+                                    city, salary, experience, contacts, time_of_public, created_at, session) 
+                                                VALUES ('{results_dict['chat_name']}', '{results_dict['title']}', '{results_dict['body']}', 
+                                                '{results_dict['profession']}', '{results_dict['vacancy']}', '{results_dict['vacancy_url']}', '{results_dict['company']}', 
+                                                '{results_dict['english']}', '{results_dict['relocation']}', '{results_dict['job_type']}', 
+                                                '{results_dict['city']}', '{results_dict['salary']}', '{results_dict['experience']}', 
+                                                '{results_dict['contacts']}', '{results_dict['time_of_public']}', '{datetime.now()}', 
+                                                '{results_dict['session']}');"""
                 with self.con:
                     try:
                         cur.execute(new_post)
@@ -839,11 +853,13 @@ class DataBaseOperations:
                         pass
             else:
                 if r:
+                    response_from_db = True
                     print(f'!!!!!!!!!!! Message exists in admin_last_session\n')
-                if False not in check_does_it_exist:
-                    print(f'!!!!!!!!!!! Message exists in profess_table\n')
         else:
-            print('There is not profession')
+            response_from_db = True
+            print('NO, Bro')
+
+        return response_from_db
 
 
     def push_followers_statistics(self, channel_statistic_dict:dict):
@@ -955,13 +971,10 @@ class DataBaseOperations:
         except Exception as e:
             print('Something is wrong ', e)
 
-    def write_user_without_password(self, id_user, api_id, api_hash, phone_number):
-        logs.write_log(f"scraping_db: function: write_user_without_password")
-
+    def create_table_users(self):
         if not self.con:
             self.connect_db()
         cur = self.con.cursor()
-
         with self.con:
             cur.execute(f"""CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
@@ -973,6 +986,16 @@ class DataBaseOperations:
                 );"""
                         )
 
+
+    def write_user_without_password(self, id_user, api_id, api_hash, phone_number):
+        logs.write_log(f"scraping_db: function: write_user_without_password")
+
+        if not self.con:
+            self.connect_db()
+        cur = self.con.cursor()
+
+        self.create_table_users()
+
         query_does_user_exist = f"""SELECT * FROM users WHERE api_id='{api_id}'"""
         with self.con:
             cur.execute(query_does_user_exist)
@@ -983,9 +1006,9 @@ class DataBaseOperations:
             try:
                 with self.con:
                     cur.execute(query)
-                    print('user been added to db')
+                    print(f'user {id_user}has been added to db')
             except Exception as e:
-                print(f"Didn't write the user to db. Reason: {e}")
+                print(f"Didn't write the user to db. Because: {e}")
         else:
             print('user exists')
 
@@ -996,6 +1019,8 @@ class DataBaseOperations:
         cur = self.con.cursor()
 
         for table_name in list_table_name:
+            # query_for_change_type = f"""ALTER TABLE {table_name} ALTER COLUMN {name_and_type}"""
+
             query_for_change_type = f"""ALTER TABLE {table_name} ALTER COLUMN {name_and_type}"""
             with self.con:
                 try:
@@ -1005,6 +1030,7 @@ class DataBaseOperations:
                     print(f"title in {table_name} didn't change for reason {e}")
 
     def check_admin_temporary(self, cur):
+        cur = self.con.cursor()
         with self.con:
 
             cur.execute(f"""CREATE TABLE IF NOT EXISTS admin_temporary (

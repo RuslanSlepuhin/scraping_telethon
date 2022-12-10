@@ -24,19 +24,19 @@ config.read("./settings/config.ini")
 
 quant = 1  # счетчик вывода количества запушенных в базу сообщений (для контроля в консоли)
 
-database = config['DB3']['database']
-user = config['DB3']['user']
-password = config['DB3']['password']
-host = config['DB3']['host']
-port = config['DB3']['port']
-
-con = psycopg2.connect(
-    database=database,
-    user=user,
-    password=password,
-    host=host,
-    port=port
-)
+# database = config['DB3']['database']
+# user = config['DB3']['user']
+# password = config['DB3']['password']
+# host = config['DB3']['host']
+# port = config['DB3']['port']
+#
+# con = psycopg2.connect(
+#     database=database,
+#     user=user,
+#     password=password,
+#     host=host,
+#     port=port
+# )
 
 
 class WriteToDbMessages():
@@ -59,7 +59,7 @@ class WriteToDbMessages():
     async def dump_all_participants(self, channel):
 
         logs.write_log(f"scraping_telethon2: function: dump_all_participants")
-
+        path = ''
         """Записывает json-файл с информацией о всех участниках канала/чата"""
         offset_user = 0  # номер участника, с которого начинается считывание
         limit_user = 100  # максимальное число записей, передаваемых за один раз
@@ -79,8 +79,8 @@ class WriteToDbMessages():
                 offset_user += len(participants.users)
 
                 print('len(all_participants = ', len(all_participants))
-                print('pause 2-5 sec')
-                time.sleep(random.randrange(1, 3))
+                print('pause 5-13 sec')
+                time.sleep(random.randrange(5, 13))
 
             all_users_details = []  # список словарей с интересующими параметрами участников канала
             # channel_name = f'@{channel.username} | {channel.title}'
@@ -125,16 +125,19 @@ class WriteToDbMessages():
                  }
             )
 
-            df.to_excel(f'./participants_from_{file_name}.xlsx', sheet_name='Sheet1')
+            path = f'./participants_from_{file_name}.xlsx'
+            df.to_excel(path, sheet_name='Sheet1')
 
             #------------- конец записи в файл ------------
 
-            print(f'\nPause 40-60 sec...')
-            time.sleep(random.randrange(40, 60))
+            print(f'\nPause 10-20 sec...')
+            time.sleep(random.randrange(10, 20))
             print('...Continue')
+
 
         except Exception as e:
             print(f'Error для канала {channel}: {e}')
+        return path
 
     async def dump_all_messages(self, channel, limit_msg):
 
@@ -152,7 +155,7 @@ class WriteToDbMessages():
 
         await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], f'<em>channel {channel}</em>', parse_mode='html', disable_web_page_preview = True)
 
-        # data = await self.client.get_entity('https://t.me/fake_prof_channel')
+        # data = await self.client.get_entity('https://t.me/fake_adminka')
         # print(data)
 
         while True:
@@ -185,12 +188,12 @@ class WriteToDbMessages():
 
             offset_msg = messages[len(messages) - 1].id
             total_messages = len(all_messages)
-            if total_count_limit != 0 and total_messages >= total_count_limit:
+            if (total_count_limit != 0 and total_messages >= total_count_limit) or not messages:
                 break
 
         await self.process_messages(channel, all_messages)
-        print('pause 25-35 sec.')
-        await asyncio.sleep(random.randrange(15, 20))
+        print('pause 5-12 sec.')
+        await asyncio.sleep(random.randrange(5, 12))
 
     async def process_messages(self, channel, all_messages):
         # channel_name = f'@{channel.username} | {channel.title}'
@@ -212,6 +215,7 @@ class WriteToDbMessages():
 
         for one_message in reversed(all_messages):
             await self.operations_with_each_message(channel, one_message)
+
 
     async def operations_with_each_message(self, channel, one_message):
 
@@ -293,7 +297,7 @@ class WriteToDbMessages():
         """
         logs.write_log(f"scraping_telethon2: function: get_last_and_tgpublic_shorts")
 
-        self.companies = DataBaseOperations(con=con).get_all_from_db(table_name='companies', without_sort=True)  # check!!!
+        self.companies = DataBaseOperations(None).get_all_from_db(table_name='companies', without_sort=True)  # check!!!
 
         # get current session
         if not current_session:
@@ -321,9 +325,6 @@ class WriteToDbMessages():
         else:
             await self.send_fulls(all=True, one_profession=one_profession)  # 2. for send last full messages from db
 
-
-
-
         await self.bot_dict['bot'].send_message(self.bot_dict['chat_id'], 'DONE')
 
     async def send_sorts(self):
@@ -337,7 +338,7 @@ class WriteToDbMessages():
             # get last records from table with profession PRO
             # param = f"WHERE created_at > '{time_start['year']}-{time_start['month']}-{time_start['day']} {time_start['hour']}:{time_start['minute']}:{time_start['sec']}'"
             param = f"WHERE session='{self.current_session}'"
-            response_messages = DataBaseOperations(con=con).get_all_from_db(pro,
+            response_messages = DataBaseOperations(None).get_all_from_db(pro,
                                                                             param=param)  # check!!!
             for response in response_messages:
                 title = response[2]
@@ -579,11 +580,12 @@ class WriteToDbMessages():
             for url in list_links:
                 await self.dump_all_participants(url)
 
+
     async def start(self, limit_msg, action):
         print('start')
         await self.main_start(list_links, limit_msg, action)
 
 async def main(client, bot_dict, action='get_message'):
     get_messages = WriteToDbMessages(client, bot_dict)
-    await get_messages.start(limit_msg=10, action=action)  #get_participants get_message
+    await get_messages.start(limit_msg=20, action=action)  #get_participants get_message
 

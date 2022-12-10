@@ -13,11 +13,12 @@ from bs4 import BeautifulSoup
 # from bot.scraping_push_to_channels import PushChannels
 from db_operations.scraping_db import DataBaseOperations
 from patterns.pattern_Alex2809 import cities_pattern, params
-
+from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
+from sites.write_each_vacancy_to_db import write_each_vacancy
 
 class HHGetInformation:
 
-    def __init__(self, bot_dict):
+    def __init__(self, bot_dict, search_word=None):
 
         self.db_tables = None
         self.options = None
@@ -39,15 +40,24 @@ class HHGetInformation:
             'time_of_public': [],
             'contacts': []
         }
+        if not search_word:
+            self.search_words = ['junior', 'джуниор', 'kotlin', 'product', 'mobile', 'marketing', 'аналитик',
+                                 'frontend', 'designer', 'devops', 'hr', 'backend', 'qa', 'junior', 'ba']
 
-        self.search_words = ['junior', 'джуниор', 'kotlin', 'product', 'mobile', 'marketing', 'аналитик',
-                             'frontend', 'designer', 'devops', 'hr', 'backend', 'qa', 'junior', 'ba']
+            self.search_words = ['designer', 'ui', 'junior', 'product manager', 'project manager', 'python', 'php']
+        else:
+            self.search_words=[search_word]
+        self.page_number = 1
 
-        self.search_words = ['junior']
         self.current_message = None
-        self.bot = bot_dict['bot']
-        self.chat_id = bot_dict['chat_id']
+        # self.bot = bot_dict['bot']
+        # self.chat_id = bot_dict['chat_id']
         self.msg = None
+        self.written_vacancies = 0
+        self.rejected_vacancies = 0
+        if bot_dict:
+            self.bot = bot_dict['bot']
+            self.chat_id = bot_dict['chat_id']
 
 
     async def get_content(self, db_tables=None):
@@ -66,65 +76,87 @@ class HHGetInformation:
         self.options.add_argument("--headless")
         self.options.add_argument("--disable-dev-shm-usage")
         self.options.add_argument("--no-sandbox")
+        # self.msg = await self.bot.send_message(self.chat_id, 'https://hh.ru is starting', disable_web_page_preview=True)
 
-        self.msg = await self.bot.send_message(self.chat_id, 'https://hh.ru is starting', disable_web_page_preview=True)
-
-        # link = f'https://hh.ru/search/vacancy?text=backend&from=suggest_post&area=1002?'
         link = 'https://hh.ru'
+        link = 'https://hh.ru/search/vacancy?no_magic=true&L_save_area=true&text=&excluded_text=&salary=&currency_code=RUR&experience=doesNotMatter&schedule=remote&order_by=relevance&search_period=1&items_on_page=200&page=39&hhtmFrom=vacancy_search_list'
         response_dict = await self.get_info(link)
-        # for self.page in range(1, 48):
-        #     link = f'https://geekjob.ru/vacancies/{self.page}'
-        #     await self.get_info(link)
-        return response_dict
+
+        # return response_dict
+
+    # async def get_info(self, link):
+    #
+    #     self.browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=self.options)
+    #     for word in self.search_words:
+    #
+    #         self.current_message = await self.bot.send_message(self.chat_id, f'Поиск вакансий по слову {word}...')
+    #         self.browser.get('http://hh.ru')
+    #         time.sleep(1)
+    #
+    #         holder = self.browser.find_element(By.XPATH, "/html/body/div[4]/div/div[3]/div[1]/div[1]/div/div/div[2]/div/form/div/div[1]/fieldset/input")
+    #         holder.send_keys(word)
+    #         time.sleep(1)
+    #         button_find = self.browser.find_element(By.XPATH, "/html/body/div[4]/div/div[3]/div[1]/div[1]/div/div/div[2]/div/form/div/div[2]/button")
+    #         button_find.click()
+    #
+    #         self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+    #         time.sleep(1)
+    #         await self.get_link_message(self.browser.page_source, word)
+    #
+    #     self.browser.quit()
+    #     # return self.to_write_excel_dict
 
     async def get_info(self, link):
-        # full_response_dict = {
-        #     'chat_name': [],
-        #     'title': [],
-        #     'body': [],
-        #     'vacancy': [],
-        #     'vacancy_url': [],
-        #     'company': [],
-        #     'company_link': [],
-        #     'english': [],
-        #     'relocation': [],
-        #     'job_type': [],
-        #     'city': [],
-        #     'salary': [],
-        #     'experience': [],
-        #     'time_of_public': [],
-        #     'contacts': []
-        # }
 
         self.browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=self.options)
-        # self.browser.get(link)
-
         for word in self.search_words:
 
-            self.current_message = await self.bot.send_message(self.chat_id, f'Поиск вакансий по слову {word}...')
+            # self.current_message = await self.bot.send_message(self.chat_id, f'Поиск вакансий по слову {word}...')
+            # self.browser.get('http://hh.ru')
+            link = f'https://hh.ru/search/vacancy?text={word}&from=suggest_post&salary=&schedule=remote&no_magic=true&ored_clusters=true&enable_snippets=true&search_period=1&excluded_text='
+            print('page link: ', link)
+            self.browser.get(link)
+            # holder = self.browser.find_element(By.CSS_SELECTOR, "input[type=text]")
+            # holder.send_keys(word)
+            # banner = ''
+            # banner = self.browser.find_element(By.XPATH, "/html/body/div[8]/div/div/div/div[2]/div[1]/div")
+            # dispayed = banner.is_displayed()
+            # if banner.is_displayed():
+            #     close = self.browser.find_element(By.CSS_SELECTOR, "body > div.Bloko-Notification-Manager.notification-manager > div > div > div > div.bloko-notification__body > div.bloko-notification__close > svg > path")
+            #     close.click()
+            # button_find = self.browser.find_element(By.CSS_SELECTOR, "button[type=submit]")
+            # button_find.click()
 
-            self.browser.get('http://hh.ru')
-            time.sleep(1)
+            last_number = self.browser.find_element(By.XPATH, "/html/body/div[5]/div/div[3]/div[1]/div/div[3]/div[2]/div[2]/div/div[5]/div")
+            self.last_number = last_number.size['height']
 
-            holder = self.browser.find_element(By.XPATH, "/html/body/div[4]/div/div[3]/div[1]/div[1]/div/div/div[2]/div/form/div/div[1]/fieldset/input")
-            holder.send_keys(word)
-            time.sleep(1)
-            button_find = self.browser.find_element(By.XPATH, "/html/body/div[4]/div/div[3]/div[1]/div[1]/div/div/div[2]/div/form/div/div[2]/button")
-            button_find.click()
+            # self.current_message = await self.bot.edit_message_text(
+            #     f'{self.current_message.text}\nНайдено {self.last_number} страниц',
+            #     self.current_message.chat.id,
+            #     self.current_message.message_id,
+            #     parse_mode='html'
+            # )
 
             self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(1)
-            # response_dict = await self.get_link_message(self.browser.page_source, word)
             await self.get_link_message(self.browser.page_source, word)
 
+            # for self.page_number in range(1, self.last_number-1):
+            if self.last_number<=13:
+                till = self.last_number
+            else:
+                till = 13
+            for self.page_number in range(1, till):
 
-            # for key in response_dict:
-            #     full_response_dict[key].extend(response_dict[key])
-            #
-            # pass
+                self.browser.get(f'https://hh.ru/search/vacancy?text={word}&from=suggest_post&salary=&schedule=remote&no_magic=true&ored_clusters=true&enable_snippets=true&search_period=1&excluded_text=&page={self.page_number}&hhtmFrom=vacancy_search_list')
+                # next_page = self.browser.find_element(By.CSS_SELECTOR, "a[class=bloko-button]")
+                # n = next_page.is_enabled()
+                # if next_page.is_enabled():
+                #     next_page.click()
+                self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                await self.get_link_message(self.browser.page_source, word)
 
         self.browser.quit()
-        return self.to_write_excel_dict
+        # return self.to_write_excel_dict
 
     async def get_link_message(self, raw_content, word):
         message_dict ={}
@@ -155,11 +187,31 @@ class HHGetInformation:
         list_links = soup.find_all('a', class_='serp-item__title')
         print(f'\nПо слову {word} найдено {len(list_links)} вакансий\n')
 
-        self.current_message = await self.bot.edit_message_text(
-            f'{self.current_message.text}\nПо слову {word} найдено {len(list_links)} вакансий\n\n',
-            self.current_message.chat.id,
-            self.current_message.message_id)
+        # self.current_message = await self.bot.send_message(self.chat_id, f"По слову {word} найдено {len(list_links)} вакансий на {self.page_number} странице\n\n")
+
+        # self.current_message = await self.bot.edit_message_text(
+        #     f'{self.current_message.text}\nПо слову {word} найдено {len(list_links)} вакансий\n\n',
+        #     self.current_message.chat.id,
+        #     self.current_message.message_id)
+
+        # -------------------- check what is current session --------------
+
+        current_session = DataBaseOperations(None).get_all_from_db(
+            table_name='current_session',
+            param='ORDER BY id DESC LIMIT 1',
+            without_sort=True,
+            order=None,
+            field='session',
+            curs=None
+        )
+        for value in current_session:
+            self.current_session = value[0]
+
+
         # --------------------- LOOP -------------------------
+        self.written_vacancies = 0
+        self.rejected_vacancies = 0
+
         for i in list_links:
             vacancy_url = i.get('href')
             vacancy_url = re.findall(r'https:\/\/hh.ru\/vacancy\/[0-9]{6,12}', vacancy_url)[0]
@@ -167,14 +219,13 @@ class HHGetInformation:
             links.append(vacancy_url)
 
             self.browser.get(vacancy_url)
-            time.sleep(2)
-            try:
-                self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            except Exception as e:
-                print('Screen did not scroll: ', e)
+            # time.sleep(2)
+            # try:
+            #     self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+            # except Exception as e:
+            #     print('Screen did not scroll: ', e)
 
             soup = BeautifulSoup(self.browser.page_source, 'lxml')
-
 
             # get vacancy ------------------------
             vacancy = soup.find('div', class_='vacancy-title').find('span').get_text()
@@ -249,6 +300,7 @@ class HHGetInformation:
                         print(value.get_text())
                         job_type += f'\n{value.get_text}'
                 counter += 1
+            job_type = re.sub(r'\<[a-zA-Z\s\.\-\'"=!\<_\/]+\>', " ", job_type)
 
             if re.findall(r'удаленная работа', job_type):
                 remote = True
@@ -297,84 +349,70 @@ class HHGetInformation:
             elif not english and english_additional:
                 english = english_additional
 
-            # ------------------- compose title and body ------------------------------------
+            DataBaseOperations(None).write_to_db_companies([company])
 
-            self.to_write_excel_dict['chat_name'].append('https://hh.ru/')
-            self.to_write_excel_dict['title'].append(title)
-            self.to_write_excel_dict['body'].append(body)
-            self.to_write_excel_dict['vacancy'].append(vacancy)
-            self.to_write_excel_dict['vacancy_url'].append(vacancy_url)
-            self.to_write_excel_dict['company'].append(company)
-            self.to_write_excel_dict['company_link'].append('')
-            self.to_write_excel_dict['english'].append(english)
-            self.to_write_excel_dict['relocation'].append(relocation)
-            self.to_write_excel_dict['job_type'].append(job_type)
-            self.to_write_excel_dict['city'].append(city)
-            self.to_write_excel_dict['salary'].append(salary)
-            self.to_write_excel_dict['experience'].append('')
-            self.to_write_excel_dict['time_of_public'].append(date)
-            self.to_write_excel_dict['contacts'].append(contacts)
+            #-------------------- compose one writting for ione vacancy ----------------
 
-            # results_dict['chat_name'] = 'geek_jobs.ru'
-            # results_dict['title'] = title
-            # results_dict['body'] = body
-            # results_dict['time_of_public'] = date
-            # message_dict['message'] = f'{title}\n{body}'
-            self.current_message = await self.bot.edit_message_text(
-                f'{self.current_message.text}\n{self.count_message_in_one_channel}. {vacancy}\n',
-                self.current_message.chat.id,
-                self.current_message.message_id)
+            results_dict = {
+                'chat_name': 'https://hh.ru/',
+                'title': title,
+                'body': body,
+                'vacancy': vacancy,
+                'vacancy_url': vacancy_url,
+                'company': company,
+                'company_link': '',
+                'english': english,
+                'relocation': relocation,
+                'job_type': job_type,
+                'city':city,
+                'salary':salary,
+                'experience':'',
+                'time_of_public':date,
+                'contacts':contacts,
+                'session': self.current_session
+            }
 
+            response_from_db = write_each_vacancy(results_dict)
+            profession = response_from_db['profession']
+            response_from_db = response_from_db['response_from_db']
+            if response_from_db:
+                additional_message = f'-exists in db\n'
+                self.rejected_vacancies += 1
+
+            elif not response_from_db and 'no_sort' not in profession['profession']:
+                prof_str = ''
+                for j in profession['profession']:
+                    prof_str += f"{j}, "
+                prof_str = prof_str[:-2]
+                additional_message = f"<b>+w: {prof_str}</b>\n"
+                self.written_vacancies += 1
+
+            else:
+                additional_message = f'(no_sort)\n'
+                self.rejected_vacancies += 1
+
+            if len(f"{self.current_message}\n{self.count_message_in_one_channel}. {vacancy}\n{additional_message}")< 4096:
+                # self.current_message = await self.bot.edit_message_text(
+                #     f'{self.current_message.text}\n{self.count_message_in_one_channel}. {vacancy}\n{additional_message}',
+                #     self.current_message.chat.id,
+                #     self.current_message.message_id,
+                #     parse_mode='html'
+                # )
+                pass
+            else:
+                # self.current_message = await self.bot.send_message(self.chat_id, f"{self.count_message_in_one_channel}. {vacancy}\n{additional_message}")
+                pass
             print(f"\n{self.count_message_in_one_channel} from_channel hh.ru search {word}")
             self.count_message_in_one_channel += 1
-            print('time_sleep')
-            # time.sleep(random.randrange(10, 15))
 
-        print('Prepare to write to excel')
-        # df = pd.DataFrame(
-        #     {
-        #         'title': to_write_excel_dict['title'],
-        #         'body': to_write_excel_dict['body'],
-        #         'vacancy': to_write_excel_dict['vacancy'],
-        #         'vacancy_url': to_write_excel_dict['vacancy_url'],
-        #         'company': to_write_excel_dict['company'],
-        #         'english': to_write_excel_dict['english'],
-        #         'relocation': to_write_excel_dict['relocation'],
-        #         'job_type': to_write_excel_dict['job_type'],
-        #         'city': to_write_excel_dict['city'],
-        #         'salary': to_write_excel_dict['salary'],
-        #         'experience': to_write_excel_dict['experience'],
-        #         'time_of_public': to_write_excel_dict['time_of_public'],
-        #         'contacts': to_write_excel_dict['contacts'],
-        #     }
-        # )
-
-        # df.to_excel(f'./../excel/hh_{word}.xlsx', sheet_name='Sheet1')
-        print('Has written to Excel')
-
-        # self.current_message = await self.bot.send_message(
-        #     self.chat_id,
-        #     f'\nMessages are writting to Admin table, please wait a few time ...\n'
-        # )
-
-        return to_write_excel_dict
-
-    # def normalize(self, date):
-    #     text = str(text)
-    #     text = text.replace('<div id="vacancy-description">', '')
-    #     text = text.replace('<br>', f'\n').replace('<br/>', '')
-    #     text = text.replace('<p>', f'\n').replace('</p>', '')
-    #     text = text.replace('<li>', f'\n\t- ').replace('</li>', '')
-    #     text = text.replace('<strong>', '').replace('</strong>', '')
-    #     text = text.replace('<div>', '').replace('</div>', '')
-    #     text = text.replace('<h4>', f'\n').replace('</h4>', '')
-    #     text = text.replace('<ul>', '').replace('</ul>', '')
-    #     text = text.replace('<i>', '').replace('</i>', '')
-    #     text = text.replace('<ol>', '').replace('</ol>', '')
-    #     text = text.replace('\u200b', '')
-    #     text = re.sub(r'<[\W\w\d]{1,10}>', '', text)
-    #
-    #     return text
+        #----------------------- the statistics output ---------------------------
+        # await self.bot.send_message(self.chat_id, f'Report:\nПо слову <b>{word}</b>: найдено {len(list_links)}\n'
+        #                                              f'Добавлено в базу новых: {self.written_vacancies}\n'
+        #                                              f'Были ранее спаршены: {self.rejected_vacancies}',
+        #                             parse_mode='html'
+        #                )
+        self.written_vacancies = 0
+        self.rejected_vacancies = 0
 
     def normalize_date(self, date):
         convert = {
@@ -441,5 +479,6 @@ class HHGetInformation:
         db.write_to_db_companies(companies)
 
 # loop = asyncio.new_event_loop()
-# loop.run_until_complete(HHGetInformation().get_content())
+# loop.run_until_complete(HHGetInformation(bot_dict={}).get_content())
+
 
