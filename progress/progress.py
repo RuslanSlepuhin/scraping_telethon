@@ -11,6 +11,8 @@ class ShowProgress:
         self.chat_id = bot_dict['chat_id']
         self.message = None
 
+    async def reset_percent(self):
+        self.percent = 0
 
     async def show_the_progress(self, message, current_number, end_number):
         self.message = message

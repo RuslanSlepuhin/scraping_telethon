@@ -156,15 +156,15 @@ class AlexSort2809:
             if match:
                 self.tag_alex += f'TAG {capitalize} {key}={match}\n'
                 # print(f'TAG {key} = {match}')
+
                 self.result_dict2[key] += len(match)
+
 
 # -------------- cancel all matches if it excludes words ------------------
 #         print('key = ', key)
         if self.result_dict2[key]:
             for exclude_word in self.pattern_alex[key]['mex']:
                 # print('exclude_word = ', exclude_word)
-                if (exclude_word == '#QA' or exclude_word == 'qa') and key == 'frontend':
-                    pass
                 if not capitalize:
                     exclude_word = exclude_word.lower()
                     message_to_check = message.lower()
@@ -180,7 +180,57 @@ class AlexSort2809:
                     # print(f'ANTI TAG {capitalize} {key} = {match}')
                     self.result_dict2[key] = 0
 
-        pass
+
+            if self.result_dict2['fullstack']:
+                self.transform_fullstack_to_back_and_front(message)
+
+            #     message_to_check = message.lower()
+            #     for exclude_word in self.pattern_alex['backend']['mex']:
+            #         exclude_word = exclude_word.lower()
+            #         match = re.findall(rf"{exclude_word}", message_to_check)
+            #         if match:
+            #             self.tag_alex_anti += f'TAG ANTI backend={match}\n'
+            #             # print(f'ANTI TAG {capitalize} {key} = {match}')
+            #             self.result_dict2['fullstack'] = 0
+            #         else:
+            #             self.result_dict2['backend'] += 1
+            #
+            #     for exclude_word in self.pattern_alex['frontend']['mex']:
+            #         exclude_word = exclude_word.lower()
+            #         match = re.findall(rf"{exclude_word}", message_to_check)
+            #         if match:
+            #             self.tag_alex_anti += f'TAG ANTI frontend={match}\n'
+            #             # print(f'ANTI TAG {capitalize} {key} = {match}')
+            #             self.result_dict2['fullstack'] = 0
+            #         else:
+            #             self.result_dict2['frontend'] += 1
+            #
+            # self.result_dict2['fullstack'] = 0
+
+    def transform_fullstack_to_back_and_front(self, message):
+
+        message_to_check = message.lower()
+        for exclude_word in self.pattern_alex['backend']['mex']:
+            exclude_word = exclude_word.lower()
+            match = re.findall(rf"{exclude_word}", message_to_check)
+            if match:
+                self.tag_alex_anti += f'TAG ANTI backend={match}\n'
+                # print(f'ANTI TAG {capitalize} {key} = {match}')
+                self.result_dict2['fullstack'] = 0
+            else:
+                self.result_dict2['backend'] += 1
+
+        for exclude_word in self.pattern_alex['frontend']['mex']:
+            exclude_word = exclude_word.lower()
+            match = re.findall(rf"{exclude_word}", message_to_check)
+            if match:
+                self.tag_alex_anti += f'TAG ANTI frontend={match}\n'
+                # print(f'ANTI TAG {capitalize} {key} = {match}')
+                self.result_dict2['fullstack'] = 0
+            else:
+                self.result_dict2['frontend'] += 1
+
+        self.result_dict2['fullstack'] = 0
 
     def get_company_new(self, text):
         company = ''

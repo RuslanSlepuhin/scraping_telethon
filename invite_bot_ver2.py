@@ -1,5 +1,6 @@
 import asyncio
 import time
+from multiprocessing import Pool
 import pandas as pd
 import psycopg2
 import os
@@ -27,6 +28,9 @@ from progress.progress import ShowProgress
 from scraping_telegramchats2 import WriteToDbMessages, main
 from sites.parsing_sites_runner import ParseSites
 from logs.logs import Logs
+from sites.scraping_hh import HHGetInformation
+from progress.progress import ShowProgress
+
 logs = Logs()
 import settings.os_getenv as settings
 config = configparser.ConfigParser()
@@ -43,7 +47,6 @@ storage = MemoryStorage()
 dp = Dispatcher(bot_aiogram, storage=storage)
 
 all_participant = []
-marker = False
 file_name = ''
 marker_code = False
 password = 0
@@ -61,9 +64,9 @@ class InviteBot:
         self.chat_id = None
         self.start_time_listen_channels = datetime.now()
         self.start_time_scraping_channels = None
-        self.valid_profession_list = ['marketing', 'ba', 'game', 'product', 'mobile',
+        self.valid_profession_list = ['designer', 'ba', 'game', 'product', 'mobile',
                                       'pm', 'sales_manager', 'analyst', 'frontend',
-                                      'designer', 'devops', 'hr', 'backend', 'qa', 'junior']
+                                      'marketing', 'devops', 'hr', 'backend', 'qa', 'junior']
         self.markup = None
         # self.api_id = config['Ruslan']['api_id']
         # self.api_hash = config['Ruslan']['api_hash']
@@ -88,6 +91,11 @@ class InviteBot:
         self.out_from_admin_channel = 0
         self.quantity_entered_to_shorts = 0
         self.participants_dict = {}
+        self.white_admin_list = [1763672666, 556128576, 758905227, 945718420, 5755261667, 5884559465]
+        self.marker = False
+        self.all_participant = []
+        self.channel = None
+        self.db = DataBaseOperations(con=None)
 
 
     def main_invitebot(self):
@@ -115,9 +123,14 @@ class InviteBot:
             else:
                 await bot_aiogram.send_message(message.chat.id, 'Connection is ok')
 
+        class Form_participants(StatesGroup):
+            channel = State()
+
+        class Form_params(StatesGroup):
+            vacancy = State()
+
         class Form_delete(StatesGroup):
             date = State()
-
 
         class Form(StatesGroup):
             api_id = State()
@@ -125,6 +138,10 @@ class InviteBot:
             phone_number = State()
             code = State()
             password = State()
+
+        class Form_hh(StatesGroup):
+            word = State()
+
 
         @dp.message_handler(commands=['start'])
         async def send_welcome(message: types.Message):
@@ -151,14 +168,22 @@ class InviteBot:
         @dp.message_handler(commands=['help'])
         async def get_logs(message: types.Message):
             await bot_aiogram.send_message(message.chat.id, '/log or /logs - get custom logs (useful for developer\n'
-                                                            '/refresh_pattern - to get the modify pattern from DB\n'
+                                                            # '/refresh_pattern - to get the modify pattern from DB\n'
                                                             '/peerchannel - useful for a developer to get id channel\n'
-                                                            '/getdata - get channel data')
+                                                            '/getdata - get channel data\n'
+                                                            '/check_parameters - get vacancy\'s parameters\n'
+                                                            '/get_participants - ❗️get the channel follower numbers\n'
+                                                            '/delete_till - ❗️delete old vacancy from admin DB till date\n'
+                                                            '/magic_word - input word and get results from hh.ru\n'
+                                                            '/download - ❗️you get excel from admin vacancies with search tags\n\n'
+                                                            '❗️- it is admin options')
 
         @dp.message_handler(commands=['logs', 'log'])
         async def get_logs(message: types.Message):
             path = './logs/logs.txt'
             await send_file_to_user(message, path)
+
+
 
         @dp.message_handler(commands=['peerchannel'])
         async def get_logs(message: types.Message):
@@ -167,12 +192,43 @@ class InviteBot:
 
         @dp.message_handler(commands=['download'])
         async def download(message: types.Message):
-            await get_excel_tags_from_admin(message)
+            if message.from_user.id in self.white_admin_list:
+                await get_excel_tags_from_admin(message)
+            else:
+                await bot_aiogram.send_message(message.chat.id, '🚀 Sorry, this options available only for admin')
+
+        @dp.message_handler(commands=['magic_word'])
+        async def magic_word(message: types.Message):
+            await Form_hh.word.set()
+            await bot_aiogram.send_message(message.chat.id, 'Type word for getting more vacancies from hh.ru\nor /cancel')
+
+        # ------------------------ fill search word form ----------------------------------
+        # word
+        @dp.message_handler(state=Form_hh.word)
+        async def process_api_id(message: types.Message, state: FSMContext):
+            async with state.proxy() as data:
+                data['word'] = message.text
+                search_word = message.text
+            hh = HHGetInformation(
+                search_word=search_word,
+                bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id}
+            )
+            await hh.get_content()
+
+            # pool = Pool(processes=3)
+            # result = pool.apply_async(hh.get_content, ())
+            # print(result.get(timeout=1))
+
+            await state.finish()
 
         @dp.message_handler(commands=['delete_till'])
         async def download(message: types.Message):
-            await Form_delete.date.set()
-            await bot_aiogram.send_message(message.chat.id, 'Until what date to delete (inclusive)? Format YYYY-MM-DD\nor /cancel')
+            if message.from_user.id in self.white_admin_list:
+                await Form_delete.date.set()
+                await bot_aiogram.send_message(message.chat.id,
+                                               'Until what date to delete (exclusive)? Format YYYY-MM-DD\nor /cancel')
+            else:
+                await bot_aiogram.send_message(message.chat.id, '🚀 Sorry, this options available only for admin')
 
         # ------------------------ fill date form ----------------------------------
         # date
@@ -184,6 +240,64 @@ class InviteBot:
 
             await state.finish()
 
+        @dp.message_handler(commands=['get_participants'])
+        async def download(message: types.Message):
+            await Form_participants.channel.set()
+            await bot_aiogram.send_message(message.chat.id, 'Type the channel link\nor /cancel')
+
+        # ------------------------ fill channel form ----------------------------------
+        # channel
+        @dp.message_handler(state=Form_participants.channel)
+        async def process_api_id(message: types.Message, state: FSMContext):
+            async with state.proxy() as data:
+                data['channel'] = message.text
+                wtdm = WriteToDbMessages(
+                    client=client,
+                    bot_dict={
+                        'bot': bot_aiogram,
+                        'chat_id': message.chat.id
+                    }
+                )
+                path = await wtdm.dump_all_participants(channel=data['channel'])
+            await state.finish()
+            if path:
+                with open(path, 'rb') as file:
+                    await bot_aiogram.send_document(message.chat.id, file, caption='There are all subscribers from channel you order')
+            else:
+                await bot_aiogram.send_message(message.chat.id, 'Sorry, No file')
+
+        @dp.message_handler(commands=['check_parameters'])
+        async def check_parameters(message: types.Message):
+            await Form_params.vacancy.set()
+            await bot_aiogram.send_message(message.chat.id, 'Forward the vacancy now for checking outputs from pattern filter\nor /cancel')
+
+        # ------------------------ fill parameters form ----------------------------------
+        # parameters
+        @dp.message_handler(state=Form_params.vacancy)
+        async def process_api_id(message: types.Message, state: FSMContext):
+            async with state.proxy() as data:
+                data['vacancy'] = message.text
+                vacancy = data['vacancy']
+            await state.finish()
+            if '\n' in vacancy:
+                title = vacancy.split('\n', 1)[0]
+                body = vacancy.split('\n', 1)[1]
+            else:
+                title = vacancy
+                body = ''
+            dict_response = AlexSort2809().sort_by_profession_by_Alex(
+                body=body,
+                title=title,
+                only_profession=True
+            )
+            profession = dict_response['profession']
+
+            message_for_send = "<b>PATTERN'S RESULTS:</b>\n\n"
+            message_for_send += f"<b>PROFESSIONS:</b>\n{profession['profession']}\n" \
+                                f"<b>MA:</b>\n{profession['tag']}\n" \
+                                f"<b>MEX:</b>\n{profession['anti_tag']}"
+
+            await bot_aiogram.send_message(message.chat.id, message_for_send, parse_mode='html')
 
         @dp.message_handler(commands=['refresh_pattern'])
         async def get_logs(message: types.Message):
@@ -399,6 +513,21 @@ class InviteBot:
             short_digest = ''
             response = []
 
+            if callback.data == 'personal':
+                await invite_users(
+                    message=callback.message,
+                    channel=self.channel,
+                )
+
+            if callback.data == 'group':
+                await invite_set_users(
+                    message=callback.message,
+                    channel=self.channel,
+                )
+
+            if callback.data == 'consolidated_table':
+                await output_consolidated_table(callback.message)
+
             if callback.data == 'go_by_admin': # next step if callback.data[2:] in self.valid_profession_list:
                 # make the keyboard with all professions
                 self.markup = await compose_inline_keyboard(prefix='admin')
@@ -499,8 +628,14 @@ class InviteBot:
                 # today_statistics = f"Statistics today {datetime.now().strftime('%Y-%m-%d')}:\n\n"
                 # print(datetime.now().strftime('%Y-%m-%d'))
 
+            if callback.data == 'hard_push':
+                button_all_vacancies = InlineKeyboardButton('all', callback_data='all')
+                button_each_vacancy = InlineKeyboardButton('choose profession', callback_data='each_profession')
+                markup = InlineKeyboardMarkup()
+                markup.row(button_all_vacancies, button_each_vacancy)
+                await bot_aiogram.send_message(callback.message.chat.id, "It's the pushing without admin", reply_markup=markup)
 
-            if 'PUSH' in callback.data:
+            elif 'PUSH' in callback.data:
                 profession_list = {}
                 results_dict = {}
 
@@ -544,7 +679,7 @@ class InviteBot:
                                                                                       param=f"WHERE id={id_admin_last_session_table}",
                                                                                       without_sort=True)
                         # if vacancy has sent in agregator already, it doesn't push again. And remove profess from profs or drop vacancy if there is profession alone
-                        await push_vacancies_from_admin(
+                        await push_vacancies_to_agregator_from_admin(
                             message=callback.message,
                             vacancy=vacancy,
                             vacancy_from_admin=vacancy_from_admin,
@@ -570,41 +705,47 @@ class InviteBot:
                             vacancy_from_admin = DataBaseOperations(None).get_all_from_db('admin_last_session',
                                                                                           param=f"WHERE id={id_admin_last_session_table}",
                                                                                           without_sort=True)
-                            composed_message_dict={}
                             composed_message_dict = await compose_message(vacancy_from_admin[0], profession)
                             message_for_send += f"{composed_message_dict['composed_message']}\n"
                             self.quantity_entered_to_shorts += 1
+
+                            await compose_data_and_push_to_db(
+                                vacancy_from_admin=vacancy_from_admin,
+                                profession=profession
+                            )
                             prof_list = vacancy_from_admin[0][4].split(',')
+
+                            profession_list['profession'] = [profession,]
+
+                            # results_dict['chat_name'] = vacancy_from_admin[0][1]
+                            # results_dict['title'] = vacancy_from_admin[0][2]
+                            # results_dict['body'] = vacancy_from_admin[0][3]
+                            # results_dict['profession'] = vacancy_from_admin[0][4]
+                            # results_dict['vacancy'] = vacancy_from_admin[0][5]
+                            # results_dict['vacancy_url'] = vacancy_from_admin[0][6]
+                            # results_dict['company'] = vacancy_from_admin[0][7]
+                            # results_dict['english'] = vacancy_from_admin[0][8]
+                            # results_dict['relocation'] = vacancy_from_admin[0][9]
+                            # results_dict['job_type'] = vacancy_from_admin[0][10]
+                            # results_dict['city'] = vacancy_from_admin[0][11]
+                            # results_dict['salary'] = vacancy_from_admin[0][12]
+                            # results_dict['experience'] = vacancy_from_admin[0][13]
+                            # results_dict['contacts'] = vacancy_from_admin[0][14]
+                            # results_dict['time_of_public'] = vacancy_from_admin[0][15]
+                            # results_dict['created_at'] = vacancy_from_admin[0][16]
+                            # results_dict['agregator_link'] = vacancy_from_admin[0][17]
+                            # results_dict['session'] = vacancy_from_admin[0][18]
+
                             await update_vacancy_admin_last_session(
+                                results_dict=None,
                                 profession=profession,
                                 prof_list=prof_list,
                                 id_admin_last_session_table=id_admin_last_session_table,
                                 update_profession=True,
                                 update_id_agregator=False
                             )
-                            # write to prof DB
-                            profession_list['profession'] = [profession,]
-                            results_dict['chat_name'] = vacancy_from_admin[0][1]
-                            results_dict['title'] = vacancy_from_admin[0][2]
-                            results_dict['body'] = vacancy_from_admin[0][3]
-                            results_dict['profession'] = vacancy_from_admin[0][4]
-                            results_dict['vacancy'] = vacancy_from_admin[0][5]
-                            results_dict['vacancy_url'] = vacancy_from_admin[0][6]
-                            results_dict['company'] = vacancy_from_admin[0][7]
-                            results_dict['english'] = vacancy_from_admin[0][8]
-                            results_dict['relocation'] = vacancy_from_admin[0][9]
-                            results_dict['job_type'] = vacancy_from_admin[0][10]
-                            results_dict['city'] = vacancy_from_admin[0][11]
-                            results_dict['salary'] = vacancy_from_admin[0][12]
-                            results_dict['experience'] = vacancy_from_admin[0][13]
-                            results_dict['contacts'] = vacancy_from_admin[0][14]
-                            results_dict['time_of_public'] = vacancy_from_admin[0][15]
-                            results_dict['created_at'] = vacancy_from_admin[0][16]
-                            results_dict['agregator_link'] = vacancy_from_admin[0][17]
-                            results_dict['session'] = vacancy_from_admin[0][18]
-
-                        response_dict = DataBaseOperations(None).push_to_bd(results_dict, profession_list, self.last_id_message_agregator)
-                        await delete_used_vacancy_from_tg_db(vacancy, id_admin_last_session_table)
+                        # response_dict = DataBaseOperations(None).push_to_bd(results_dict, profession_list, self.last_id_message_agregator)
+                        await delete_used_vacancy_from_admin_temporary(vacancy, id_admin_last_session_table)
                     else:
                         await bot_aiogram.send_message(callback.message.chat.id, 'There is not response')
 
@@ -625,6 +766,9 @@ class InviteBot:
 
                 await delete_and_change_waste_vacancy(callback.message, last_id_message_agregator=self.last_id_message_agregator, profession=profession)
 
+                # history_messages = await get_tg_history_messages(callback.message)
+                # if not history_messages:
+
                 DataBaseOperations(None).delete_table(
                     table_name='admin_temporary'
                 )
@@ -634,6 +778,17 @@ class InviteBot:
                                                                          f'- out from admin {self.out_from_admin_channel}\n'
                                                                          f'- in to shorts {self.quantity_entered_to_shorts}',
                                                parse_mode='html')
+
+            if callback.data == 'all':
+                await hard_post(callback.message)
+
+            if callback.data == 'each_profession':
+                markup = await compose_inline_keyboard(prefix='each')
+                await bot_aiogram.send_message(callback.message.chat.id, "Choose profession", reply_markup=markup, parse_mode='html')
+
+            elif 'each' in callback.data:
+                channel = callback.data.split('/')[1]
+                await hard_post(callback.message, channels=channel)
 
 
             if callback.data == 'choose_one_channel':  # compose keyboard for each profession
@@ -756,7 +911,7 @@ class InviteBot:
         @dp.message_handler(content_types=['text'])
         async def messages(message):
 
-            global all_participant, marker, file_name, marker_code, client
+            global all_participant, file_name, marker_code, client
             channel_to_send = None
             user_to_send = []
             msg = None
@@ -784,212 +939,53 @@ class InviteBot:
                     await bot_aiogram.send_message(message.chat.id, 'Type the correct date')
 
 
-            if marker:
+            if self.marker:
+                self.channel = message.text
+                markup = InlineKeyboardMarkup()
+                button1 = InlineKeyboardButton('group', callback_data='group')
+                button2 = InlineKeyboardButton('personal', callback_data='personal')
+                markup.row(button1, button2)
+                await bot_aiogram.send_message(message.chat.id, 'group or personal', reply_markup=markup)
 
-                logs.write_log(f"invite_bot_2: content_types: if marker")
+                # await invite_users(
+                #     message=message,
+                #     channel=message.text,
+                #     all_participant=all_participant
+                # )
 
-                channel = message.text
-                channel_short_name = f"@{channel.split('/')[-1]}"
-                try:
-                    channel = await client.get_entity(channel)
-                    channel_to_send = InputChannel(channel.id, channel.access_hash)  # был InputPeerChannel
-                except Exception as e:
-                    await bot_aiogram.send_message(message.chat.id, f'{e}\nУкажате канал в формате https//t.me/<имя канала> (без @)\n'
-                                                            f'Обратите внимание на то, что <b>и Вы и этот бот</b> в этом канале должны быть <b>администраторами</b>', parse_mode='html')
-
-                if channel_to_send:
-                    try:
-                        await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: Инвайт запущен', parse_mode='html')
-
-                        n=0
-                        numbers_invite = 0
-                        numbers_failure = 0
-                        was_subscribe = 0
-
-                        self.participants_dict['status'] = []
-                        # ---------------------------- отправлять по одному инвайту---------------------------------
-
-                        print(f'\nLEN ALL_PARTICIPANTS IS {len(all_participant)}\n')
-
-                        sp = ShowProgress({'bot': bot_aiogram, 'chat_id': message.chat.id})
-                        current_step = 0
-                        length = len(all_participant)
-                        msg_2 = await bot_aiogram.send_message(message.chat.id, 'process 0%')
-
-                        for user in all_participant:
-                            print('id: ', user[0], 'hash', user[1], 'username', user[2])
-
-                            id_user = int(user[0])
-                            access_hash_user = int(user[1])
-                            username = user[2]
-                            print(type(username))
-
-#-----------------------------------------------------try---------------------------------------------------------------
-                            try:
-                                user_channel_status = await bot_aiogram.get_chat_member(chat_id=channel_short_name, user_id=id_user)
-                                if user_channel_status.status != types.ChatMemberStatus.LEFT:
-                                    if msg:
-                                        await msg.delete()
-                                        msg = None
-                                    # msg = await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: пользователь с id={id_user} уже подписан', parse_mode='html')
-                                    print('Пользователь уже подписан')
-                                    self.participants_dict['status'].append('уже подписан')
-                                    await asyncio.sleep(1)
-                                    was_subscribe += 1
-                                    user_exists = True
-                                else:
-                                    print('Пользователь новый')
-                                    user_exists = False
-
-                            except Exception as e:
-                                print('Пользователь новый')
-                                user_exists = False
-                                if msg:
-                                    await msg.delete()
-                                    msg = None
-                                # await bot_aiogram.send_message(message.chat.id, f"813: {str(e)}")
-                                print(f"#813: if username != None {str(e)}")
-# ----------------------------------------------------end---------------------------------------------------------------
-                            if not user_exists:
-                                if username != 'None':
-# -----------------------------------------------------try---------------------------------------------------------------
-                                    try:
-                                        user_to_send = [await client.get_input_entity(username)]
-                                    except Exception as e:
-                                        try:
-                                            await asyncio.sleep(5)
-                                            user_to_send = [await client.get_entity(username)]
-                                        except Exception as e:
-                                            try:
-                                                user_to_send = [InputUser(id_user, access_hash_user)]
-                                            except Exception as e:
-                                                # await bot_aiogram.send_message(message.chat.id, f"#824: if username != None {str(e)}")
-                                                print(f"#824: if username != None {str(e)}")
-# ----------------------------------------------------end---------------------------------------------------------------
-                                else:
-                                    # -----------------------------------------------------try---------------------------------------------------------------
-                                    try:
-                                        user_to_send = [InputUser(id_user, access_hash_user)]  # (PeerUser(id_user))
-                                    except Exception as e:
-                                        # await bot_aiogram.send_message(message.chat.id, f"#831: if username = None {str(e)}")
-                                        print(f"#831: if username = None {str(e)}")
-# ----------------------------------------------------end---------------------------------------------------------------
-# -----------------------------------------------------try---------------------------------------------------------------
-                                if msg:
-                                    await msg.delete()
-                                    msg = None
-                                try:
-                                    # client.invoke(InviteToChannelRequest(channel_to_send,  [user_to_send]))
-                                    # await client(InviteToChannelRequest(channel_to_send, user_to_send))  #work!!!!!
-                                    await client(functions.channels.InviteToChannelRequest(channel_to_send, user_to_send))
-                                    self.participants_dict['status'].append('инвайт прошел')
-
-                                    msg = await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}:</b> {user[0]} заинвайлся успешно\n'
-                                                                                  f'({numbers_invite+1} инвайтов)', parse_mode='html')
-                                    print(f'{channel_short_name}: {user[0]} заинвайлся успешно\n'
-                                                                                  f'({numbers_invite+1} инвайтов)\n\n')
-                                    numbers_invite += 1
-
-                                except Exception as e:
-                                    if re.findall(r'seconds is required (caused by InviteToChannelRequest)', str(e)) or \
-                                            str(e) == "Too many requests (caused by InviteToChannelRequest)":
-                                        await bot_aiogram.send_message(message.chat.id, str(e))
-                                        print(str(e))
-                                        break
-                                    else:
-                                        if msg:
-                                            await msg.delete()
-                                            msg = None
-# -----------------------------------------------------try---------------------------------------------------------------
-                                        try:
-                                            # await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: Для пользователя id={user[0]}\n{str(e)}', parse_mode='html')
-                                            self.participants_dict['status'].append(str(e))
-                                            print(f'{channel_short_name}: Для пользователя id={user[0]}\n{str(e)}\n\n')
-                                        except Exception:
-                                            print('exception: #861')
-                                            # await bot_aiogram.send_message(message.chat.id, "exception: #861")
-# ----------------------------------------------------end---------------------------------------------------------------
-                                        numbers_failure += 1
-                                        msg = None
-# ----------------------------------------------------end---------------------------------------------------------------
-                                print('---------------------------------------------')
-                                n += 1
-                                await asyncio.sleep(random.randrange(50, 70))
-                                if n >=198:
-                                    if msg:
-                                        await msg.delete()
-                                        msg = None
-                                    msg = await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: инвайт продолжится через 24 часа из-за ограничений Телеграм.\nНе завершайте сессию с ботом.\n'
-                                                                                  f'Пока запущено ожидание по каналу {channel_short_name}, Вы можете отправить еще один файл (с другим названием) для инвайта в <b>ДРУГОЙ канал</b>', parse_mode='html')
-                                    await asyncio.sleep(60*24+15)
-                                    n=0
-
-                            current_step += 1
-                            await sp.show_the_progress(msg_2, current_step, length)
-
-                        if len(self.participants_dict['status'])<len(self.participants_dict):
-                            difference_between = len(self.participants_dict) - len(self.participants_dict['status'])
-                            for i in range(0, difference_between):
-                                self.participants_dict['status'].append('-')
-
-                        df = pd.DataFrame(
-                            {
-                                'id_participant': self.participants_dict['id_participant'],
-                                'access_hash': self.participants_dict['access_hash'],
-                                'username': self.participants_dict['user'],
-                                'status': self.participants_dict['status'],
-                            }
-                        )
-                        df.to_excel(f'./excel/invite_report.xlsx', sheet_name='Sheet1')
-                        print('got it')
-                        await send_file_to_user(message, f'./excel/invite_report.xlsx')
-        # ---------------------------- end отправлять по одному инвайту---------------------------------
-
-                        if msg:
-                            await msg.delete()
-                            msg = None
-                        await bot_aiogram.send_message(message.chat.id,
-                                           f'<b>{channel_short_name}</b>: {numbers_invite} пользователей заинвайтились, проверьте в канале\n'
-                                           f'{numbers_failure} не заинватились в канал\n'
-                                           f'{was_subscribe} были уже подписаны на канал', parse_mode='html')
-                        print(f'886: {channel_short_name}: {numbers_invite} пользователей заинвайтились, проверьте в канале\n'
-                                           f'{numbers_failure} не заинватились в канал\n'
-                                           f'{was_subscribe} были уже подписаны на канал')
-                        all_participant = []
-                        marker = False
-                        os.remove(f'{file_name}')
-                    except Exception as e:
-                        if msg:
-                            await msg.delete()
-                            msg = None
-                        # await bot_aiogram.send_message(message.chat.id, f'bottom: #897: {e}')
-                        print(f'bottom: #897: {e}')
-
-                #pass
+                # await invite_set_users(
+                #     message=message,
+                #     channel=message.text,
+                #     all_participant=all_participant
+                # )
+#
 
             else:
                 if message.text == 'Get participants':
 
-                    logs.write_log(f"invite_bot_2: content_types: Get participants")
+                    if message.text == 'Get participants':
 
-                    await bot_aiogram.send_message(
-                        message.chat.id,
-                        'it is parsing subscribers...',
-                        parse_mode='HTML')
-                    await main(client, bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id},
-                               action='get_participants')
+                        if message.from_user.id in self.white_admin_list:
+                            logs.write_log(f"invite_bot_2: content_types: Get participants")
+
+                            await bot_aiogram.send_message(
+                                message.chat.id,
+                                'it is parsing subscribers...',
+                                parse_mode='HTML')
+                            await main(client, bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id},
+                                       action='get_participants')
+                        else:
+                            await bot_aiogram.send_message(message.chat.id,
+                                                           '🚀 Sorry, this options available only for admin')
 
                 if message.text == 'Get news from channels':
 
                     logs.write_log(f"invite_bot_2: content_types: Get news from channels")
 
-                    # if not client.is_connected():  # run client if it was working in invite
-                    #     client.start()
-
 # ----------------- make the current session and write it in DB ----------------------
                     self.current_session = datetime.now().strftime("%Y%m%d%H%M%S")
                     DataBaseOperations(None).write_current_session(self.current_session)
-                    await bot_aiogram.send_message(message.chat.id, f'Current scraping session {self.current_session}')
+                    await bot_aiogram.send_message(message.chat.id, f'Current session is {self.current_session}')
                     await asyncio.sleep(1)
                     self.start_time_scraping_channels = datetime.now()
                     print('time_start = ', self.start_time_scraping_channels)
@@ -999,20 +995,20 @@ class InviteBot:
         # -----------------------parsing telegram channels -------------------------------------
                     await bot_aiogram.send_message(
                         message.chat.id,
-                        'Парсит телеграм каналы...',
+                        'Bot is parsing the telegram channels...',
                         parse_mode='HTML')
                     await main(client, bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id})  # run parser tg channels and write to profession's tables
                     await bot_aiogram.send_message(
                         message.chat.id,
-                        '...прошло успешно, записано в базу',
+                        '...it has been successfully',
                         parse_mode='HTML')
                     await asyncio.sleep(2)
 
         # ---------------------- parsing the sites. List of them will grow ------------------------
-                    await bot_aiogram.send_message(message.chat.id, 'Парсятся сайты...')
+                    await bot_aiogram.send_message(message.chat.id, 'Bot is parsing the sites...')
                     psites = ParseSites(client=client, bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id})
                     await psites.call_sites()
-                    await bot_aiogram.send_message(message.chat.id, '...прошло успешно, записано в базу. Можно выгрузить кнопкой <b>Digest</b>', parse_mode='html')
+                    await bot_aiogram.send_message(message.chat.id, '...it has been successfully. Press <b>Digest</b> for the next step', parse_mode='html')
 
 
                 #----------------------- Listening channels at last --------------------------------------
@@ -1073,13 +1069,18 @@ class InviteBot:
                     #                                                 callback_data='send_digest_full_all')
                     # but_separate_channel = InlineKeyboardButton('Залить в 1 канал',
                     #                                             callback_data='choose_one_channel')
-                    but_do_by_admin = InlineKeyboardButton('Go by admin',
+                    but_do_by_admin = InlineKeyboardButton('ADMIN AREA👀✈️',
                                                                 callback_data='go_by_admin')
                     but_stat_today = InlineKeyboardButton('One day statistics', callback_data='one_day_statistics')
+                    but_excel_all_statistics = InlineKeyboardButton('STATISTICS consolidated table (Excel)', callback_data='consolidated_table')
+                    but_hard_push = InlineKeyboardButton('HARD PUSH 🧨🧨🧨', callback_data='hard_push')
+
                     # self.markup.row(but_show, but_send_digest_full)
                     # self.markup.row(but_send_digest_full_all, but_separate_channel)
                     self.markup.add(but_show)
                     self.markup.add(but_stat_today)
+                    self.markup.add(but_excel_all_statistics)
+                    self.markup.add(but_hard_push)
                     self.markup.add(but_do_by_admin)
 
                     time_start = await get_time_start()
@@ -1118,13 +1119,13 @@ class InviteBot:
         @dp.message_handler(content_types=['document'])
         async def download_doc(message: types.Message):
 
-            global all_participant, marker, file_name
+            global all_participant, file_name
 
             logs.write_log(f"invite_bot_2: function: content_type['document']")
 
             if client.is_connected():
 
-                all_participant = []
+                self.all_participant = []
                 excel_data_df = None
 
                 document_id = message.document.file_id
@@ -1138,38 +1139,315 @@ class InviteBot:
                 except Exception as e:
                     await bot_aiogram.send_message(message.chat.id, f'{e}')
 
-                if 'id_participant' in excel_data_df.columns and 'access_hash' in excel_data_df.columns:
+                if 'id_participant' in excel_data_df.columns and 'access_hash' and 'status' in excel_data_df.columns:
 
                     excel_dict = {
                         'id_participant': excel_data_df['id_participant'].tolist(),
                         'access_hash': excel_data_df['access_hash'].tolist(),
                         'user': excel_data_df['username'].tolist(),
+                        'status': excel_data_df['status'].tolist()
                     }
                     print(excel_dict)
                     self.participants_dict = excel_dict
                     n = 0
                     while n<len(excel_dict['id_participant']):
-                        all_participant.append([int(excel_dict['id_participant'][n]), int(excel_dict['access_hash'][n]), excel_dict['user'][n]])
+                        self.all_participant.append([int(excel_dict['id_participant'][n]), int(excel_dict['access_hash'][n]), excel_dict['user'][n], excel_dict['status'][n]])
                         n += 1
 
-                    for iii in all_participant:
+                    for iii in self.all_participant:
                         for jjj in iii:
                             print(jjj, type(jjj))
 
-                    print('all_participant = ', all_participant)
+                    print('all_participant = ', self.all_participant)
 
                     await bot_aiogram.send_message(
                         message.chat.id,
-                        f'Получен файл с {len(all_participant)} пользователями\n'
+                        f'Получен файл с {len(self.all_participant)} пользователями\n'
                         f'Введите url канала в формате https//t.me/<имя канала> без @:\n'
                     )
 
-                    marker = True
+                    self.marker = True
                 else:
                     await bot_aiogram.send_message(message.chat.id, 'В файле нет id_participant или access_hash')
 
             else:
                 await bot_aiogram.send_message(message.chat.id, 'Для авторизации нажмите /start')
+
+
+        async def invite_users(message, channel):
+            logs.write_log(f"invite_bot_2: invite_users: if marker")
+            msg = None
+            channel_short_name = f"@{channel.split('/')[-1]}"
+            # channel = message.text
+
+        # receiving the channel entity
+            try:
+                channel = await client.get_entity(channel)
+                channel_to_send = InputChannel(channel.id, channel.access_hash)  # был InputPeerChannel
+            except Exception as e:
+                # await bot_aiogram.send_message(message.chat.id, f'{e}\nУкажате канал в формате https//t.me/<имя канала> (без @)\n'
+                #                                         f'Обратите внимание на то, что <b>и Вы и этот бот</b> в этом канале должны быть <b>администраторами</b>', parse_mode='html')
+                await bot_aiogram.send_message(message.chat.id, 'Это сообщение вместо того, по которому была ошибка')
+                return False
+
+        #
+            try:
+                await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: Инвайт запущен',
+                                               parse_mode='html')
+                n = 0
+                numbers_invite = 0
+                numbers_failure = 0
+                was_subscribe = 0
+
+                self.participants_dict['status'] = []
+                # ---------------------------- отправлять по одному инвайту---------------------------------
+
+                print(f'\nLEN ALL_PARTICIPANTS IS {len(self.all_participant)}\n')
+
+                sp = ShowProgress({'bot': bot_aiogram, 'chat_id': message.chat.id})
+                current_step = 0
+                length = len(self.all_participant)
+                msg_2 = await bot_aiogram.send_message(message.chat.id, 'process 0%')
+
+                for user in self.all_participant:
+                    index = self.all_participant.index(user)
+
+                    text = f"id:  {user[0]} hash {user[1]} username {user[2]} status {user[3]}\n"
+                    await add_log_inviter(text)
+
+                    print('id: ', user[0], 'hash', user[1], 'username', user[2], 'status', user[3])
+                    id_user = int(user[0])
+                    access_hash_user = int(user[1])
+                    username = user[2]
+                    status = user[3]
+
+                    # -----------------------------------------------------try---------------------------------------------------------------
+                    try:
+                        user_channel_status = await bot_aiogram.get_chat_member(chat_id=channel_short_name,
+                                                                                user_id=id_user)
+                        if user_channel_status.status != types.ChatMemberStatus.LEFT:
+                            if msg:
+                                await msg.delete()
+                                msg = None
+                            # msg = await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: пользователь с id={id_user} уже подписан', parse_mode='html')
+                            print('Пользователь уже подписан')
+                            text = f"Пользователь уже подписан\n"
+                            await add_log_inviter(text)
+                            self.all_participant[index][-1] = 'user already subscribed'
+
+                            # self.participants_dict['status'].append('уже подписан')
+                            was_subscribe += 1
+                            user_exists = True
+                        else:
+                            print('Пользователь новый')
+                            text = f"Пользователь новый\n"
+                            await add_log_inviter(text)
+
+                            user_exists = False
+
+                    except Exception as e:
+                        print('Пользователь новый')
+                        text = f"Пользователь новый\n"
+                        await add_log_inviter(text)
+
+                        user_exists = False
+                        if msg:
+                            await msg.delete()
+                            msg = None
+                        # await bot_aiogram.send_message(message.chat.id, f"813: {str(e)}")
+                        print(f"#813: if username != None {str(e)}")
+                        text = f"#813: if username != None {str(e)}\n"
+                        await add_log_inviter(text)
+
+                    # ----------------------------------------------------end---------------------------------------------------------------
+                    if not user_exists and status.lower() == 'new':
+                        if username != 'None':
+                            # -----------------------------------------------------try---------------------------------------------------------------
+                            try:
+                                user_to_send = [await client.get_input_entity(username)]
+                            except Exception as e:
+                                try:
+                                    await asyncio.sleep(5)
+                                    user_to_send = [await client.get_entity(username)]
+                                except Exception as e:
+                                    try:
+                                        user_to_send = [InputUser(id_user, access_hash_user)]
+                                    except Exception as e:
+                                        # await bot_aiogram.send_message(message.chat.id, f"#824: if username != None {str(e)}")
+                                        print(f"#824: if username != None {str(e)}")
+                                        text = f"#824: if username != None {str(e)}\n"
+                                        await add_log_inviter(text)
+
+                        # ----------------------------------------------------end---------------------------------------------------------------
+                        else:
+                            # -----------------------------------------------------try---------------------------------------------------------------
+                            try:
+                                user_to_send = [InputUser(id_user, access_hash_user)]  # (PeerUser(id_user))
+                            except Exception as e:
+                                # await bot_aiogram.send_message(message.chat.id, f"#831: if username = None {str(e)}")
+                                print(f"#831: if username = None {str(e)}")
+                                text = f"#831: if username = None {str(e)}\n"
+                                await add_log_inviter(text)
+
+                        # ----------------------------------------------------end---------------------------------------------------------------
+                        # -----------------------------------------------------try---------------------------------------------------------------
+                        if msg:
+                            await msg.delete()
+                            msg = None
+                        try:
+                            # client.invoke(InviteToChannelRequest(channel_to_send,  [user_to_send]))
+                            # await client(InviteToChannelRequest(channel_to_send, user_to_send))  #work!!!!!
+                            await client(functions.channels.InviteToChannelRequest(channel_to_send, user_to_send))
+                            # self.participants_dict['status'].append('инвайт прошел')
+                            self.all_participant[index][-1] = 'invite +'
+
+
+                            msg = await bot_aiogram.send_message(message.chat.id,
+                                                                 f'<b>{channel_short_name}:</b> {user[0]} заинвайлся успешно\n'
+                                                                 f'({numbers_invite + 1} инвайтов)',
+                                                                 parse_mode='html')
+                            print(f'{channel_short_name}: {user[0]} заинвайлся успешно\n'
+                                  f'({numbers_invite + 1} инвайтов)\n\n')
+                            text = f"{channel_short_name}: {user[0]} заинвайлся успешно\n({numbers_invite + 1} инвайтов)\n\n\n"
+                            await add_log_inviter(text)
+                            await asyncio.sleep(random.randrange(15, 20))
+
+                            numbers_invite += 1
+
+                        except Exception as e:
+                            if re.findall(r'seconds is required (caused by InviteToChannelRequest)', str(e)) or \
+                                    str(e) == "Too many requests (caused by InviteToChannelRequest)" or re.findall(
+                                r'seconds is required', str(e)) or 'maximum number of users has been exceeded' in str(e):
+                                await bot_aiogram.send_message(message.chat.id, str(e))
+                                print(str(e))
+                                break
+                            else:
+                                if msg:
+                                    await msg.delete()
+                                    msg = None
+                                # -----------------------------------------------------try---------------------------------------------------------------
+                                try:
+                                    # await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: Для пользователя id={user[0]}\n{str(e)}', parse_mode='html')
+                                    # self.participants_dict['status'].append(str(e))
+                                    self.all_participant[index][-1] = str(e)
+
+                                    print(f'{channel_short_name}: Для пользователя id={user[0]}\n{str(e)}\n\n')
+                                    text = f"{channel_short_name}: Для пользователя id={user[0]}\n{str(e)}\n\n\n"
+                                    await add_log_inviter(text)
+
+                                except Exception:
+                                    print('exception: #861')
+                                    # await bot_aiogram.send_message(message.chat.id, "exception: #861")
+                                # ----------------------------------------------------end---------------------------------------------------------------
+                                numbers_failure += 1
+                                msg = None
+                        # ----------------------------------------------------end---------------------------------------------------------------
+                        print('---------------------------------------------')
+                        text = f'{datetime.now().strftime("%d-%m %H:%M:%S")}\n'
+                        await add_log_inviter(text)
+
+                        # n += 1
+                        # if n >= 198:
+                        #     if msg:
+                        #         await msg.delete()
+                        #         msg = None
+                        #     msg = await bot_aiogram.send_message(message.chat.id,
+                        #                                          f'<b>{channel_short_name}</b>: инвайт продолжится через 24 часа из-за ограничений Телеграм.\nНе завершайте сессию с ботом.\n'
+                        #                                          f'Пока запущено ожидание по каналу {channel_short_name}, Вы можете отправить еще один файл (с другим названием) для инвайта в <b>ДРУГОЙ канал</b>',
+                        #                                          parse_mode='html')
+                        #     await asyncio.sleep(60 * 24 + 15)
+                        #     n = 0
+
+                    current_step += 1
+                    await sp.show_the_progress(msg_2, current_step, length)
+
+                id = []
+                for i in range(0, len(self.all_participant)):
+                    id.append(self.all_participant[i][0])
+
+                df = pd.DataFrame(
+                    {
+                        'id_participant': [str(self.all_participant[i][0]) for i in range(0, len(self.all_participant))],
+                        'access_hash': [str(self.all_participant[i][1]) for i in range(0, len(self.all_participant))],
+                        'username': [self.all_participant[i][2] for i in range(0, len(self.all_participant))],
+                        'status': [self.all_participant[i][3] for i in range(0, len(self.all_participant))],
+                    }
+                )
+                try:
+                    df.to_excel(f'./excel/invite_report.xlsx', sheet_name='Sheet1')
+                    print('got it')
+                    await send_file_to_user(message, f'./excel/invite_report.xlsx')
+                except Exception as e:
+                    await bot_aiogram.send_message(message.chat.id, f"Something is wrong: {str(e)}")
+                    print(f"Something is wrong: {str(e)}")
+                # ---------------------------- end отправлять по одному инвайту---------------------------------
+
+                if msg:
+                    await msg.delete()
+                    msg = None
+                await bot_aiogram.send_message(message.chat.id,
+                                               f'<b>{channel_short_name}</b>: {numbers_invite} пользователей заинвайтились, проверьте в канале\n'
+                                               f'{numbers_failure} не заинватились в канал\n'
+                                               f'{was_subscribe} были уже подписаны на канал', parse_mode='html')
+                print(
+                    f'886: {channel_short_name}: {numbers_invite} пользователей заинвайтились, проверьте в канале\n'
+                    f'{numbers_failure} не заинватились в канал\n'
+                    f'{was_subscribe} были уже подписаны на канал')
+                self.all_participant = []
+                self.marker = False
+                os.remove(f'{file_name}')
+            except Exception as e:
+                if msg:
+                    await msg.delete()
+                    msg = None
+                # await bot_aiogram.send_message(message.chat.id, f'bottom: #897: {e}')
+                print(f'bottom: #897: {e}')
+
+                await send_file_to_user(message, 'inviter_log.txt')
+
+        async def invite_set_users(message, channel):
+            logs.write_log(f"invite_bot_2: invite_set_users")
+            msg = None
+            channel_short_name = f"@{channel.split('/')[-1]}"
+
+            # receiving the channel entity
+            try:
+                channel = await client.get_entity(channel)
+                channel_to_send = InputChannel(channel.id, channel.access_hash)  # был InputPeerChannel
+            except Exception as e:
+                # await bot_aiogram.send_message(message.chat.id, f'{e}\nУкажате канал в формате https//t.me/<имя канала> (без @)\n'
+                #                                         f'Обратите внимание на то, что <b>и Вы и этот бот</b> в этом канале должны быть <b>администраторами</b>', parse_mode='html')
+                await bot_aiogram.send_message(message.chat.id, 'Это сообщение вместо того, по которому была ошибка')
+                return False
+
+            #
+            await bot_aiogram.send_message(message.chat.id, f'<b>{channel_short_name}</b>: Инвайт запущен',
+                                           parse_mode='html')
+
+            while len(self.all_participant) > 0:
+                if len(self.all_participant) > 50:
+                    part_of_all_participant = self.all_participant
+                    self.all_participant = self.all_participant[50:]
+                else:
+                    part_of_all_participant = self.all_participant
+                    self.all_participant = []
+                user_to_send = []
+                for i in range(0, len(part_of_all_participant)):
+                    user_to_send.append(InputUser(part_of_all_participant[i][0], part_of_all_participant[i][1]))
+
+                try:
+                    response_from_invite = await client(functions.channels.InviteToChannelRequest(channel_to_send, user_to_send))
+                    print('!!!!!!!!!!!!!!! success!\n', response_from_invite)
+                except Exception as e:
+                    print('No invite: ', e)
+
+                if len(self.all_participant)>0:
+                    await bot_aiogram.send_message(message.chat.id, 'set has done')
+                    await asyncio.sleep(15, 25)
+
+            await bot_aiogram.send_message(message.chat.id, 'inviting has done, check please inside you channel')
+
+
 
         async def check_customer(message, id_customer):
 
@@ -1239,6 +1517,115 @@ class InviteBot:
         #         r = cur.fetchall()
         #         print(r)
         #     return r
+
+        async def hard_post(message, channels=None):
+            statistics = {}
+            progress = ShowProgress({'bot': bot_aiogram, 'chat_id': message.chat.id})
+            try:
+                await bot_aiogram.send_document(message.chat.id, "https://media.tenor.com/YIRu8WJDr6cAAAAC/dog-dogs.gif")
+            except Exception as e:
+                print("didn't push gif")
+
+
+            if not channels:
+                channels = self.valid_profession_list
+            if type(channels) is str:
+                channels = [channels]
+            for profession in channels:
+                statistics[profession] = 0
+                # choose from db regarding profession
+                response = self.db.get_all_from_db(
+                    table_name='admin_last_session',
+                    param = f"WHERE profession LIKE '%{profession}' OR profession LIKE '%{profession},%'"
+                )
+                if response:
+                    await bot_aiogram.send_message(message.chat.id, f"Profession {profession} on work")
+                    self.last_id_message_agregator = await get_last_admin_channel_id(
+                        message=message,
+                        channel=config['My_channels']['agregator_channel']
+                    )
+                    message_for_send = f'<i>Функционал дайджеста находится в состоянии альфа-тестирования, приносим свои ' \
+                                       f'извинения, мы работаем над тем чтобы вы получали информацию максимально ' \
+                                       f'качественную и в сжатые сроки</i>\n\n' \
+                                       f'<b>Дайджест вакансий для {profession} за {datetime.now().strftime("%d.%m.%Y")}:</b>\n\n'
+
+                    length = len(response)
+                    n = 0
+                    self.quantity_entered_to_shorts = 0
+                    progress_message = await bot_aiogram.send_message(message.chat.id, "progress 0%")
+                    await progress.reset_percent()
+                    for vacancy in response:
+
+                        id_admin_last_session_table = vacancy[0]
+
+                        # to compose the vacancy message for sending to agregator
+                        composed_message = await compose_message(vacancy, one_profession=profession, full=True)
+                        composed_message['message'] = composed_message['composed_message']
+                        pass
+
+                        # push to the admin channel
+                        await push_vacancies_to_agregator_from_admin(
+                            message=message,
+                            vacancy=composed_message,
+                            vacancy_from_admin=[vacancy],
+                            response=[vacancy],
+                            profession=profession,
+                            id_admin_last_session_table=id_admin_last_session_table,
+                            from_admin_temporary=False
+                        )
+                        pass
+                        # add to shorts
+                        response = self.db.get_all_from_db(
+                            table_name='admin_last_session',
+                            param=f"WHERE id={id_admin_last_session_table}"
+                        ) # for to refresh vacancy regarding agregator id if it has written
+                        vacancy = response[0]
+                        composed_message = await compose_message(vacancy, profession, full=False)
+                        message_for_send += f"{composed_message['composed_message']}\n"
+                        statistics[profession] += 1
+                        self.quantity_entered_to_shorts += 1
+
+                        await compose_data_and_push_to_db(
+                            vacancy_from_admin=[vacancy],
+                            profession=profession
+                        )
+                        prof_list = vacancy[4].split(',')
+
+                        # change field profession on DB or delete
+                        await update_vacancy_admin_last_session(
+                            results_dict=None,
+                            profession=profession,
+                            prof_list=prof_list,
+                            id_admin_last_session_table=id_admin_last_session_table,
+                            update_profession=True,
+                            update_id_agregator=False
+                        )
+                        n += 1
+                        progress_message = await progress.show_the_progress(progress_message, n, length)
+
+                    vacancies_list = await cut_message_for_send(message_for_send)
+                    for short in vacancies_list:
+                        try:
+                            await write_to_logs_error(f"Results:\n{short}\n")
+                            # push shorts
+                            await bot_aiogram.send_message(config['My_channels'][f'{profession}_channel'], short, parse_mode='html',
+                                                           disable_web_page_preview=True)
+
+                        except Exception as e:
+                            await bot_aiogram.send_message(config['My_channels']['temporary_channel'], f'It did not send to {profession}. Please, do it manually', parse_mode='html')
+                            await bot_aiogram.send_message(config['My_channels']['temporary_channel'], short, parse_mode='html',
+                                                           disable_web_page_preview=True)
+                else:
+                    pass
+            await bot_aiogram.send_message(message.chat.id, "The HARD pushing has done")
+            statistics_message = 'The hard pushing statistics:\n\n'
+            for profession in statistics:
+                statistics_message += f"{profession}: {statistics[profession]}\n"
+            await bot_aiogram.send_message(message.chat.id, statistics_message)
+            try:
+                await bot_aiogram.send_document(message.chat.id, "https://media.tenor.com/50IjyLmv8mQAAAAd/will-smith-clap.gif")
+            except Exception as e:
+                print("didn't push gif")
 
         def db_connect():
 
@@ -1341,7 +1728,7 @@ class InviteBot:
             for channel in ['backend', 'designer', 'frontend', 'devops', 'pm', 'analyst', 'mobile',
                             'qa', 'hr', 'game', 'ba', 'marketing', 'junior', 'sales_manager', 'no_sort',
                             'agregator']:
-                marker = False
+                self.marker = False
                 channel_name = channel
                 channel = config['My_channels'][f'{channel}_channel']
 
@@ -1354,17 +1741,17 @@ class InviteBot:
                 # channel = channel[4:]
                 try:
                     channel = await client.get_input_entity(int(channel))
-                    marker = True
+                    self.marker = True
                 except:
                     try:
                         channel = channel[4:]
                         channel = await client.get_input_entity(int(channel))
-                        marker = True
+                        self.marker = True
                     except Exception as e:
                         await bot_aiogram.send_message(message.chat.id, f'The error with channel {channel}: {str(e)}')
                         time.sleep(random.randrange(3, 6))
 
-                if marker:
+                if self.marker:
                     participants = await client(GetParticipantsRequest(
                         channel, filter_user, offset_user, limit_user, hash=0))
 
@@ -1524,10 +1911,12 @@ class InviteBot:
             button_frontend = InlineKeyboardButton('frontend', callback_data=f'{prefix}/frontend')
             button_qa = InlineKeyboardButton('qa', callback_data=f'{prefix}/qa')
             button_junior = InlineKeyboardButton('junior', callback_data=f'{prefix}/junior')
+            button_analyst = InlineKeyboardButton('analyst', callback_data=f'{prefix}/analyst')
+
             markup.row(button_marketing, button_ba, button_game, button_product)
             markup.row(button_mobile, button_pm, button_sales_manager, button_designer)
             markup.row(button_devops, button_hr, button_backend, button_frontend)
-            markup.row(button_qa, button_junior)
+            markup.row(button_qa, button_junior, button_analyst)
             return markup
 
         async def compose_message(message, one_profession, full=False):
@@ -1559,7 +1948,7 @@ class InviteBot:
                 results_dict['company'] = message[7] #+
                 results_dict['english'] = message[8] #+
                 results_dict['relocation'] = message[9] #+
-                results_dict['job_type'] = re.sub(r'\<[A-Za-z\/=\"\-\>\s\._\<]{1,}\>', " ", message[10]) #+
+                results_dict['job_type'] = re.sub(r'\<[a-zA-Z\s\.\-\'"=!\<_\/]+\>', " ", message[10]) #+
                 results_dict['city'] = message[11] #+
                 results_dict['salary'] = message[12] #full
                 results_dict['experience'] = message[13] #full
@@ -1579,11 +1968,21 @@ class InviteBot:
                 # message_for_send = f'Вакансия {one_profession.title()}\n'
                 message_for_send = ''
                 if results_dict['vacancy']:
-                    message_for_send += f"<b>Вакансия: {results_dict['vacancy']}</b>\n"
+                    if not full:
+                        message_for_send += f"<a href=\"{config['My_channels']['agregator_link']}/{sended_to_agregator}\"><b>Вакансия: {results_dict['vacancy']}</b>\n</a>"
+                    else:
+                        message_for_send += f"<b>Вакансия: {results_dict['vacancy']}</b>\n"
                 elif params['vacancy']:
-                    message_for_send += f"<b>Вакансия: {params['vacancy']}</b>\n"
+                    if not full:
+                        message_for_send += f"<a href=\"{config['My_channels']['agregator_link']}/{sended_to_agregator}\"><b>Вакансия: {params['vacancy']}</b>\n</a>"
+                    else:
+                        message_for_send += f"<b>Вакансия: {params['vacancy']}</b>\n"
                 else:
-                    message_for_send += f"<b>Вакансия: #{random.randrange(100, 5000)}</b>\n"
+                    if not full:
+                        message_for_send += f"<a href=\"{config['My_channels']['agregator_link']}/{sended_to_agregator}\"><b>Вакансия: #{random.randrange(100, 5000)}</b>\n</a>"
+                    else:
+                        message_for_send += f"<b>Вакансия: #{random.randrange(100, 5000)}</b>\n"
+
 
                 if results_dict['company']:
                     message_for_send += f"Компания: {results_dict['company']}\n"
@@ -1608,12 +2007,12 @@ class InviteBot:
                 elif params['relocation']:
                     message_for_send += f"Релокация: {params['relocation']}\n"
 
-                if not full:
-                    if sended_to_agregator and sended_to_agregator != "None":
-                        # message_for_send += f"{config['My_channels']['agregator_link']}/{sended_to_agregator}\n"
-                        message_for_send += f"<a href=\"{config['My_channels']['agregator_link']}/{sended_to_agregator}\">Подробнее</a>"
-                        # message_for_send += hlink(title="Подробнее", url=f"{config['My_channels']['agregator_link']}/{sended_to_agregator}")
-                        message_for_send += '\n'
+                # if not full:
+                #     if sended_to_agregator and sended_to_agregator != "None":
+                #         message_for_send += f"{config['My_channels']['agregator_link']}/{sended_to_agregator}\n"
+                #         message_for_send += f"<a href=\"{config['My_channels']['agregator_link']}/{sended_to_agregator}\">Подробнее</a>"
+                #         # message_for_send += hlink(title="Подробнее", url=f"{config['My_channels']['agregator_link']}/{sended_to_agregator}")
+                #         message_for_send += '\n'
 
                 if not message_for_send:
                     message_for_send = 'The vacancy not found\n\n'
@@ -1670,50 +2069,111 @@ class InviteBot:
 
             return last_admin_channel_id
 
-        async def get_tg_history_messages(message, channel=config['My_channels']['admin_channel'], limit_msg=100):
-            logs.write_log(f"scraping_telethon2: function: get_admin_history_messages")
+        async def get_tg_history_messages(
+                message,
+                channel=config['My_channels']['admin_channel'],
+                limit_msg=None):
 
-            print('get_admin_history_messages')
+            peer = await client.get_entity(int(channel))
+            await asyncio.sleep(2)
+            channel = PeerChannel(peer.id)
+            if not limit_msg:
+                limit_msg = 3000
+            logs.write_log(f"scraping_telethon2: function: dump_all_messages")
+
+            print('dump')
+            self.count_message_in_one_channel = 1
+            block = False
             offset_msg = 0  # номер записи, с которой начинается считывание
             # limit_msg = 1   # максимальное число записей, передаваемых за один раз
-            # limit_msg = 100
             all_messages = []  # список всех сообщений
             total_messages = 0
             total_count_limit = limit_msg  # значение 0 = все сообщения
             history = None
 
-            peer = await client.get_entity(int(channel))
-            await asyncio.sleep(2)
-            channel = PeerChannel(peer.id)
+            while True:
+                try:
+                    history = await client(GetHistoryRequest(
+                        peer=channel,
+                        offset_id=offset_msg,
+                        offset_date=None, add_offset=0,
+                        limit=limit_msg, max_id=0, min_id=0,
+                        hash=0))
+                except Exception as e:
+                    print(f'\n***Cant get messages from admin***\n{e}\n')
+                    await bot_aiogram.send_message(message.chat.id, f'\n***Cant get messages from admin***\n{e}\n')
+                    # await self.bot_dict['bot'].send_message(
+                    #     self.bot_dict['chat_id'],
+                    #     f"Getting history:\n{str(e)}: {channel}\npause 25-30 seconds...",
+                    #     parse_mode="HTML",
+                    #     disable_web_page_preview=True)
+                    time.sleep(2)
 
-            # channel = int(config['My_channels']['admin_channel'])
-            # while True:
-            try:
-                history = await client(GetHistoryRequest(
-                    peer=channel,
-                    offset_id=offset_msg,
-                    offset_date=None, add_offset=0,
-                    limit=limit_msg, max_id=0, min_id=0,
-                    hash=0))
-            except Exception as e:
-                await bot_aiogram.send_message(
-                    message.chat.id,
-                    f"Getting history:\n{str(e)}: {channel}\npause 25-30 seconds...",
-                    parse_mode="HTML",
-                    disable_web_page_preview=True)
-                time.sleep(2)
+                if not history:
+                    print(f'Not history for channel {channel}')
+                    await bot_aiogram.send_message(message.chat.id, f'Not history for channel {channel}')
+                    break
+                messages = history.messages
+                if not messages:
+                    return all_messages
+                for message in messages:
+                    if not message.message:  # если сообщение пустое, например "Александр теперь в группе"
+                        pass
+                    else:
+                        all_messages.append(message.to_dict())
 
-            # if not history.messages:
-            if not history:
-                print(f'Not history for channel {channel}')
-                await bot_aiogram.send_message(message.chat.id, f'Not history for channel {channel}')
-                # break
-            messages = history.messages
-            for message in messages:
-                if not message.message:  # если сообщение пустое, например "Александр теперь в группе"
-                    pass
+                if not len(all_messages):
+                    return []
                 else:
-                    all_messages.append(message.to_dict())
+                    offset_msg = messages[len(messages) - 1].id
+                total_messages = len(all_messages)
+                if (total_count_limit != 0 and total_messages >= total_count_limit) or not len(all_messages):
+                    break
+                await asyncio.sleep(2)
+
+            # logs.write_log(f"scraping_telethon2: function: get_admin_history_messages")
+            #
+            # print('get_admin_history_messages')
+            # offset_msg = 0  # номер записи, с которой начинается считывание
+            # # limit_msg = 1   # максимальное число записей, передаваемых за один раз
+            # # limit_msg = 100
+            # all_messages = []  # список всех сообщений
+            # total_messages = 0
+            # total_count_limit = limit_msg  # значение 0 = все сообщения
+            # history = None
+            #
+            # peer = await client.get_entity(int(channel))
+            # await asyncio.sleep(2)
+            # channel = PeerChannel(peer.id)
+            #
+            # # channel = int(config['My_channels']['admin_channel'])
+            # # while True:
+            # try:
+            #     history = await client(GetHistoryRequest(
+            #         peer=channel,
+            #         offset_id=offset_msg,
+            #         offset_date=None, add_offset=0,
+            #         limit=limit_msg, max_id=0, min_id=0,
+            #         hash=0))
+            # except Exception as e:
+            #     await bot_aiogram.send_message(
+            #         message.chat.id,
+            #         f"Getting history:\n{str(e)}: {channel}\npause 25-30 seconds...",
+            #         parse_mode="HTML",
+            #         disable_web_page_preview=True)
+            #     time.sleep(2)
+            #
+            # # if not history.messages:
+            # if not history:
+            #     print(f'Not history for channel {channel}')
+            #     await bot_aiogram.send_message(message.chat.id, f'Not history for channel {channel}')
+            #     # break
+            # messages = history.messages
+            # for message in messages:
+            #     if not message.message:  # если сообщение пустое, например "Александр теперь в группе"
+            #         pass
+            #     else:
+            #         all_messages.append(message.to_dict())
 
             return all_messages
             # offset_msg = messages[len(messages) - 1].id
@@ -1725,16 +2185,8 @@ class InviteBot:
             # print('pause 25-35 sec.')
             # time.sleep(random.randrange(15, 20))
 
-        async def get_data(message, url_channel=None, id_channel=None):
-            if url_channel:
-                input_data=url_channel
-            elif id_channel:
-                input_data=id_channel
-            data = await client.get_entity(input_data)
-            await bot_aiogram(message.chat.id, str(data))
-
-
         async def update_vacancy_admin_last_session(
+                results_dict=None,
                 profession=None,
                 prof_list=None,
                 id_admin_last_session_table=None,
@@ -1745,6 +2197,27 @@ class InviteBot:
             if update_profession:
                 len_prof_list = len(prof_list)
                 if len_prof_list < 2:
+                    # print('ЖАРА в invite bot 2010')
+                    #
+                    # # if it is not in any tables, then write to no_sort table
+                    # get_response = DataBaseOperations(None).get_all_from_db(table_name='admin_last_session', param=f"""WHERE id={id_admin_last_session_table}""")
+                    # title = get_response[0][2]
+                    # body = get_response[0][3]
+                    # n=0
+                    # valid_profession = self.valid_profession_list
+                    # valid_profession.append('no_sort')
+                    # for i in valid_profession:
+                    #     get_response = DataBaseOperations(None).get_all_from_db(table_name=i,
+                    #                                                             param=f"""WHERE body LIKE '%{body}%' AND title LIKE '%{title}%'""")
+                    #     if get_response:
+                    #         n +=1
+                    #
+                    # if n == 0:
+                    #     print('ЖАРА в invite bot 2026')
+                    #     profession_list = {}
+                    #     profession_list['profession'] = {'no_sort',}
+                    #     DataBaseOperations(None).push_to_bd(results_dict=results_dict, profession_list=profession_list)
+                    # else:
                     DataBaseOperations(None).delete_data(
                         table_name='admin_last_session',
                         param=f"WHERE id={id_admin_last_session_table}"
@@ -1758,7 +2231,8 @@ class InviteBot:
                             new_profession += f'{i}, '
                     new_profession = new_profession[:-2].strip()
                     DataBaseOperations(None).run_free_request(
-                        request=f"UPDATE admin_last_session SET profession='{new_profession}' WHERE id={id_admin_last_session_table}"
+                        request=f"UPDATE admin_last_session SET profession='{new_profession}' WHERE id={id_admin_last_session_table}",
+                        output_text='profession has updated'
                     )
 
                 # # check the changes
@@ -1772,7 +2246,8 @@ class InviteBot:
             if update_id_agregator:
                 # 6 Mark vacancy like sended to agregator (write to column sended_to_agregator id_agregator)
                 DataBaseOperations(None).run_free_request(
-                    request=f"UPDATE admin_last_session SET sended_to_agregator='{self.last_id_message_agregator}' WHERE id={id_admin_last_session_table}"
+                    request=f"UPDATE admin_last_session SET sended_to_agregator='{self.last_id_message_agregator}' WHERE id={id_admin_last_session_table}",
+                    output_text = 'sended_to_agregator has updated'
                 )
 
                 # check the changes
@@ -1783,54 +2258,36 @@ class InviteBot:
                 )
                 print('changed id agreg = ', response_check[0][19])
 
-            await asyncio.sleep(random.randrange(1, 3))
+            # await asyncio.sleep(1)
 
-        async def compose_for_push_to_db(response, profession):
+        async def compose_data_and_push_to_db(vacancy_from_admin, profession):
             date = datetime.now()
             profession_list = {}
             profession_list['profession'] = []
-            results_dict = {
-                'chat_name': '',
-                'title': '',
-                'body': '',
-                'profession': '',
-                'vacancy': '',
-                'vacancy_url': '',
-                'company': '',
-                'english': '',
-                'relocation': '',
-                'job_type': '',
-                'city': '',
-                'salary': '',
-                'experience': '',
-                'contacts': '',
-                'time_of_public': date,
-                'created_at': '',
-                'session': ''
-            }
+            results_dict = {}
 
-            results_dict['chat_name'] = response[0][1]
-            results_dict['title'] = response[0][2]
-            results_dict['body'] = response[0][3]
-            results_dict['profession'] = response[0][4]
-            results_dict['vacancy'] = response[0][5]
-            results_dict['vacancy_url'] = response[0][6]
-            results_dict['company'] = response[0][7]
-            results_dict['english'] = response[0][8]
-            results_dict['relocation'] = response[0][9]
-            results_dict['job_type'] = response[0][10]
-            results_dict['city'] = response[0][11]
-            results_dict['salary'] = response[0][12]
-            results_dict['experience'] = response[0][13]
-            results_dict['contacts'] = response[0][14]
-            results_dict['time_of_public'] = response[0][15]
-            results_dict['created_at'] = response[0][16]
-            results_dict['agregator_link'] = response[0][17]
-            results_dict['session'] = response[0][18]
-            results_dict['sended_to_agregator'] = response[0][19]
+            profession_list['profession'] = [profession, ]
 
-            profession_list['profession'] = [profession]
-            response_from_db = DataBaseOperations(None).push_to_bd(
+            results_dict['chat_name'] = vacancy_from_admin[0][1]
+            results_dict['title'] = vacancy_from_admin[0][2]
+            results_dict['body'] = vacancy_from_admin[0][3]
+            results_dict['profession'] = vacancy_from_admin[0][4]
+            results_dict['vacancy'] = vacancy_from_admin[0][5]
+            results_dict['vacancy_url'] = vacancy_from_admin[0][6]
+            results_dict['company'] = vacancy_from_admin[0][7]
+            results_dict['english'] = vacancy_from_admin[0][8]
+            results_dict['relocation'] = vacancy_from_admin[0][9]
+            results_dict['job_type'] = vacancy_from_admin[0][10]
+            results_dict['city'] = vacancy_from_admin[0][11]
+            results_dict['salary'] = vacancy_from_admin[0][12]
+            results_dict['experience'] = vacancy_from_admin[0][13]
+            results_dict['contacts'] = vacancy_from_admin[0][14]
+            results_dict['time_of_public'] = vacancy_from_admin[0][15]
+            results_dict['created_at'] = vacancy_from_admin[0][16]
+            results_dict['agregator_link'] = vacancy_from_admin[0][17]
+            results_dict['session'] = vacancy_from_admin[0][18]
+
+            response_from_db = self.db.push_to_bd(
                 results_dict=results_dict,
                 profession_list=profession_list
             )
@@ -1848,9 +2305,9 @@ class InviteBot:
 
             if response_admin_temporary:
                 await bot_aiogram.send_message(message.chat.id, 'It clears the temporary database')
-                await asyncio.sleep(random.randrange(2, 3))
+                await asyncio.sleep(1)
                 self.message = await bot_aiogram.send_message(message.chat.id, f'progress {self.percent}%')
-                await asyncio.sleep(random.randrange(2, 3))
+                await asyncio.sleep(1)
 
             # theese vacancy we need to make profession changes
             for i in response_admin_temporary:
@@ -1863,9 +2320,10 @@ class InviteBot:
                 prof_list = response_admin_last_session[0][4].split(', ')
                 try:
                     await update_vacancy_admin_last_session(
-                        profession,
-                        prof_list,
-                        id_admin_last_session_table,
+                        results_dict=None,
+                        profession=profession,
+                        prof_list=prof_list,
+                        id_admin_last_session_table=id_admin_last_session_table,
                         update_profession=True,
                         update_id_agregator=False
                     )
@@ -1875,13 +2333,14 @@ class InviteBot:
                 await show_progress(message, n, length)
                 # -------------------end ----------------------------
 
-        async def push_vacancies_from_admin(
+        async def push_vacancies_to_agregator_from_admin(
                 message,
                 vacancy,
                 vacancy_from_admin,
                 response,
                 profession,
-                id_admin_last_session_table
+                id_admin_last_session_table,
+                from_admin_temporary=True
         ):
 
             """
@@ -1893,16 +2352,21 @@ class InviteBot:
             :param id_admin_last_session_table: last message id from agregator
             :return:
             """
+            if from_admin_temporary:
+                index=3
+            else:
+                index=19
 
             # sending to agregator channel
-            if response[0][3] == 'None' or not response[0][3]:  # response[0][3] indicates message was sended to agregator already
+            if response[0][index] == 'None' or not response[0][index]:  # response[0][3] indicates message was sended to agregator already
                 print('\npush vacancy in agregator\n')
                 print(f"\n{vacancy['message'][0:40]}")
 
                 # sending the raw message without fields vacancy city etc
                 await bot_aiogram.send_message(int(config['My_channels']['agregator_channel']), vacancy['message'],
+                                               parse_mode='html',
                                                disable_notification=True)
-                await asyncio.sleep(random.randrange(2, 3))
+                await asyncio.sleep(random.randrange(1, 2))
                 self.last_id_message_agregator += 1
 
                 # 3. writing id agregator in vacancy in admin last session because it has been sent to agregator
@@ -1913,15 +2377,16 @@ class InviteBot:
                     # 4. if one that delete vacancy from admin_last_session
                     await update_vacancy_admin_last_session(
                         id_admin_last_session_table=id_admin_last_session_table,
-                        update_id_agregator=True)
+                        update_id_agregator=True, results_dict={})
                 else:
                     await bot_aiogram.send_message(message.chat.id,
                                                    f"<b>For the developer</b>: Hey, bot didn't find this vacancy in admin_last_session",
                                                    parse_mode='html')
             else:
-                await bot_aiogram.send_message(message.chat.id, 'It has sent in agregator some time ago')
+                # await bot_aiogram.send_message(message.chat.id, 'It has sent in agregator some time ago')
+                print('It has sent in agregator some time ago')
 
-        async def delete_used_vacancy_from_tg_db(vacancy, id_admin_last_session_table):
+        async def delete_used_vacancy_from_admin_temporary(vacancy, id_admin_last_session_table):
             # ------------------- cleaning the areas for the used vacancy  -------------------
             print('\ndelete vacancy\n')
             await client.delete_messages(int(config['My_channels']['admin_channel']), vacancy['id'])
@@ -2053,6 +2518,63 @@ class InviteBot:
                     for id in ids_list:
                         DataBaseOperations(None).delete_data(table_name=i, param=f"WHERE id={id}")
                         print(f'Was deleted id={id} from {i}')
+
+        async def output_consolidated_table(message):
+            dates = []
+
+            info_dict: dict
+            info_dict = {}
+            for i in self.valid_profession_list:
+                info_dict[i] = []
+                info_dict['date'] = []
+            db = DataBaseOperations(con)
+            date_now = datetime.now()
+            start_data = datetime(2022, 9, 15, 0, 0, 0, 0)
+            delta = int(str(date_now - start_data).split(' ', 1)[0])
+            for date_offset in range(0, delta):
+                date = date_now-timedelta(days=date_offset)
+                print(date)
+                date = date.strftime('%Y-%m-%d')
+                info_dict['date'].append(date)
+                for table in self.valid_profession_list:
+                    response = db.get_all_from_db(
+                        table_name=table,
+                        param=f"""WHERE DATE(created_at)='{date}'"""
+                    )
+                    info_dict[table].append(len(response))
+            # compose table
+            df = pd.DataFrame({
+                'date': info_dict['date'],
+                'marketing': info_dict['marketing'],
+                'backend': info_dict['backend'],
+                'ba': info_dict['ba'],
+                'game': info_dict['game'],
+                'product': info_dict['product'],
+                'mobile': info_dict['mobile'],
+                'pm': info_dict['pm'],
+                'sales_manager': info_dict['sales_manager'],
+                'analyst': info_dict['analyst'],
+                'frontend': info_dict['frontend'],
+                'designer': info_dict['designer'],
+                'devops': info_dict['devops'],
+                'hr': info_dict['hr'],
+                'qa': info_dict['qa'],
+                'junior': info_dict['junior']
+            })
+            path = f'./excel/consolidated_table.xlsx'
+            df.to_excel(path, sheet_name='Sheet1')
+            print('got it')
+            await send_file_to_user(message, path)
+
+            print(info_dict)
+
+        async def add_log_inviter(text):
+            with open('inviter_log.txt', 'a+') as file:
+                file.write(text)
+
+        async def print_log(text):
+            print(f"{datetime.now().strftime('%H:%M:%S')}:\n{text}")
+
         executor.start_polling(dp, skip_updates=True)
 
 InviteBot().main_invitebot()
