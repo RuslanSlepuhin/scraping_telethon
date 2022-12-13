@@ -82,65 +82,21 @@ class HHGetInformation:
         link = 'https://hh.ru/search/vacancy?no_magic=true&L_save_area=true&text=&excluded_text=&salary=&currency_code=RUR&experience=doesNotMatter&schedule=remote&order_by=relevance&search_period=1&items_on_page=200&page=39&hhtmFrom=vacancy_search_list'
         response_dict = await self.get_info(link)
 
-        # return response_dict
-
-    # async def get_info(self, link):
-    #
-    #     self.browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=self.options)
-    #     for word in self.search_words:
-    #
-    #         self.current_message = await self.bot.send_message(self.chat_id, f'Поиск вакансий по слову {word}...')
-    #         self.browser.get('http://hh.ru')
-    #         time.sleep(1)
-    #
-    #         holder = self.browser.find_element(By.XPATH, "/html/body/div[4]/div/div[3]/div[1]/div[1]/div/div/div[2]/div/form/div/div[1]/fieldset/input")
-    #         holder.send_keys(word)
-    #         time.sleep(1)
-    #         button_find = self.browser.find_element(By.XPATH, "/html/body/div[4]/div/div[3]/div[1]/div[1]/div/div/div[2]/div/form/div/div[2]/button")
-    #         button_find.click()
-    #
-    #         self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-    #         time.sleep(1)
-    #         await self.get_link_message(self.browser.page_source, word)
-    #
-    #     self.browser.quit()
-    #     # return self.to_write_excel_dict
-
     async def get_info(self, link):
 
         self.browser = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=self.options)
         for word in self.search_words:
 
-            # self.current_message = await self.bot.send_message(self.chat_id, f'Поиск вакансий по слову {word}...')
-            # self.browser.get('http://hh.ru')
             link = f'https://hh.ru/search/vacancy?text={word}&from=suggest_post&salary=&schedule=remote&no_magic=true&ored_clusters=true&enable_snippets=true&search_period=1&excluded_text='
             print('page link: ', link)
             self.browser.get(link)
-            # holder = self.browser.find_element(By.CSS_SELECTOR, "input[type=text]")
-            # holder.send_keys(word)
-            # banner = ''
-            # banner = self.browser.find_element(By.XPATH, "/html/body/div[8]/div/div/div/div[2]/div[1]/div")
-            # dispayed = banner.is_displayed()
-            # if banner.is_displayed():
-            #     close = self.browser.find_element(By.CSS_SELECTOR, "body > div.Bloko-Notification-Manager.notification-manager > div > div > div > div.bloko-notification__body > div.bloko-notification__close > svg > path")
-            #     close.click()
-            # button_find = self.browser.find_element(By.CSS_SELECTOR, "button[type=submit]")
-            # button_find.click()
 
             last_number = self.browser.find_element(By.XPATH, "/html/body/div[5]/div/div[3]/div[1]/div/div[3]/div[2]/div[2]/div/div[5]/div")
             self.last_number = last_number.size['height']
 
-            # self.current_message = await self.bot.edit_message_text(
-            #     f'{self.current_message.text}\nНайдено {self.last_number} страниц',
-            #     self.current_message.chat.id,
-            #     self.current_message.message_id,
-            #     parse_mode='html'
-            # )
-
             self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
             await self.get_link_message(self.browser.page_source, word)
 
-            # for self.page_number in range(1, self.last_number-1):
             if self.last_number<=13:
                 till = self.last_number
             else:
@@ -148,19 +104,12 @@ class HHGetInformation:
             for self.page_number in range(1, till):
 
                 self.browser.get(f'https://hh.ru/search/vacancy?text={word}&from=suggest_post&salary=&schedule=remote&no_magic=true&ored_clusters=true&enable_snippets=true&search_period=1&excluded_text=&page={self.page_number}&hhtmFrom=vacancy_search_list')
-                # next_page = self.browser.find_element(By.CSS_SELECTOR, "a[class=bloko-button]")
-                # n = next_page.is_enabled()
-                # if next_page.is_enabled():
-                #     next_page.click()
                 self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                 await self.get_link_message(self.browser.page_source, word)
 
         self.browser.quit()
-        # return self.to_write_excel_dict
 
     async def get_link_message(self, raw_content, word):
-        message_dict ={}
-        results_dict = {}
         to_write_excel_dict = {
             'chat_name': [],
             'title': [],
@@ -182,17 +131,9 @@ class HHGetInformation:
         base_url = 'https://hh.ru'
         links = []
         soup = BeautifulSoup(raw_content, 'lxml')
-        # self.browser.quit()
 
         list_links = soup.find_all('a', class_='serp-item__title')
         print(f'\nПо слову {word} найдено {len(list_links)} вакансий\n')
-
-        # self.current_message = await self.bot.send_message(self.chat_id, f"По слову {word} найдено {len(list_links)} вакансий на {self.page_number} странице\n\n")
-
-        # self.current_message = await self.bot.edit_message_text(
-        #     f'{self.current_message.text}\nПо слову {word} найдено {len(list_links)} вакансий\n\n',
-        #     self.current_message.chat.id,
-        #     self.current_message.message_id)
 
         # -------------------- check what is current session --------------
 
@@ -207,7 +148,6 @@ class HHGetInformation:
         for value in current_session:
             self.current_session = value[0]
 
-
         # --------------------- LOOP -------------------------
         self.written_vacancies = 0
         self.rejected_vacancies = 0
@@ -219,11 +159,6 @@ class HHGetInformation:
             links.append(vacancy_url)
 
             self.browser.get(vacancy_url)
-            # time.sleep(2)
-            # try:
-            #     self.browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            # except Exception as e:
-            #     print('Screen did not scroll: ', e)
 
             soup = BeautifulSoup(self.browser.page_source, 'lxml')
 
@@ -406,11 +341,6 @@ class HHGetInformation:
             self.count_message_in_one_channel += 1
 
         #----------------------- the statistics output ---------------------------
-        # await self.bot.send_message(self.chat_id, f'Report:\nПо слову <b>{word}</b>: найдено {len(list_links)}\n'
-        #                                              f'Добавлено в базу новых: {self.written_vacancies}\n'
-        #                                              f'Были ранее спаршены: {self.rejected_vacancies}',
-        #                             parse_mode='html'
-        #                )
         self.written_vacancies = 0
         self.rejected_vacancies = 0
 

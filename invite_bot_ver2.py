@@ -175,7 +175,10 @@ class InviteBot:
                                                             '/get_participants - ❗️get the channel follower numbers\n'
                                                             '/delete_till - ❗️delete old vacancy from admin DB till date\n'
                                                             '/magic_word - input word and get results from hh.ru\n'
-                                                            '/download - ❗️you get excel from admin vacancies with search tags\n\n'
+                                                            '/download - ❗️you get excel from admin vacancies with search tags\n'
+                                                            '/ambulance - if bot gets accident in hard pushing and you think you loose the shorts\n'
+                                                            '/refresh - to rewrite the professions in all vacancies throgh the new filters logic\n'
+                                                            '/add_statistics\n\n'
                                                             '❗️- it is admin options')
 
         @dp.message_handler(commands=['logs', 'log'])
@@ -183,7 +186,9 @@ class InviteBot:
             path = './logs/logs.txt'
             await send_file_to_user(message, path)
 
-
+        @dp.message_handler(commands=['refresh'])
+        async def refresh_vacancies(message: types.Message):
+            await refresh(message)
 
         @dp.message_handler(commands=['peerchannel'])
         async def get_logs(message: types.Message):
@@ -240,6 +245,63 @@ class InviteBot:
 
             await state.finish()
 
+        @dp.message_handler(commands=['ambulance'])
+        async def ambulance(message: types.Message):
+            short = ''
+            shorts_list = []
+            with open('./ambulance/ambulance_shorts.txt', 'r') as file:
+                shorts = file.read()
+            if len(shorts)<4096:
+                return await bot_aiogram.send_message(message.chat.id, shorts, parse_mode='html')
+            else:
+                shorts = shorts.split('\n\n')
+                for i in shorts:
+                    if len(f"{short}{i}\n\n") < 4096:
+                        short += f"{i}\n\n"
+                    else:
+                        shorts_list.append(short)
+                        short = f"{i}\n\n"
+                n_count = 1
+                for i in shorts_list:
+                    await bot_aiogram.send_message(message.chat.id, i, parse_mode='html')
+                    print(n_count, 'short ambulance')
+                    n_count += 1
+                    await asyncio.sleep(random.randrange(1, 3))
+
+        @dp.message_handler(commands=['add_statistics'])
+        async def add_statistics(message: types.Message):
+            stat_dict = {}
+
+            for channel in self.valid_profession_list:
+                try:
+                    messages = await get_tg_history_messages(
+                        message=message,
+                        channel=config['My_channels'][f"{channel}_channel"],
+                        limit_msg=100
+                    )
+                    for vacancy in messages:
+                        year = int(vacancy['date'].strftime('%Y'))
+                        month = int(vacancy['date'].strftime('%m'))
+                        day = int(vacancy['date'].strftime('%d'))
+
+                        if datetime(year, month, day) > datetime(2022, 10, 15):
+                            date = vacancy['date'].strftime("%d.%m.%y")
+                            if date not in stat_dict:
+                                stat_dict[date] = {}
+                            if channel not in stat_dict[date]:
+                                stat_dict[date][channel] = 0
+                            stat_dict[date][channel] += len(re.findall(r"Вакансия: ", vacancy['message']))
+                except:
+                    print(f'channel {channel} has the accidence')
+
+                await asyncio.sleep(3)
+
+            for i in stat_dict:
+                print(f"{i}: {stat_dict[i]}")
+
+            pass
+
+
         @dp.message_handler(commands=['get_participants'])
         async def download(message: types.Message):
             await Form_participants.channel.set()
@@ -285,11 +347,19 @@ class InviteBot:
             else:
                 title = vacancy
                 body = ''
+            # dict_response = AlexSort2809().sort_by_profession_by_Alex(
+            #     body=body,
+            #     title=title,
+            #     only_profession=True
+            # )
+
             dict_response = AlexSort2809().sort_by_profession_by_Alex(
                 body=body,
                 title=title,
-                only_profession=True
+                check_contacts=False,
+                check_vacancy=False
             )
+
             profession = dict_response['profession']
 
             message_for_send = "<b>PATTERN'S RESULTS:</b>\n\n"
@@ -985,7 +1055,7 @@ class InviteBot:
 # ----------------- make the current session and write it in DB ----------------------
                     self.current_session = datetime.now().strftime("%Y%m%d%H%M%S")
                     DataBaseOperations(None).write_current_session(self.current_session)
-                    await bot_aiogram.send_message(message.chat.id, f'Current session is {self.current_session}')
+                    await bot_aiogram.send_message(message.chat.id, f'Session is {self.current_session}')
                     await asyncio.sleep(1)
                     self.start_time_scraping_channels = datetime.now()
                     print('time_start = ', self.start_time_scraping_channels)
@@ -1061,7 +1131,7 @@ class InviteBot:
                     logs.write_log(f"invite_bot_2: content_types: Digest")
 
                     self.markup = InlineKeyboardMarkup(row_width=1)
-                    but_show = InlineKeyboardButton('Show the statistics',
+                    but_show = InlineKeyboardButton('Unsorted vacancies (new vacancies)',
                                                     callback_data='show_info_last_records')
                     # but_send_digest_full = InlineKeyboardButton('Разлить fulls посл сессию',
                     #                                             callback_data='send_digest_full')
@@ -1072,8 +1142,8 @@ class InviteBot:
                     but_do_by_admin = InlineKeyboardButton('ADMIN AREA👀✈️',
                                                                 callback_data='go_by_admin')
                     but_stat_today = InlineKeyboardButton('One day statistics', callback_data='one_day_statistics')
-                    but_excel_all_statistics = InlineKeyboardButton('STATISTICS consolidated table (Excel)', callback_data='consolidated_table')
-                    but_hard_push = InlineKeyboardButton('HARD PUSH 🧨🧨🧨', callback_data='hard_push')
+                    but_excel_all_statistics = InlineKeyboardButton('Whole posted vacancies (EXCEL)', callback_data='consolidated_table')
+                    but_hard_push = InlineKeyboardButton('HARD PUSHING 🧨🧨🧨', callback_data='hard_push')
 
                     # self.markup.row(but_show, but_send_digest_full)
                     # self.markup.row(but_send_digest_full_all, but_separate_channel)
@@ -1519,6 +1589,7 @@ class InviteBot:
         #     return r
 
         async def hard_post(message, channels=None):
+            status_agregator_send: bool
             statistics = {}
             progress = ShowProgress({'bot': bot_aiogram, 'chat_id': message.chat.id})
             try:
@@ -1531,7 +1602,10 @@ class InviteBot:
                 channels = self.valid_profession_list
             if type(channels) is str:
                 channels = [channels]
+
             for profession in channels:
+                await ambulance_saved_to_file("", rewrite=True)
+
                 statistics[profession] = 0
                 # choose from db regarding profession
                 response = self.db.get_all_from_db(
@@ -1539,7 +1613,7 @@ class InviteBot:
                     param = f"WHERE profession LIKE '%{profession}' OR profession LIKE '%{profession},%'"
                 )
                 if response:
-                    await bot_aiogram.send_message(message.chat.id, f"Profession {profession} on work")
+                    await bot_aiogram.send_message(message.chat.id, f"{profession} in progress...")
                     self.last_id_message_agregator = await get_last_admin_channel_id(
                         message=message,
                         channel=config['My_channels']['agregator_channel']
@@ -1563,53 +1637,69 @@ class InviteBot:
                         composed_message['message'] = composed_message['composed_message']
                         pass
 
-                        # push to the admin channel
-                        await push_vacancies_to_agregator_from_admin(
-                            message=message,
-                            vacancy=composed_message,
-                            vacancy_from_admin=[vacancy],
-                            response=[vacancy],
-                            profession=profession,
-                            id_admin_last_session_table=id_admin_last_session_table,
-                            from_admin_temporary=False
-                        )
+                        try:
+                            # push to the admin channel
+                            await push_vacancies_to_agregator_from_admin(
+                                message=message,
+                                vacancy=composed_message,
+                                vacancy_from_admin=[vacancy],
+                                response=[vacancy],
+                                profession=profession,
+                                id_admin_last_session_table=id_admin_last_session_table,
+                                from_admin_temporary=False
+                            )
+                            status_agregator_send = True
+
+                        except Exception as e:
+                            print(f'It Couldnt send to agregator: {e}')
+                            status_agregator_send = False
+                            print(f'\n!!!!!! It has not sent to agregator channel because: {e}\ndata: prof: {profession}, id: {vacancy[0]}')
                         pass
-                        # add to shorts
-                        response = self.db.get_all_from_db(
-                            table_name='admin_last_session',
-                            param=f"WHERE id={id_admin_last_session_table}"
-                        ) # for to refresh vacancy regarding agregator id if it has written
-                        vacancy = response[0]
-                        composed_message = await compose_message(vacancy, profession, full=False)
-                        message_for_send += f"{composed_message['composed_message']}\n"
-                        statistics[profession] += 1
-                        self.quantity_entered_to_shorts += 1
 
-                        await compose_data_and_push_to_db(
-                            vacancy_from_admin=[vacancy],
-                            profession=profession
-                        )
-                        prof_list = vacancy[4].split(',')
+                        if status_agregator_send:
+                            # add to shorts
+                            response = self.db.get_all_from_db(
+                                table_name='admin_last_session',
+                                param=f"WHERE id={id_admin_last_session_table}"
+                            ) # for to refresh vacancy regarding agregator id if it has written
+                            vacancy = response[0]
+                            composed_message = await compose_message(vacancy, profession, full=False)
+                            message_for_send += f"{composed_message['composed_message']}\n"
 
-                        # change field profession on DB or delete
-                        await update_vacancy_admin_last_session(
-                            results_dict=None,
-                            profession=profession,
-                            prof_list=prof_list,
-                            id_admin_last_session_table=id_admin_last_session_table,
-                            update_profession=True,
-                            update_id_agregator=False
-                        )
-                        n += 1
-                        progress_message = await progress.show_the_progress(progress_message, n, length)
+                            await ambulance_saved_to_file(f"{composed_message['composed_message']}")
+
+                            statistics[profession] += 1
+                            self.quantity_entered_to_shorts += 1
+
+                            await compose_data_and_push_to_db(
+                                vacancy_from_admin=[vacancy],
+                                profession=profession
+                            )
+                            prof_list = vacancy[4].split(',')
+
+                            # change field profession on DB or delete
+                            await update_vacancy_admin_last_session(
+                                results_dict=None,
+                                profession=profession,
+                                prof_list=prof_list,
+                                id_admin_last_session_table=id_admin_last_session_table,
+                                update_profession=True,
+                                update_id_agregator=False
+                            )
+                            n += 1
+                            progress_message = await progress.show_the_progress(progress_message, n, length)
 
                     vacancies_list = await cut_message_for_send(message_for_send)
+                    n_count = 1
                     for short in vacancies_list:
                         try:
                             await write_to_logs_error(f"Results:\n{short}\n")
                             # push shorts
                             await bot_aiogram.send_message(config['My_channels'][f'{profession}_channel'], short, parse_mode='html',
                                                            disable_web_page_preview=True)
+                            print(n_count, 'print shorts')
+                            n_count += 1
+                            await asyncio.sleep(random.randrange(1, 3))
 
                         except Exception as e:
                             await bot_aiogram.send_message(config['My_channels']['temporary_channel'], f'It did not send to {profession}. Please, do it manually', parse_mode='html')
@@ -1626,6 +1716,18 @@ class InviteBot:
                 await bot_aiogram.send_document(message.chat.id, "https://media.tenor.com/50IjyLmv8mQAAAAd/will-smith-clap.gif")
             except Exception as e:
                 print("didn't push gif")
+
+        async def ambulance_saved_to_file(text, rewrite=False):
+            if rewrite:
+                status = "w"
+            else:
+                status = "a+"
+            with open("./ambulance/ambulance_shorts.txt", f"{status}") as file:
+                try:
+                    file.write(text)
+                except Exception as e:
+                    print(f"!!!!!! error for write in ambulance: {e}:\n text = {text}")
+
 
         def db_connect():
 
@@ -1862,12 +1964,12 @@ class InviteBot:
 
             await send_file_to_user(message, path='./excel/followers_statistics.xlsx')
 
-        async def send_file_to_user(message, path):
+        async def send_file_to_user(message, path, caption='Please take it'):
 
             logs.write_log(f"invite_bot_2: function: send_file_to_user")
 
             with open(path, 'rb') as file:
-                await bot_aiogram.send_document(message.chat.id, file, caption='Please, take it')
+                await bot_aiogram.send_document(message.chat.id, file, caption=caption)
 
         async def get_last_session():
 
@@ -1961,7 +2063,7 @@ class InviteBot:
 
                 title = message[2]
                 body = message[3]
-                params = AlexSort2809().sort_by_profession_by_Alex(title, body)['params']
+                params = AlexSort2809().sort_by_profession_by_Alex(title, body, check_profession=False, check_contacts=False, check_vacancy=False)['params']
 
 
                 # compose message_to_send
@@ -2574,6 +2676,104 @@ class InviteBot:
 
         async def print_log(text):
             print(f"{datetime.now().strftime('%H:%M:%S')}:\n{text}")
+
+        async def refresh(message):
+            from filters.scraping_get_profession_Alex_next_2809 import AlexSort2809
+            filter = AlexSort2809()
+            db = DataBaseOperations(None)
+            profession = {}
+            title_list = []
+            body_list = []
+            old_prof_list = []
+            new_prof_list = []
+            tag_list = []
+            anti_tag = []
+
+            await bot_aiogram.send_message(message.chat.id, 'It will rewrite the professions in all vacancies through the new filter logic\nPlease wait few seconds for start')
+
+            with open('pr.txt', 'w') as file:
+                file.write('')
+
+            response = DataBaseOperations(None).get_all_from_db(
+                table_name='admin_last_session'
+            )
+            show = ShowProgress(bot_dict={'bot': bot_aiogram, 'chat_id': message.chat.id})
+            n=0
+            length = len(response)
+            msg = await bot_aiogram.send_message(message.chat.id, 'progress 0%')
+            for i in response:
+                print(i[2])
+                print(f'old prof [{i[4]}]')
+                title = i[2]
+                body = i[3]
+
+                if 'https://t.me' in i[1]:
+                    profession = filter.sort_by_profession_by_Alex(title, body, get_params=False)
+                else:
+                    profession = filter.sort_by_profession_by_Alex(title, body, check_contacts=False, check_vacancy=False, get_params=False)
+
+                print('new2', profession['profession']['profession'])
+                print(f"{profession['profession']['tag']}")
+                print(f"{profession['profession']['anti_tag']}")
+                print('--------------------------')
+                try:
+                    with open('pr.txt', 'a+') as file:
+                        file.write(
+                            f"{i[2]}\nold prof [{i[4]}]\n"
+                            f"___\n"
+                            f"new prof2 (title+body): {profession['profession']['profession']}\n"
+                            f"{profession['profession']['tag']}\n"
+                            f"{profession['profession']['anti_tag']}\n"
+                            f"__________________________________\n"
+
+                        )
+                except:
+                    pass
+
+                profession_str = ''
+                for prof in profession['profession']['profession']:
+                    profession_str += f"{prof}, "
+
+                title_list.append(i[2])
+                body_list.append(i[3])
+                old_prof_list.append(i[4])
+                new_prof_list.append(profession_str)
+                tag_list.append(profession['profession']['tag'])
+                anti_tag.append(profession['profession']['anti_tag'])
+
+                profession_str = profession_str[:-2]
+                print(profession_str, '\n________________\n')
+                pass
+
+                db.run_free_request(
+                    request=f"""UPDATE admin_last_session SET profession='{profession_str}' WHERE id={i[0]}""",
+                    output_text='updated\n___________\n\n'
+                )
+                n += 1
+                await show.show_the_progress(msg, n, length)
+
+            df = pd.DataFrame(
+                {
+                    'title': title_list,
+                    'body': body_list,
+                    'old_prof': old_prof_list,
+                    'new_prof': new_prof_list,
+                    'tag': tag_list,
+                    'anti_tag': anti_tag
+                }
+            )
+            path = './excel/professions_rewrite.xls'
+
+            try:
+                df.to_excel(path, sheet_name='Sheet1')
+                await send_file_to_user(message, path, caption='You win! Take the logs for checking how it was and how it is')
+                print('got it')
+            except:
+                try:
+                    await send_file_to_user(message, './other_operations/pr.txt', caption="It did not send excel so take txt logs")
+                except:
+                    await bot_aiogram.send_message(message.chat.id, 'Done')
+
 
         executor.start_polling(dp, skip_updates=True)
 
