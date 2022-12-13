@@ -27,7 +27,118 @@ class AlexSort2809:
                                       'designer', 'devops', 'hr', 'backend', 'frontend', 'qa', 'junior']
 
 
-    def sort_by_profession_by_Alex(self, title, body, companies=None, get_params=True, only_profession=False):
+
+    def sort_by_profession_by_Alex(self, title, body, check_contacts=True, check_profession=True, check_vacancy=True, get_params=True):
+        profession = dict()
+        profession['tag'] = ''
+        profession['anti_tag'] = ''
+        profession['profession'] = []
+        params = {}
+        vacancy = f"{title}\n{body}"
+
+        # if it is not vacancy, return no_sort
+        if check_profession:
+            if check_vacancy:
+                result = self.check_parameter(pattern=pattern_Alex2809.pattern['vacancy'], vacancy=vacancy, key='vacancy')
+                self.result_dict2['vacancy'] = result['result']
+                profession['tag'] += result['tags']
+                profession['anti_tag'] += result['anti_tags']
+
+                if not self.result_dict2['vacancy']:
+                    profession['profession'] = {'no_sort'}
+                    print("= vacancy not found =")
+                    return {'profession': profession, 'params': {}}
+
+            # if it is without contact, return no_sort
+            if check_contacts:
+                result = self.check_parameter(pattern=pattern_Alex2809.pattern['contacts'], vacancy=vacancy, key='contacts')
+                self.result_dict2['contacts'] = result['result']
+                profession['tag'] += result['tags']
+                profession['anti_tag'] += result['anti_tags']
+
+                if not self.result_dict2['contacts']:
+                    profession['profession'] = {'no_sort'}
+                    print("= contacts not found =")
+                    return {'profession': profession, 'params': {}}
+
+            # ---------------- professions -----------------
+
+            for item in self.valid_profession_list:
+                if item in ['pm', 'game', 'designer', 'hr', 'analyst', 'qa', 'ba', 'product']:
+                    low = False
+                else:
+                    low = True
+                if item == 'product':
+                    item = 'pm'
+                result = self.check_parameter(pattern=pattern_Alex2809.pattern[item], vacancy=vacancy, low=low, key=item)
+                if result['result']:
+                    profession['profession'].append(result['result'])
+                profession['tag'] += result['tags']
+                profession['anti_tag'] += result['anti_tags']
+
+            if 'fullstack' in profession['profession']:
+                profession = self.transform_fullstack_to_back_and_front(text=vacancy, profession=profession)
+
+            if not profession['profession']:
+                profession['profession'] = ['no_sort']
+
+            profession['profession'] = set(profession['profession'])
+
+        if get_params:
+            params = self.get_params(text=vacancy, profession=profession)
+
+        return {'profession': profession, 'params': params}
+
+
+    def check_parameter(self, pattern, vacancy, key, low=True):
+        result = 0
+        tags = ''
+        anti_tags = ''
+        if low:
+            vacancy = vacancy.lower()
+
+        if key == 'contacts':
+            pass
+
+        for word in pattern['ma']:
+            if low:
+                word = word.lower()
+
+            match = set(re.findall(rf"{word.lower()}", vacancy.lower()))
+
+            if match:
+                result += len(match)
+                tags += f'MA {key}={match}\n'
+        pass
+
+        if result:
+            for anti_word in pattern['mex']:
+                if low:
+                    anti_word = anti_word.lower()
+
+                match = set(re.findall(rf"{anti_word.lower()}", vacancy.lower()))
+                if match:
+                    result = 0
+                    anti_tags += f'MEX {key}={match}\n'
+                    break
+        else:
+            anti_tags = ''
+
+        return {'result': key if result else '', 'tags': tags, 'anti_tags': anti_tags}
+
+
+    def get_params(self, text, profession, all_fields_null=False):
+        params = {}
+        params['company'] = self.get_company_new(text)
+        params['job_type'] = self.get_remote_new(text)
+        params['job_type'] = self.get_remote_new(text)
+        params['relocation'] = self.get_relocation_new(text)
+        params['english'] = self.english_requirements_new(text)
+        params['vacancy'] = self.get_vacancy_name(text, profession['profession'])
+
+        return params
+
+    def sort_by_profession_by_Alex2(self, title, body, companies=None, get_params=True, only_profession=False):
         params = {}
         new_pattern_has_done = False
 
@@ -207,7 +318,27 @@ class AlexSort2809:
             #
             # self.result_dict2['fullstack'] = 0
 
-    def transform_fullstack_to_back_and_front(self, message):
+    def transform_fullstack_to_back_and_front(self, text, profession):
+
+        for anti_word in self.pattern_alex['backend']['mex']:
+            match = re.findall(rf"{anti_word.lower()}", text.lower())
+            if match:
+                profession['anti_tag'] += f'TAG ANTI backend={match}\n'
+            else:
+                profession['profession'].add('backend')
+
+        for anti_word in self.pattern_alex['frontend']['mex']:
+            match = re.findall(rf"{anti_word.lower()}", text.lower())
+            if match:
+                profession['anti_tag'] += f'TAG ANTI frontend={match}\n'
+            else:
+                profession['profession'].add('frontend')
+
+        profession['profession'].discard('fullstack')
+
+        return profession
+
+    def transform_fullstack_to_back_and_front2(self, message):
 
         message_to_check = message.lower()
         for exclude_word in self.pattern_alex['backend']['mex']:

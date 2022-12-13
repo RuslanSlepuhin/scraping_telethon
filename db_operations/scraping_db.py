@@ -805,7 +805,7 @@ class DataBaseOperations:
         results_dict['company'] = self.clear_title_or_body(results_dict['company'])
 
         list_prof = profession['profession']
-        print('\n\nНюанс в 805 строке scarping db\n\n')
+        # print('\n\nНюанс в 805 строке scarping db\n\n')
 
         if type(list_prof) is set and 'no_sort' not in list_prof:
             list_prof.add('no_sort')

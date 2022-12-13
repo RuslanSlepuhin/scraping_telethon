@@ -244,7 +244,9 @@ class WriteToDbMessages():
             'session': self.current_session
         }
 
-        print(f"channel = {channel}")
+        print(f"----------------\nchannel = {channel}")
+        print(f"vacancy_link {channel}/{one_message['id']}")
+        print(f"title = {title[0:60]}")
 # =============================== scheme next steps =======================================
         # we are in the messages loop, it takes them by one
         # -----------------------LOOP---------------------------------
@@ -255,7 +257,9 @@ class WriteToDbMessages():
         #           I have got the companies previous. Look at up
         # self.companies = DataBaseOperations(con=con).get_all_from_db(table_name='companies', without_sort=True)  # check!!!
 
-        response = AlexSort2809().sort_by_profession_by_Alex(title, body, self.companies)
+        # response = AlexSort2809().sort_by_profession_by_Alex(title, body, self.companies)
+        response = AlexSort2809().sort_by_profession_by_Alex(title, body)
+
         profession = response['profession']
         params = response['params']
 
@@ -344,7 +348,9 @@ class WriteToDbMessages():
                 title = response[2]
                 body = response[3]
                 agregator_id = response[7]
-                response_params = AlexSort2809().sort_by_profession_by_Alex(title, body, self.companies)
+                # response_params = AlexSort2809().sort_by_profession_by_Alex(title, body, self.companies)
+                response_params = AlexSort2809().sort_by_profession_by_Alex(title, body)
+
                 params = response_params['params']
                 short_message += f"Вакансия: \n"
                 short_message += f"Компания: {params['company_hiring']}\n" if params['company_hiring'] else ''
